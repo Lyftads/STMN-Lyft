@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
+import { conSoloAcquisti, CAMPO_CATEGORIA } from '../../../lib/ads/googleAcquisti'
 import { NextResponse } from 'next/server'
 import { withTenantContext, getShopify, getGoogle } from '../../../lib/tenant/credentials'
 import { swrSnapshot } from '../../../lib/cache/swr'
@@ -51,7 +52,7 @@ export async function GET(req) {
     const until = sp.get('until') || isoDay(new Date())
     const since = sp.get('since') || isoDay(new Date(Date.now() - 30 * 86400000))
 
-    return swrSnapshot(req, { tab: 'googleProducts', compute: async () => {
+    return swrSnapshot(req, { tab: 'googleProductsAcquisti', compute: async () => {
     try {
       const tok = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -61,7 +62,10 @@ export async function GET(req) {
       const headers = { Authorization: `Bearer ${tok.access_token}`, 'developer-token': devToken, 'Content-Type': 'application/json' }
       if (mcc) headers['login-customer-id'] = mcc
 
-      const query = `SELECT segments.product_item_id, segments.product_title, metrics.clicks, metrics.impressions, metrics.cost_micros, metrics.conversions, metrics.conversions_value FROM shopping_performance_view WHERE segments.date BETWEEN '${since}' AND '${until}'`
+      // Spesa e traffico da una lettura, gli ACQUISTI da una gemella: vedi
+      // lib/ads/googleAcquisti.js (le aggiunte al carrello non sono vendite).
+      const query = `SELECT segments.product_item_id, segments.product_title, metrics.clicks, metrics.impressions, metrics.cost_micros FROM shopping_performance_view WHERE segments.date BETWEEN '${since}' AND '${until}'`
+      const queryAcquisti = conSoloAcquisti(`SELECT segments.product_item_id, ${CAMPO_CATEGORIA}, metrics.conversions, metrics.conversions_value FROM shopping_performance_view WHERE segments.date BETWEEN '${since}' AND '${until}'`)
       const res = await fetch(`https://googleads.googleapis.com/v23/customers/${customerId}/googleAds:searchStream`, {
         method: 'POST', headers, cache: 'no-store', body: JSON.stringify({ query }),
       })
@@ -70,6 +74,11 @@ export async function GET(req) {
         throw new Error(`Google Ads ${res.status}: ${txt.slice(0, 200)}`)
       }
       const arr = await res.json()
+      const resAcq = await fetch(`https://googleads.googleapis.com/v23/customers/${customerId}/googleAds:searchStream`, {
+        method: 'POST', headers, cache: 'no-store', body: JSON.stringify({ query: queryAcquisti }),
+      })
+      if (!resAcq.ok) throw new Error(`Google Ads ${resAcq.status}: ${(await resAcq.text()).slice(0, 200)}`)
+      const arrAcq = await resAcq.json()
 
       // aggrega per item id
       const agg = new Map()
@@ -81,9 +90,14 @@ export async function GET(req) {
         prev.clicks += num(m.clicks)
         prev.impressions += num(m.impressions)
         prev.cost += num(m.costMicros ?? m.cost_micros) / 1e6
+        agg.set(id, prev)
+      }
+      for (const chunk of (Array.isArray(arrAcq) ? arrAcq : [])) for (const row of (chunk.results || [])) {
+        const seg = row.segments || {}, m = row.metrics || {}
+        const prev = agg.get(String(seg.productItemId ?? seg.product_item_id ?? ''))
+        if (!prev) continue
         prev.conversions += num(m.conversions)
         prev.convValue += num(m.conversionsValue ?? m.conversions_value)
-        agg.set(id, prev)
       }
 
       // abbina a Shopify per immagine/titolo

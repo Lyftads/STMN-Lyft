@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
+import { cercaSoloAcquisti } from '../../../lib/ads/googleAcquisti'
 import { NextResponse } from 'next/server'
 import { withTenantContext, getGoogle } from '../../../lib/tenant/credentials'
 import { getRange } from '../../../lib/metaRange'
@@ -42,17 +43,19 @@ export async function GET(req) {
 
     // Solo il livello "campagne" (prima apertura pesante) è cachato; i drill-down
     // adgroup/ad restano live (user-triggered, molte combinazioni).
-    return swrSnapshot(req, { tab: 'googleDetail', cacheable: level === 'campaigns', compute: async () => {
+    return swrSnapshot(req, { tab: 'googleDetail3', cacheable: level === 'campaigns', compute: async () => {
     try {
       const accessToken = await getAccessToken(CLIENT_ID, CLIENT_SECRET, REFRESH_TOKEN)
       const { GoogleAdsServiceClient } = await import('google-ads-node')
       const grpc = await import('@grpc/grpc-js')
       const client = new GoogleAdsServiceClient({ sslCreds: grpc.credentials.createSsl(), servicePath: 'googleads.googleapis.com', port: 443 })
       const callOptions = { otherArgs: { headers: { 'authorization': `Bearer ${accessToken}`, 'developer-token': DEVELOPER_TOKEN, ...(MCC_ID ? { 'login-customer-id': MCC_ID } : {}) } } }
-      const search = async (query) => {
+      const cercaGrezza = async (query) => {
         const [resp] = await client.search({ customer_id: CUSTOMER_ID, query }, callOptions)
         return resp || []
       }
+      // Le conversioni sono solo gli ACQUISTI (lib/ads/googleAcquisti.js).
+      const search = (query) => cercaSoloAcquisti(cercaGrezza, query)
 
       const METRICS = 'metrics.cost_micros, metrics.impressions, metrics.clicks, metrics.conversions, metrics.conversions_value'
       let rows = []

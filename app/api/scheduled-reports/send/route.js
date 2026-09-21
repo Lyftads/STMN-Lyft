@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
-import { withTenantContext } from '../../../../lib/tenant/credentials'
+import { withTenantContext, requireCaller } from '../../../../lib/tenant/credentials'
 import { reportLogoEmail } from '../../../../lib/reports/logo'
 
 // ============================================================================
@@ -12,6 +12,10 @@ import { reportLogoEmail } from '../../../../lib/reports/logo'
 // ============================================================================
 
 export async function POST(req) {
+  // Solo una persona collegata o il cron col suo segreto: prima chiunque poteva far spedire il
+  // riepilogo a un indirizzo qualsiasi (col nostro mittente, e con i numeri a zero).
+  const negato = await requireCaller(req)
+  if (negato) return negato
   return withTenantContext(req, async () => {
     let body
     try { body = await req.json() } catch { return NextResponse.json({ error: 'Body invalido' }, { status: 400 }) }
@@ -77,10 +81,13 @@ async function buildDigest({ type, req }) {
 }
 
 function renderDigestHtml({ type, data }) {
-  const eur = v => v != null ? `&euro;${Number(v).toLocaleString('it-IT', { maximumFractionDigits: 0 })}` : '&mdash;'
-  const num = v => v != null ? Number(v).toLocaleString('it-IT') : '&mdash;'
-  const mul = v => v != null && v > 0 ? `${Number(v).toFixed(2)}x` : '&mdash;'
-  const pct = v => v != null && Number.isFinite(v) ? `${v > 0 ? '+' : ''}${v.toFixed(1)}%` : '&mdash;'
+  // In italiano, col punto delle migliaia SEMPRE e la virgola decimale: toFixed scriveva "1.26x"
+  // e l'italiano di suo non mette il punto sotto le diecimila ("€4099").
+  const it = (v, d) => Number(v).toLocaleString('it-IT', { minimumFractionDigits: d, maximumFractionDigits: d, useGrouping: 'always' })
+  const eur = v => v != null ? `&euro;${it(v, 0)}` : '&mdash;'
+  const num = v => v != null ? Number(v).toLocaleString('it-IT', { useGrouping: 'always' }) : '&mdash;'
+  const mul = v => v != null && v > 0 ? `${it(v, 2)}x` : '&mdash;'
+  const pct = v => v != null && Number.isFinite(v) ? `${v > 0 ? '+' : ''}${it(v, 1)}%` : '&mdash;'
   const deltaPct = (cur, prev) => prev > 0 ? ((cur - prev) / prev) * 100 : null
 
   const s = data.shopify, sp = data.shopify_prev
@@ -139,7 +146,7 @@ function headlineCell(label, value, delta) {
   const color = delta == null ? '#9b90aa' : (delta > 0 ? '#22c55e' : '#f87171')
   const arrow = delta == null ? '' : (delta > 0 ? '▲' : '▼')
   const deltaStr = delta != null && Math.abs(delta) > 0.1
-    ? `<span style="color:${color};font-size:11px;font-weight:700;margin-left:6px;">${arrow} ${Math.abs(delta).toFixed(1)}%</span>`
+    ? `<span style="color:${color};font-size:11px;font-weight:700;margin-left:6px;">${arrow} ${Math.abs(delta).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</span>`
     : ''
   return `<tr><td style="padding:12px 14px;background:rgba(255,255,255,0.04);border-radius:10px;display:block;margin-bottom:8px;">
     <div style="font-size:10px;color:#9b90aa;font-weight:800;letter-spacing:0.10em;text-transform:uppercase;margin-bottom:6px;">${label}</div>

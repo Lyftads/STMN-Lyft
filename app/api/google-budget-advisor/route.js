@@ -4,6 +4,7 @@ export const maxDuration = 60
 import { NextResponse } from 'next/server'
 import { withTenantContext, getGoogle } from '../../../lib/tenant/credentials'
 import { swrSnapshot } from '../../../lib/cache/swr'
+import { cercaSoloAcquisti } from '../../../lib/ads/googleAcquisti'
 import { getRange } from '../../../lib/metaRange'
 
 // ============================================================================
@@ -34,14 +35,17 @@ export async function GET(req) {
     const range = getRange(preset, searchParams)
     const prevRange = previousRange(range)
 
-    return swrSnapshot(req, { tab: 'googleBudgetAdvisor', compute: async () => {
+    return swrSnapshot(req, { tab: 'googleBudgetAdvisorAcquisti', compute: async () => {
     try {
       const accessToken = await getAccessToken(CLIENT_ID, CLIENT_SECRET, REFRESH_TOKEN)
       const { GoogleAdsServiceClient } = await import('google-ads-node')
       const grpc = await import('@grpc/grpc-js')
       const client = new GoogleAdsServiceClient({ sslCreds: grpc.credentials.createSsl(), servicePath: 'googleads.googleapis.com', port: 443 })
       const callOptions = { otherArgs: { headers: { 'authorization': `Bearer ${accessToken}`, 'developer-token': DEVELOPER_TOKEN, ...(MCC_ID ? { 'login-customer-id': MCC_ID } : {}) } } }
-      const search = async (q) => { const [r] = await client.search({ customer_id: CUSTOMER_ID, query: q }, callOptions); return r || [] }
+      const cercaGrezza = async (q) => { const [r] = await client.search({ customer_id: CUSTOMER_ID, query: q }, callOptions); return r || [] }
+      // Conversioni e ROAS sui soli ACQUISTI (lib/ads/googleAcquisti.js): con le aggiunte al carrello
+      // contate come vendite il consiglio "scala"/"taglia" partiva da un ROAS gonfiato.
+      const search = (q) => cercaSoloAcquisti(cercaGrezza, q)
       const M = 'metrics.cost_micros, metrics.conversions, metrics.conversions_value'
 
       const [resp, prevResp] = await Promise.all([

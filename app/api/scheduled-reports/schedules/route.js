@@ -3,10 +3,22 @@ export const runtime = 'nodejs'
 
 import { NextResponse } from 'next/server'
 import { getAdminSupabase } from '../../../../lib/supabase/server'
-import { getCurrentUserId } from '../../../../lib/tenant/credentials'
+import { getCurrentUserId, getEffectiveTenantId } from '../../../../lib/tenant/credentials'
 import { REPORT_SECTION_MAP, REPORT_FREQUENCIES, sectionsNeedUrl } from '../../../../lib/reports/sections'
 
 // CRUD delle schedulazioni report personalizzate (report_schedules).
+//
+// Ogni schedulazione appartiene a un WORKSPACE e a un PRODOTTO (dal 21 set 2026):
+//  · workspace_id: il cron genera i PDF con i dati di quello, e un'agenzia vede in ogni cliente
+//    solo i report di quel cliente. Prima c'era solo l'autore (user_id): per un'agenzia il cron
+//    non poteva sapere per quale cliente l'aveva creato.
+//  · prodotto: la tabella e' la STESSA del fork di Anna Virgili (stesso database). Senza, il cron
+//    di LyftAI mandava anche i report creati su AV, con i dati sbagliati, e quello di AV poteva
+//    mandarli una seconda volta.
+// Le colonne si aggiungono con supabase/report_schedules.sql. Finche' mancano l'elenco funziona
+// come prima, ma un report nuovo NON si crea: resterebbe una riga che nessun cron sa a chi mandare.
+const PRODOTTO = 'lyftai'
+const senzaColonna = (error) => /workspace_id|prodotto/.test(String(error?.message || ''))
 
 function clean(body) {
   const sections = Array.isArray(body?.sections)
@@ -37,8 +49,13 @@ export async function GET() {
   const admin = getAdminSupabase()
   if (!admin) return NextResponse.json({ items: [] })
   try {
-    const { data } = await admin.from('report_schedules')
-      .select('*').eq('user_id', userId).order('created_at', { ascending: false })
+    const ws = await getEffectiveTenantId()
+    const base = () => admin.from('report_schedules').select('*').eq('user_id', userId)
+    // I report di LyftAI di QUESTO workspace, piu' quelli nati prima delle due colonne.
+    const filtro = ws ? `workspace_id.eq.${ws},workspace_id.is.null` : 'workspace_id.is.null'
+    let { data, error } = await base().or(filtro).or(`prodotto.eq.${PRODOTTO},prodotto.is.null`).order('created_at', { ascending: false })
+    if (error && senzaColonna(error)) ({ data, error } = await base().order('created_at', { ascending: false }))
+    if (error) throw error
     return NextResponse.json({ items: data || [] })
   } catch (e) {
     return NextResponse.json({ items: [], error: e.message })
@@ -57,8 +74,11 @@ export async function POST(req) {
   if (!row.recipients.length) return NextResponse.json({ error: 'Inserisci almeno un destinatario valido' }, { status: 400 })
   if (sectionsNeedUrl(row.sections) && !row.target_url) return NextResponse.json({ error: 'SEO Audit / Website Scanner richiedono un URL' }, { status: 400 })
   try {
+    const workspace_id = await getEffectiveTenantId()
+    if (!workspace_id) return NextResponse.json({ error: 'workspace_ignoto' }, { status: 409 })
     const { data, error } = await admin.from('report_schedules')
-      .insert({ user_id: userId, ...row }).select().maybeSingle()
+      .insert({ user_id: userId, workspace_id, prodotto: PRODOTTO, ...row }).select().maybeSingle()
+    if (error && senzaColonna(error)) return NextResponse.json({ error: 'db_da_aggiornare' }, { status: 503 })
     if (error) throw error
     return NextResponse.json({ ok: true, item: data })
   } catch (e) {

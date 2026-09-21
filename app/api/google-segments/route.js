@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
+import { conSoloAcquisti } from '../../../lib/ads/googleAcquisti'
 import { NextResponse } from 'next/server'
 import { withTenantContext, getGoogle } from '../../../lib/tenant/credentials'
 import { getRange } from '../../../lib/metaRange'
@@ -45,7 +46,7 @@ async function periodData(client, CUSTOMER_ID, callOptions, range) {
   } catch {}
   const agg = {}; let segAvailable = true
   try {
-    const [resp] = await client.search({ customer_id: CUSTOMER_ID, query: `SELECT segments.new_versus_returning_customers, metrics.conversions, metrics.conversions_value FROM campaign WHERE segments.date BETWEEN '${range.since}' AND '${range.until}'` }, callOptions)
+    const [resp] = await client.search({ customer_id: CUSTOMER_ID, query: conSoloAcquisti(`SELECT segments.new_versus_returning_customers, metrics.conversions, metrics.conversions_value, segments.conversion_action_category FROM campaign WHERE segments.date BETWEEN '${range.since}' AND '${range.until}'`) }, callOptions)
     for (const row of (resp || [])) {
       const b = bucketOf(row?.segments?.newVersusReturningCustomers ?? row?.segments?.new_versus_returning_customers)
       if (!agg[b]) agg[b] = { conversions: 0, value: 0 }
@@ -64,7 +65,7 @@ async function dailyCac(client, CUSTOMER_ID, callOptions, range) {
     for (const row of (r1 || [])) { const d = row?.segments?.date; if (d) costByDay[d] = (costByDay[d] || 0) + micros(row?.metrics?.costMicros ?? row?.metrics?.cost_micros) }
   } catch {}
   try {
-    const [r2q] = await client.search({ customer_id: CUSTOMER_ID, query: `SELECT segments.date, segments.new_versus_returning_customers, metrics.conversions FROM campaign WHERE segments.date BETWEEN '${range.since}' AND '${range.until}'` }, callOptions)
+    const [r2q] = await client.search({ customer_id: CUSTOMER_ID, query: conSoloAcquisti(`SELECT segments.date, segments.new_versus_returning_customers, metrics.conversions, segments.conversion_action_category FROM campaign WHERE segments.date BETWEEN '${range.since}' AND '${range.until}'`) }, callOptions)
     for (const row of (r2q || [])) {
       const d = row?.segments?.date
       const b = bucketOf(row?.segments?.newVersusReturningCustomers ?? row?.segments?.new_versus_returning_customers)
@@ -93,7 +94,7 @@ export async function GET(req) {
     const prevSince = new Date(prevUntil.getTime() - (len - 1) * 86400000)
     const prevRange = { since: prevSince.toISOString().slice(0, 10), until: prevUntil.toISOString().slice(0, 10) }
 
-    return swrSnapshot(req, { tab: 'googleSegments', ttlMs: 30 * 60 * 1000, compute: async () => {
+    return swrSnapshot(req, { tab: 'googleSegments3', ttlMs: 30 * 60 * 1000, compute: async () => {
       try {
         const accessToken = await getAccessToken(CLIENT_ID, CLIENT_SECRET, REFRESH_TOKEN)
         const { GoogleAdsServiceClient } = await import('google-ads-node')

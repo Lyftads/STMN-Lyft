@@ -325,17 +325,17 @@ function buildHtml({ tab, label, range, narrative, kpis, vociTabella = null, dai
             <div class="ad-name">${esc(a.name)}</div>
             <div class="ad-kpis">
               <span>Spesa <b>${money2(a.spend)}</b></span>
-              <span>ROAS <b>${a.roas.toFixed(2)}x</b></span>
-              <span>CTR <b>${a.ctr.toFixed(2)}%</b></span>
+              <span>ROAS <b>${dec(a.roas, 2)}x</b></span>
+              <span>CTR <b>${dec(a.ctr, 2)}%</b></span>
               <span>CPA <b>${money2(a.cpa)}</b></span>
-              <span>Freq <b>${a.frequency.toFixed(2)}</b></span>
+              <span>Freq <b>${dec(a.frequency, 2)}</b></span>
               <span>Acquisti <b>${intf(a.purchases)}</b></span>
             </div>
           </div>
         </div>`).join('')
       return `
         <div class="adset">
-          <div class="adset-h"><b>${esc(as.name)}</b><span>${money2(as.spend)} · ROAS ${as.roas.toFixed(2)}x · CTR ${as.ctr.toFixed(2)}% · ${intf(as.purchases)} acquisti</span></div>
+          <div class="adset-h"><b>${esc(as.name)}</b><span>${money2(as.spend)} · ROAS ${dec(as.roas, 2)}x · CTR ${dec(as.ctr, 2)}% · ${intf(as.purchases)} acquisti</span></div>
           ${adsHtml || `<div class="muted">${_tr('Nessuna creativa attiva.')}</div>`}
         </div>`
     }).join('')
@@ -344,10 +344,10 @@ function buildHtml({ tab, label, range, narrative, kpis, vociTabella = null, dai
       <div class="camp-kpis">
         <span>Spesa <b>${money2(c.spend)}</b></span>
         <span>Revenue <b>${money2(c.revenue)}</b></span>
-        <span>ROAS <b>${c.roas.toFixed(2)}x</b></span>
-        <span>CTR <b>${c.ctr.toFixed(2)}%</b></span>
+        <span>ROAS <b>${dec(c.roas, 2)}x</b></span>
+        <span>CTR <b>${dec(c.ctr, 2)}%</b></span>
         <span>CPA <b>${money2(c.cpa)}</b></span>
-        <span>Freq <b>${c.frequency.toFixed(2)}</b></span>
+        <span>Freq <b>${dec(c.frequency, 2)}</b></span>
         <span>Acquisti <b>${intf(c.purchases)}</b></span>
       </div>
       ${adsetBlocks}`
@@ -356,24 +356,24 @@ function buildHtml({ tab, label, range, narrative, kpis, vociTabella = null, dai
   const campTable = topCampaigns ? (isGoogle ? `
     <h2>${_tr('Campagne attive')}</h2>
     <table><thead><tr><th>${_tr('Campagna')}</th><th>${_tr('Stato')}</th><th>${_tr('Spesa')}</th><th>ROAS</th><th>CTR</th><th>CPC</th><th>${_tr('Conversioni')}</th><th>${_tr('Valore conv.')}</th></tr></thead><tbody>
-    ${topCampaigns.map(c => `<tr><td>${esc(c.name)}</td><td>${esc(c.status || '')}</td><td>${money2(c.spend)}</td><td>${num(c.roas).toFixed(2)}x</td><td>${num(c.ctr).toFixed(2)}%</td><td>${money2(c.cpc)}</td><td>${intf(c.conversions)}</td><td>${money2(c.convValue)}</td></tr>`).join('')}
+    ${topCampaigns.map(c => `<tr><td>${esc(c.name)}</td><td>${esc(c.status || '')}</td><td>${money2(c.spend)}</td><td>${dec(num(c.roas), 2)}x</td><td>${dec(num(c.ctr), 2)}%</td><td>${money2(c.cpc)}</td><td>${intf(c.conversions)}</td><td>${money2(c.convValue)}</td></tr>`).join('')}
     </tbody></table>` : `
     <h2>${_tr('Campagne attive')}</h2>
     <table><thead><tr><th>${_tr('Campagna')}</th><th>${_tr('Spesa')}</th><th>ROAS</th><th>CTR</th><th>CPA</th><th>${_tr('Acquisti')}</th></tr></thead><tbody>
-    ${topCampaigns.map(c => `<tr><td>${esc(c.name)}</td><td>${money2(c.spend)}</td><td>${c.roas.toFixed(2)}x</td><td>${c.ctr.toFixed(2)}%</td><td>${money2(c.cpa)}</td><td>${intf(c.purchases)}</td></tr>`).join('')}
+    ${topCampaigns.map(c => `<tr><td>${esc(c.name)}</td><td>${money2(c.spend)}</td><td>${dec(c.roas, 2)}x</td><td>${dec(c.ctr, 2)}%</td><td>${money2(c.cpa)}</td><td>${intf(c.purchases)}</td></tr>`).join('')}
     </tbody></table>`) : ''
 
   const RISK_LABEL = { le7: _tr('Stockout < 7gg'), le30: _tr('A rischio < 30gg'), oos_sales: _tr('Broken size'), oos: _tr('Esaurito') }
   const inventoryHtml = (Array.isArray(inventoryRows) && inventoryRows.length) ? `
     <h2>${_tr('Prodotti a rischio stockout')}</h2>
     <table><thead><tr><th>${_tr('Prodotto')}</th><th>${_tr('Taglia/SKU')}</th><th>${_tr('Stock')}</th><th>${_tr('Vendite/g')}</th><th>${_tr('Giorni a stockout')}</th><th>${_tr('Rischio')}</th><th>${_tr('Perse/sett.')}</th></tr></thead><tbody>
-    ${inventoryRows.map(i => `<tr><td>${esc(i.productTitle || i.title || '—')}</td><td>${esc(i.size || i.sku || '—')}</td><td>${intf(i.stock)}</td><td>${num(i.velocity).toFixed(2)}</td><td>${i.daysToStockout != null ? intf(i.daysToStockout) : '—'}</td><td>${esc(RISK_LABEL[i.risk] || i.risk || '')}</td><td>${money2(num(i.lostRevPerDay) * 7)}</td></tr>`).join('')}
+    ${inventoryRows.map(i => `<tr><td>${esc(i.productTitle || i.title || '—')}</td><td>${esc(i.size || i.sku || '—')}</td><td>${intf(i.stock)}</td><td>${dec(num(i.velocity), 2)}</td><td>${i.daysToStockout != null ? intf(i.daysToStockout) : '—'}</td><td>${esc(RISK_LABEL[i.risk] || i.risk || '')}</td><td>${money2(num(i.lostRevPerDay) * 7)}</td></tr>`).join('')}
     </tbody></table>` : ''
 
   const productPerfHtml = (Array.isArray(productRows) && productRows.length) ? `
     <h2>${_tr('Performance per prodotto')}</h2>
     <table><thead><tr><th>${_tr('Prodotto')}</th><th>${_tr('Unità')}</th><th>${_tr('Fatturato netto')}</th><th>COGS</th><th>ADS</th><th>${_tr('Margine op.')}</th><th>${_tr('Margine op.')} %</th><th>ROAS</th><th>Δ</th></tr></thead><tbody>
-    ${productRows.map(p => `<tr><td>${esc(p.title)}</td><td>${intf(p.units)}</td><td>${money2(p.netRevenue)}</td><td>${money2(p.cogs)}</td><td>${money2(p.ads)}</td><td>${money2(p.marginOp)}</td><td>${num(p.marginPct).toFixed(1)}%</td><td>${p.roas != null ? `${num(p.roas).toFixed(2)}x` : '—'}</td><td>${p.deltaNet != null ? `${p.deltaNet > 0 ? '+' : ''}${num(p.deltaNet).toFixed(1)}%` : '—'}</td></tr>`).join('')}
+    ${productRows.map(p => `<tr><td>${esc(p.title)}</td><td>${intf(p.units)}</td><td>${money2(p.netRevenue)}</td><td>${money2(p.cogs)}</td><td>${money2(p.ads)}</td><td>${money2(p.marginOp)}</td><td>${dec(num(p.marginPct), 1)}%</td><td>${p.roas != null ? `${dec(num(p.roas), 2)}x` : '—'}</td><td>${p.deltaNet != null ? `${p.deltaNet > 0 ? '+' : ''}${dec(num(p.deltaNet), 1)}%` : '—'}</td></tr>`).join('')}
     </tbody></table>` : ''
 
   const productsHtml = (Array.isArray(topProducts) && topProducts.length) ? `
@@ -480,7 +480,7 @@ function buildFullHtml({ label, range, narrative, S }) {
   const metaDetailSection = md ? `
     ${secH2('list','🔵 Meta Detail — campagne')}
     ${md.topCampaigns?.length ? `<table><thead><tr><th>${_tr('Campagna')}</th><th>${_tr('Spesa')}</th><th>ROAS</th><th>CTR</th><th>CPA</th><th>${_tr('Acquisti')}</th></tr></thead><tbody>
-      ${md.topCampaigns.map(c => `<tr><td>${esc(c.name)}</td><td>${money2(c.spend)}</td><td>${num(c.roas).toFixed(2)}x</td><td>${num(c.ctr).toFixed(2)}%</td><td>${money2(c.cpa)}</td><td>${intf(c.purchases)}</td></tr>`).join('')}
+      ${md.topCampaigns.map(c => `<tr><td>${esc(c.name)}</td><td>${money2(c.spend)}</td><td>${dec(num(c.roas), 2)}x</td><td>${dec(num(c.ctr), 2)}%</td><td>${money2(c.cpa)}</td><td>${intf(c.purchases)}</td></tr>`).join('')}
       </tbody></table>` : ''}
     ${(md.insight || md.todos?.length) ? `<div class="cols">
       ${md.insight ? `<div><h3>${_tr('Insight')}</h3><p class="muted">${esc(md.insight)}</p></div>` : ''}
@@ -497,7 +497,7 @@ function buildFullHtml({ label, range, narrative, S }) {
     ${secH2('list','🟡 Google Detail — campagne')}
     ${gd.daily?.length ? `<div class="chart">${barChart(gd.daily, 'revenue', '#eab308')}</div>` : ''}
     ${gd.topCampaigns?.length ? `<table><thead><tr><th>${_tr('Campagna')}</th><th>${_tr('Spesa')}</th><th>ROAS</th><th>CTR</th><th>CPC</th><th>${_tr('Conversioni')}</th><th>${_tr('Valore conv.')}</th></tr></thead><tbody>
-      ${gd.topCampaigns.map(c => `<tr><td>${esc(c.name)}</td><td>${money2(c.spend)}</td><td>${num(c.roas).toFixed(2)}x</td><td>${num(c.ctr).toFixed(2)}%</td><td>${money2(c.cpc)}</td><td>${intf(c.conversions)}</td><td>${money2(c.convValue)}</td></tr>`).join('')}
+      ${gd.topCampaigns.map(c => `<tr><td>${esc(c.name)}</td><td>${money2(c.spend)}</td><td>${dec(num(c.roas), 2)}x</td><td>${dec(num(c.ctr), 2)}%</td><td>${money2(c.cpc)}</td><td>${intf(c.conversions)}</td><td>${money2(c.convValue)}</td></tr>`).join('')}
       </tbody></table>` : ''}` : ''
 
   // Performance Prodotti (con foto)
@@ -506,7 +506,7 @@ function buildFullHtml({ label, range, narrative, S }) {
     ${secH2('package','📦 Performance prodotti')}
     ${grid(pp.kpis)}
     ${pp.rows?.length ? `<table><thead><tr><th>${_tr('Prodotto')}</th><th>${_tr('Unità')}</th><th>${_tr('Netto')}</th><th>COGS</th><th>ADS</th><th>${_tr('Margine op.')}</th><th>%</th><th>ROAS</th></tr></thead><tbody>
-      ${pp.rows.map(p => `<tr><td>${p.image ? `<img class="prodimg" src="${esc(p.image)}"/>` : ''}${esc(p.title)}</td><td>${intf(p.units)}</td><td>${money2(p.netRevenue)}</td><td>${money2(p.cogs)}</td><td>${money2(p.ads)}</td><td>${money2(p.marginOp)}</td><td>${num(p.marginPct).toFixed(1)}%</td><td>${p.roas != null ? `${num(p.roas).toFixed(2)}x` : '—'}</td></tr>`).join('')}
+      ${pp.rows.map(p => `<tr><td>${p.image ? `<img class="prodimg" src="${esc(p.image)}"/>` : ''}${esc(p.title)}</td><td>${intf(p.units)}</td><td>${money2(p.netRevenue)}</td><td>${money2(p.cogs)}</td><td>${money2(p.ads)}</td><td>${money2(p.marginOp)}</td><td>${dec(num(p.marginPct), 1)}%</td><td>${p.roas != null ? `${dec(num(p.roas), 2)}x` : '—'}</td></tr>`).join('')}
       </tbody></table>` : ''}` : ''
 
   // Inventario
@@ -515,7 +515,7 @@ function buildFullHtml({ label, range, narrative, S }) {
     ${secH2('archive','🏷️ Inventario')}
     ${grid(inv.kpis)}
     ${inv.rows?.length ? `<h3>${_tr('Prodotti a rischio stockout')}</h3><table><thead><tr><th>${_tr('Prodotto')}</th><th>${_tr('Taglia/SKU')}</th><th>${_tr('Stock')}</th><th>${_tr('Vendite/g')}</th><th>${_tr('Giorni a stockout')}</th><th>${_tr('Rischio')}</th></tr></thead><tbody>
-      ${inv.rows.map(i => `<tr><td>${esc(i.productTitle || i.title || '—')}</td><td>${esc(i.size || i.sku || '—')}</td><td>${intf(i.stock)}</td><td>${num(i.velocity).toFixed(2)}</td><td>${i.daysToStockout != null ? intf(i.daysToStockout) : '—'}</td><td>${esc(RISK_LABEL[i.risk] || i.risk || '')}</td></tr>`).join('')}
+      ${inv.rows.map(i => `<tr><td>${esc(i.productTitle || i.title || '—')}</td><td>${esc(i.size || i.sku || '—')}</td><td>${intf(i.stock)}</td><td>${dec(num(i.velocity), 2)}</td><td>${i.daysToStockout != null ? intf(i.daysToStockout) : '—'}</td><td>${esc(RISK_LABEL[i.risk] || i.risk || '')}</td></tr>`).join('')}
       </tbody></table>` : ''}` : ''
 
   // Klaviyo (KPI + email inviate nel periodo + flow)
@@ -525,14 +525,14 @@ function buildFullHtml({ label, range, narrative, S }) {
     ${secH2('mail','✉️ Klaviyo — email marketing')}
     ${grid(kl.kpis)}
     ${klEmails?.length ? `<h3>${_tr('Email inviate nel periodo')}</h3><table><thead><tr><th>${_tr('Email')}</th><th>${_tr('Destinatari')}</th><th>Open rate</th><th>Click rate</th><th>${_tr('Conversioni')}</th><th>${_tr('Fatturato')}</th></tr></thead><tbody>
-      ${klEmails.map(e => `<tr><td>${esc(e.name || '—')}</td><td>${intf(e.recipients)}</td><td>${num(e.openRate).toFixed(1)}%</td><td>${num(e.clickRate).toFixed(1)}%</td><td>${intf(e.conversions)}</td><td>${money2(e.revenue)}</td></tr>`).join('')}
+      ${klEmails.map(e => `<tr><td>${esc(e.name || '—')}</td><td>${intf(e.recipients)}</td><td>${dec(num(e.openRate), 1)}%</td><td>${dec(num(e.clickRate), 1)}%</td><td>${intf(e.conversions)}</td><td>${money2(e.revenue)}</td></tr>`).join('')}
       </tbody></table>` : ''}
     ${(() => {
       const fr = S.klaviyoFlows
       if (fr?.length) {
         // Flow con KPI di performance (dal revenue breakdown)
         return `<h3>${_tr('Flow attivi')}</h3><table><thead><tr><th>${_tr('Flow')}</th><th>${_tr('Destinatari')}</th><th>Open rate</th><th>Click rate</th><th>${_tr('Conversioni')}</th><th>${_tr('Fatturato')}</th></tr></thead><tbody>
-          ${fr.map(f => `<tr><td>${esc(f.name || '—')}</td><td>${intf(f.recipients)}</td><td>${num(f.openRate).toFixed(1)}%</td><td>${num(f.clickRate).toFixed(1)}%</td><td>${intf(f.conversions)}</td><td>${money2(f.revenue)}</td></tr>`).join('')}
+          ${fr.map(f => `<tr><td>${esc(f.name || '—')}</td><td>${intf(f.recipients)}</td><td>${dec(num(f.openRate), 1)}%</td><td>${dec(num(f.clickRate), 1)}%</td><td>${intf(f.conversions)}</td><td>${money2(f.revenue)}</td></tr>`).join('')}
           </tbody></table>`
       }
       // Fallback: solo nome + stato (breakdown non disponibile)
@@ -577,7 +577,7 @@ function buildFullHtml({ label, range, narrative, S }) {
     ${secH2('funnel','CRO — funnel di conversione')}
     ${grid(cro.kpis)}
     <table><thead><tr><th>${_tr('Step')}</th><th>${_tr('Sessioni')}</th><th>% ${_tr('su sessioni')}</th><th></th></tr></thead><tbody>
-      ${croSteps.map(s => { const w = Math.max(3, (s.v / croMax) * 100); const p = croMax > 0 ? (s.v / croMax) * 100 : 0; return `<tr><td>${esc(s.l)}</td><td>${intf(s.v)}</td><td>${p.toFixed(1)}%</td><td style="width:42%"><div class="wbar"><div style="width:${w}%;background:#6366f1"></div></div></td></tr>` }).join('')}
+      ${croSteps.map(s => { const w = Math.max(3, (s.v / croMax) * 100); const p = croMax > 0 ? (s.v / croMax) * 100 : 0; return `<tr><td>${esc(s.l)}</td><td>${intf(s.v)}</td><td>${dec(p, 1)}%</td><td style="width:42%"><div class="wbar"><div style="width:${w}%;background:#6366f1"></div></div></td></tr>` }).join('')}
     </tbody></table>` : ''
 
   // Top 10 creatività Meta (immagine + copy + titolo + descrizione + CTA + dati)
@@ -594,7 +594,7 @@ function buildFullHtml({ label, range, narrative, S }) {
           ${c.body ? `<div class="cr-copy">${esc(String(c.body).slice(0, 240))}${String(c.body).length > 240 ? '…' : ''}</div>` : ''}
           ${c.desc ? `<div class="cr-desc">${esc(String(c.desc).slice(0, 150))}</div>` : ''}
           ${c.cta ? `<div><span class="cr-cta">${esc(String(c.cta).replace(/_/g, ' '))}</span></div>` : ''}
-          <div class="cr-metrics"><span><b>${money2(c.spend)}</b> ${_tr('spesa')}</span><span><b>${num(c.roas).toFixed(2)}x</b> ROAS</span><span><b>${money2(c.revenue)}</b> ${_tr('ricavo')}</span><span><b>${intf(c.purchases)}</b> ${_tr('acquisti')}</span><span><b>${num(c.ctr).toFixed(2)}%</b> CTR</span></div>
+          <div class="cr-metrics"><span><b>${money2(c.spend)}</b> ${_tr('spesa')}</span><span><b>${dec(num(c.roas), 2)}x</b> ROAS</span><span><b>${money2(c.revenue)}</b> ${_tr('ricavo')}</span><span><b>${intf(c.purchases)}</b> ${_tr('acquisti')}</span><span><b>${dec(num(c.ctr), 2)}%</b> CTR</span></div>
         </div>
       </div>`).join('')}
     </div>` : ''
@@ -1010,12 +1010,12 @@ export async function GET(req) {
         { label: 'Ordini', value: intf(ord), prevValue: intf(ordP), cur: ord, prev: ordP },
         { label: 'AOV', value: money2(aov), prevValue: money2(aovP), cur: aov, prev: aovP },
         { label: 'Nuovi clienti', value: intf(num(sr.nc)), prevValue: intf(num(spr.nc)), cur: num(sr.nc), prev: num(spr.nc) },
-        { label: 'MER (blended)', value: `${mer.toFixed(2)}x`, prevValue: `${merP.toFixed(2)}x`, cur: mer, prev: merP },
+        { label: 'MER (blended)', value: `${dec(mer, 2)}x`, prevValue: `${dec(merP, 2)}x`, cur: mer, prev: merP },
         { label: 'Spesa Meta', value: money(num(mt.spend)), prevValue: money(num(mtp.spend)), cur: num(mt.spend), prev: num(mtp.spend) },
-        { label: 'ROAS Meta', value: `${num(mt.roas).toFixed(2)}x`, prevValue: `${num(mtp.roas).toFixed(2)}x`, cur: num(mt.roas), prev: num(mtp.roas) },
+        { label: 'ROAS Meta', value: `${dec(num(mt.roas), 2)}x`, prevValue: `${dec(num(mtp.roas), 2)}x`, cur: num(mt.roas), prev: num(mtp.roas) },
         { label: 'Acquisti Meta', value: intf(num(mt.purchases)), prevValue: intf(num(mtp.purchases)), cur: num(mt.purchases), prev: num(mtp.purchases) },
         { label: 'Spesa Google', value: money(num(gt.spend)), prevValue: money(num(gtp.spend)), cur: num(gt.spend), prev: num(gtp.spend) },
-        { label: 'ROAS Google', value: `${num(gt.roas).toFixed(2)}x`, prevValue: `${num(gtp.roas).toFixed(2)}x`, cur: num(gt.roas), prev: num(gtp.roas) },
+        { label: 'ROAS Google', value: `${dec(num(gt.roas), 2)}x`, prevValue: `${dec(num(gtp.roas), 2)}x`, cur: num(gt.roas), prev: num(gtp.roas) },
         { label: 'Conversioni Google', value: intf(num(gt.conversions)), prevValue: intf(num(gtp.conversions)), cur: num(gt.conversions), prev: num(gtp.conversions) },
         { label: 'Sessioni', value: intf(num(sr.sessions)), prevValue: intf(num(spr.sessions)), cur: num(sr.sessions), prev: num(spr.sessions) },
       ],
@@ -1024,12 +1024,12 @@ export async function GET(req) {
     const metaKpi = metaKpiR?.totals ? { kpis: [
       { label: 'Spesa', value: money2(mt.spend), prevValue: money2(mtp.spend), cur: num(mt.spend), prev: num(mtp.spend) },
       { label: 'Revenue (Meta)', value: money2(mt.revenue), prevValue: money2(mtp.revenue), cur: num(mt.revenue), prev: num(mtp.revenue) },
-      { label: 'ROAS', value: `${num(mt.roas).toFixed(2)}x`, prevValue: `${num(mtp.roas).toFixed(2)}x`, cur: num(mt.roas), prev: num(mtp.roas) },
+      { label: 'ROAS', value: `${dec(num(mt.roas), 2)}x`, prevValue: `${dec(num(mtp.roas), 2)}x`, cur: num(mt.roas), prev: num(mtp.roas) },
       { label: 'Acquisti', value: intf(mt.purchases), prevValue: intf(mtp.purchases), cur: num(mt.purchases), prev: num(mtp.purchases) },
-      { label: 'CTR link', value: `${num(mt.ctr_link).toFixed(2)}%`, prevValue: `${num(mtp.ctr_link).toFixed(2)}%`, cur: num(mt.ctr_link), prev: num(mtp.ctr_link) },
+      { label: 'CTR link', value: `${dec(num(mt.ctr_link), 2)}%`, prevValue: `${dec(num(mtp.ctr_link), 2)}%`, cur: num(mt.ctr_link), prev: num(mtp.ctr_link) },
       { label: 'CPC link', value: money2(mt.cpc_link), prevValue: money2(mtp.cpc_link), cur: num(mt.cpc_link), prev: num(mtp.cpc_link), lowerBetter: true },
       { label: 'CPM', value: money2(mt.cpm), prevValue: money2(mtp.cpm), cur: num(mt.cpm), prev: num(mtp.cpm), lowerBetter: true },
-      { label: 'Frequenza', value: num(mt.frequency).toFixed(2), prevValue: num(mtp.frequency).toFixed(2), cur: num(mt.frequency), prev: num(mtp.frequency), lowerBetter: true },
+      { label: 'Frequenza', value: dec(num(mt.frequency), 2), prevValue: dec(num(mtp.frequency), 2), cur: num(mt.frequency), prev: num(mtp.frequency), lowerBetter: true },
     ] } : null
 
     // SOLO campagne ATTIVE (status/effective_status === ACTIVE)
@@ -1046,10 +1046,10 @@ export async function GET(req) {
     const googleKpi = googleKpiR?.totals ? { kpis: [
       { label: 'Spesa', value: money2(gt.spend), prevValue: money2(gtp.spend), cur: num(gt.spend), prev: num(gtp.spend) },
       { label: 'Valore conv.', value: money2(gt.convValue), prevValue: money2(gtp.convValue), cur: num(gt.convValue), prev: num(gtp.convValue) },
-      { label: 'ROAS', value: `${num(gt.roas).toFixed(2)}x`, prevValue: `${num(gtp.roas).toFixed(2)}x`, cur: num(gt.roas), prev: num(gtp.roas) },
+      { label: 'ROAS', value: `${dec(num(gt.roas), 2)}x`, prevValue: `${dec(num(gtp.roas), 2)}x`, cur: num(gt.roas), prev: num(gtp.roas) },
       { label: 'Conversioni', value: intf(gt.conversions), prevValue: intf(gtp.conversions), cur: num(gt.conversions), prev: num(gtp.conversions) },
       { label: 'CPA', value: money2(gt.cpa), prevValue: money2(gtp.cpa), cur: num(gt.cpa), prev: num(gtp.cpa), lowerBetter: true },
-      { label: 'CTR', value: `${num(gt.ctr).toFixed(2)}%`, prevValue: `${num(gtp.ctr).toFixed(2)}%`, cur: num(gt.ctr), prev: num(gtp.ctr) },
+      { label: 'CTR', value: `${dec(num(gt.ctr), 2)}%`, prevValue: `${dec(num(gtp.ctr), 2)}%`, cur: num(gt.ctr), prev: num(gtp.ctr) },
       { label: 'CPC', value: money2(gt.cpc), prevValue: money2(gtp.cpc), cur: num(gt.cpc), prev: num(gtp.cpc), lowerBetter: true },
       { label: 'Impression', value: intf(gt.impressions), prevValue: intf(gtp.impressions), cur: num(gt.impressions), prev: num(gtp.impressions) },
     ] } : null
@@ -1077,7 +1077,7 @@ export async function GET(req) {
       { label: 'Fatturato netto', value: money(pt.netRevenue) },
       { label: 'Margine op.', value: money(pt.marginOp) },
       { label: 'ADS totali', value: money(pt.ads) },
-      { label: 'ROAS', value: pt.roas != null ? `${num(pt.roas).toFixed(2)}x` : '—' },
+      { label: 'ROAS', value: pt.roas != null ? `${dec(num(pt.roas), 2)}x` : '—' },
       { label: 'Unità', value: intf(pt.units) },
       { label: 'Copertura costi', value: `${num(pt.costCoverage)}%` },
     ], rows: (ppR?.products || []).slice(0, 12) } : null
@@ -1087,8 +1087,8 @@ export async function GET(req) {
       { label: 'Email inviate', value: intf(kk.received?.total) },
       { label: 'Aperture', value: intf(kk.opened?.total) },
       { label: 'Click', value: intf(kk.clicked?.total) },
-      { label: 'Open rate', value: `${num(kk.openRate).toFixed(1)}%` },
-      { label: 'Click rate', value: `${num(kk.clickRate).toFixed(1)}%` },
+      { label: 'Open rate', value: `${dec(num(kk.openRate), 1)}%` },
+      { label: 'Click rate', value: `${dec(num(kk.clickRate), 1)}%` },
       { label: 'Revenue email', value: money(kk.revenue?.total) },
     ], flows: klavR?.flows || [] } : null
 
@@ -1121,11 +1121,11 @@ export async function GET(req) {
       return {
         kpis: [
           { label: 'Sessioni', value: intf(sess), prevValue: intf(p.sessions), cur: sess, prev: num(p.sessions) },
-          { label: 'Conversion rate', value: `${cvr.toFixed(2)}%`, prevValue: `${pcvr.toFixed(2)}%`, cur: cvr, prev: pcvr },
+          { label: 'Conversion rate', value: `${dec(cvr, 2)}%`, prevValue: `${dec(pcvr, 2)}%`, cur: cvr, prev: pcvr },
           { label: 'Ordini', value: intf(ord), prevValue: intf(p.orders), cur: ord, prev: num(p.orders) },
           { label: 'AOV', value: money2(aov), prevValue: money2(paov), cur: aov, prev: paov },
-          { label: 'Add-to-cart rate', value: `${sess > 0 ? ((num(f.addToCart) / sess) * 100).toFixed(2) : '0.00'}%` },
-          { label: 'Checkout rate', value: `${sess > 0 ? ((num(f.checkout) / sess) * 100).toFixed(2) : '0.00'}%` },
+          { label: 'Add-to-cart rate', value: `${sess > 0 ? dec(((num(f.addToCart) / sess) * 100), 2) : dec(0, 2)}%` },
+          { label: 'Checkout rate', value: `${sess > 0 ? dec(((num(f.checkout) / sess) * 100), 2) : dec(0, 2)}%` },
           { label: 'Nuovi clienti', value: intf(croR.newCustomers), prevValue: intf(p.newCustomers), cur: num(croR.newCustomers), prev: num(p.newCustomers) },
           { label: 'Ritornanti', value: intf(croR.returningCustomers), prevValue: intf(p.returningCustomers), cur: num(croR.returningCustomers), prev: num(p.returningCustomers) },
         ],
@@ -1217,10 +1217,10 @@ export async function GET(req) {
     kpis = [
       { label: 'Spesa', value: money2(a.spend), prevValue: money2(b.spend), cur: num(a.spend), prev: num(b.spend) },
       { label: 'Valore conv.', value: money2(a.convValue), prevValue: money2(b.convValue), cur: num(a.convValue), prev: num(b.convValue) },
-      { label: 'ROAS', value: `${num(a.roas).toFixed(2)}x`, prevValue: `${num(b.roas).toFixed(2)}x`, cur: num(a.roas), prev: num(b.roas) },
+      { label: 'ROAS', value: `${dec(num(a.roas), 2)}x`, prevValue: `${dec(num(b.roas), 2)}x`, cur: num(a.roas), prev: num(b.roas) },
       { label: 'Conversioni', value: intf(a.conversions), prevValue: intf(b.conversions), cur: num(a.conversions), prev: num(b.conversions) },
       { label: 'CPA', value: money2(a.cpa), prevValue: money2(b.cpa), cur: num(a.cpa), prev: num(b.cpa), lowerBetter: true },
-      { label: 'CTR', value: `${num(a.ctr).toFixed(2)}%`, prevValue: `${num(b.ctr).toFixed(2)}%`, cur: num(a.ctr), prev: num(b.ctr) },
+      { label: 'CTR', value: `${dec(num(a.ctr), 2)}%`, prevValue: `${dec(num(b.ctr), 2)}%`, cur: num(a.ctr), prev: num(b.ctr) },
       { label: 'CPC', value: money2(a.cpc), prevValue: money2(b.cpc), cur: num(a.cpc), prev: num(b.cpc), lowerBetter: true },
       { label: 'Impression', value: intf(a.impressions), prevValue: intf(b.impressions), cur: num(a.impressions), prev: num(b.impressions) },
     ]
@@ -1240,12 +1240,12 @@ export async function GET(req) {
     kpis = [
       { label: 'Spesa', value: money2(a.spend), prevValue: money2(b.spend), cur: a.spend, prev: b.spend },
       { label: 'Revenue (Meta)', value: money2(a.revenue), prevValue: money2(b.revenue), cur: a.revenue, prev: b.revenue },
-      { label: 'ROAS', value: `${(a.roas || 0).toFixed(2)}x`, prevValue: `${(b.roas || 0).toFixed(2)}x`, cur: a.roas, prev: b.roas },
+      { label: 'ROAS', value: `${dec((a.roas || 0), 2)}x`, prevValue: `${dec((b.roas || 0), 2)}x`, cur: a.roas, prev: b.roas },
       { label: 'Acquisti', value: intf(a.purchases), prevValue: intf(b.purchases), cur: a.purchases, prev: b.purchases },
-      { label: 'CTR link', value: `${(a.ctr || 0).toFixed(2)}%`, prevValue: `${(b.ctr || 0).toFixed(2)}%`, cur: a.ctr, prev: b.ctr },
+      { label: 'CTR link', value: `${dec((a.ctr || 0), 2)}%`, prevValue: `${dec((b.ctr || 0), 2)}%`, cur: a.ctr, prev: b.ctr },
       { label: 'CPA', value: money2(a.cpa), prevValue: money2(b.cpa), cur: a.cpa, prev: b.cpa, lowerBetter: true },
       { label: 'CPM', value: money2(a.cpm), prevValue: money2(b.cpm), cur: a.cpm, prev: b.cpm, lowerBetter: true },
-      { label: 'Frequenza', value: (a.frequency || 0).toFixed(2), prevValue: (b.frequency || 0).toFixed(2), cur: a.frequency, prev: b.frequency, lowerBetter: true },
+      { label: 'Frequenza', value: dec((a.frequency || 0), 2), prevValue: dec((b.frequency || 0), 2), cur: a.frequency, prev: b.frequency, lowerBetter: true },
     ]
   } else if (metricsOk) {
     // Veloce: 1 chiamata a /api/metrics (ShopifyQL, cache) + paesi (in parallelo)
@@ -1282,16 +1282,16 @@ export async function GET(req) {
       { label: 'Ordini', value: intf(sc.orders), prevValue: intf(sp.orders), cur: sc.orders, prev: sp.orders },
       { label: 'AOV', value: money2(aov), prevValue: money2(aovP), cur: aov, prev: aovP },
       { label: 'Sessioni', value: intf(sc.sessions), prevValue: intf(sp.sessions), cur: sc.sessions, prev: sp.sessions },
-      { label: 'Conversion rate', value: `${cvr.toFixed(2)}%`, prevValue: `${cvrP.toFixed(2)}%`, cur: cvr, prev: cvrP },
+      { label: 'Conversion rate', value: `${dec(cvr, 2)}%`, prevValue: `${dec(cvrP, 2)}%`, cur: cvr, prev: cvrP },
       { label: 'Nuovi clienti', value: intf(sc.ncOrders), prevValue: intf(sp.ncOrders), cur: sc.ncOrders, prev: sp.ncOrders },
       { label: 'Clienti ritorno', value: intf(sc.rcOrders), prevValue: intf(sp.rcOrders), cur: sc.rcOrders, prev: sp.rcOrders },
-      { label: 'Repeat rate', value: `${rep.toFixed(1)}%`, prevValue: `${repP.toFixed(1)}%`, cur: rep, prev: repP },
+      { label: 'Repeat rate', value: `${dec(rep, 1)}%`, prevValue: `${dec(repP, 1)}%`, cur: rep, prev: repP },
       { label: 'Fatturato nuovi', value: money(sc.fatturNC), prevValue: money(sp.fatturNC), cur: sc.fatturNC, prev: sp.fatturNC },
       { label: 'Fatturato ritorno', value: money(sc.fatturRC), prevValue: money(sp.fatturRC), cur: sc.fatturRC, prev: sp.fatturRC },
       { label: 'Resi', value: money(sc.resi), prevValue: money(sp.resi), cur: sc.resi, prev: sp.resi, lowerBetter: true },
       { label: 'Spesa Meta', value: money(mSpend), prevValue: money(mSpendP), cur: mSpend, prev: mSpendP },
-      { label: 'MER (blended)', value: `${mer.toFixed(2)}x`, prevValue: `${merP.toFixed(2)}x`, cur: mer, prev: merP },
-      { label: 'CTR Meta', value: `${(num(mr.impressions) > 0 ? (num(mr.clicks) / num(mr.impressions)) * 100 : 0).toFixed(2)}%`, prevValue: `${(num(mpr.impressions) > 0 ? (num(mpr.clicks) / num(mpr.impressions)) * 100 : 0).toFixed(2)}%`, cur: num(mr.impressions) > 0 ? num(mr.clicks) / num(mr.impressions) : 0, prev: num(mpr.impressions) > 0 ? num(mpr.clicks) / num(mpr.impressions) : 0 },
+      { label: 'MER (blended)', value: `${dec(mer, 2)}x`, prevValue: `${dec(merP, 2)}x`, cur: mer, prev: merP },
+      { label: 'CTR Meta', value: `${dec((num(mr.impressions) > 0 ? (num(mr.clicks) / num(mr.impressions)) * 100 : 0), 2)}%`, prevValue: `${dec((num(mpr.impressions) > 0 ? (num(mpr.clicks) / num(mpr.impressions)) * 100 : 0), 2)}%`, cur: num(mr.impressions) > 0 ? num(mr.clicks) / num(mr.impressions) : 0, prev: num(mpr.impressions) > 0 ? num(mpr.clicks) / num(mpr.impressions) : 0 },
     ]
   } else {
     // Weekly: Shopify da shopifyWeekly (/api/metrics, affidabile sui giorni
@@ -1316,8 +1316,8 @@ export async function GET(req) {
       { label: 'Nuovi clienti', value: intf(sc.ncOrders), prevValue: intf(sp.ncOrders), cur: sc.ncOrders, prev: sp.ncOrders },
       { label: 'Clienti ritorno', value: intf(sc.rcOrders), prevValue: intf(sp.rcOrders), cur: sc.rcOrders, prev: sp.rcOrders },
       { label: 'Spesa Meta', value: money(a.spend), prevValue: money(b.spend), cur: a.spend, prev: b.spend },
-      { label: 'ROAS Meta', value: `${(a.roas || 0).toFixed(2)}x`, prevValue: `${(b.roas || 0).toFixed(2)}x`, cur: a.roas, prev: b.roas },
-      { label: 'MER', value: `${mer.toFixed(2)}x`, prevValue: `${merP.toFixed(2)}x`, cur: mer, prev: merP },
+      { label: 'ROAS Meta', value: `${dec((a.roas || 0), 2)}x`, prevValue: `${dec((b.roas || 0), 2)}x`, cur: a.roas, prev: b.roas },
+      { label: 'MER', value: `${dec(mer, 2)}x`, prevValue: `${dec(merP, 2)}x`, cur: mer, prev: merP },
     ]
   }
 

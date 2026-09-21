@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
+import { cercaSoloAcquisti } from '../../../lib/ads/googleAcquisti'
 import { NextResponse } from 'next/server'
 import { withTenantContext, getGoogle } from '../../../lib/tenant/credentials'
 import { swrSnapshot } from '../../../lib/cache/swr'
@@ -52,7 +53,7 @@ export async function GET(req) {
     const range = getRange(preset, searchParams)
     const prevRange = previousRange(range)
 
-    return swrSnapshot(req, { tab: 'googleKpi', compute: async () => {
+    return swrSnapshot(req, { tab: 'googleKpi3', compute: async () => {
       try {
         const accessToken = await getAccessToken(CLIENT_ID, CLIENT_SECRET, REFRESH_TOKEN)
         const { GoogleAdsServiceClient } = await import('google-ads-node')
@@ -118,7 +119,7 @@ function previousRange({ since, until }) {
 
 async function buildKpi({ client, CUSTOMER_ID, callOptions, range }) {
   const query = `SELECT segments.date, metrics.cost_micros, metrics.impressions, metrics.clicks, metrics.conversions, metrics.conversions_value FROM campaign WHERE segments.date BETWEEN '${range.since}' AND '${range.until}'`
-  const [resp] = await client.search({ customer_id: CUSTOMER_ID, query }, callOptions)
+  const resp = await cercaSoloAcquisti(async (q) => (await client.search({ customer_id: CUSTOMER_ID, query: q }, callOptions))[0] || [], query)
   const totals = zeroBucket()
   const dailyMap = new Map()
   for (const row of (resp || [])) {
@@ -138,7 +139,7 @@ async function buildKpi({ client, CUSTOMER_ID, callOptions, range }) {
 
 async function buildTotalsOnly({ client, CUSTOMER_ID, callOptions, range }) {
   const query = `SELECT metrics.cost_micros, metrics.impressions, metrics.clicks, metrics.conversions, metrics.conversions_value FROM campaign WHERE segments.date BETWEEN '${range.since}' AND '${range.until}'`
-  const [resp] = await client.search({ customer_id: CUSTOMER_ID, query }, callOptions)
+  const resp = await cercaSoloAcquisti(async (q) => (await client.search({ customer_id: CUSTOMER_ID, query: q }, callOptions))[0] || [], query)
   const totals = zeroBucket()
   for (const row of (resp || [])) accumulate(totals, row)
   finalize(totals)

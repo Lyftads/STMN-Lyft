@@ -23,3 +23,17 @@ alter table report_schedules add column if not exists target_url text;
 
 create index if not exists report_schedules_user_idx
   on report_schedules (user_id, created_at desc);
+
+-- 21 set 2026 — DA ESEGUIRE UNA VOLTA (il database e' lo stesso per LyftAI e per il fork AV).
+--  · workspace_id: il workspace aperto quando il report e' stato creato. Il cron genera i PDF con
+--    i dati di QUEL workspace; senza, per un'agenzia con piu' clienti non si sapeva per chi fosse.
+--  · prodotto: 'lyftai' o 'av'. La tabella e' condivisa: senza, il cron di LyftAI mandava anche i
+--    report creati su AV (coi dati di un altro workspace) e quello di AV poteva rimandarli.
+-- Finche' mancano, LyftAI non lascia creare report nuovi e il suo cron non ne manda (meglio
+-- nessun report che uno coi numeri di un altro cliente); AV continua come prima.
+alter table report_schedules add column if not exists workspace_id uuid;
+alter table report_schedules add column if not exists prodotto text;
+create index if not exists report_schedules_workspace_idx
+  on report_schedules (workspace_id, created_at desc);
+create index if not exists report_schedules_prodotto_idx
+  on report_schedules (prodotto, enabled);

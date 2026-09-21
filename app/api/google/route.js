@@ -1,3 +1,4 @@
+import { cercaSoloAcquisti } from '../../../lib/ads/googleAcquisti'
 import { NextResponse } from 'next/server'
 import { withTenantContext, getGoogle } from '../../../lib/tenant/credentials'
 
@@ -134,10 +135,8 @@ export async function GET(req) {
     const dSince = new Date(Date.now() - 100 * 86400000).toISOString().slice(0, 10)
     let daily = []
     try {
-      const [dResp] = await client.search(
-        { customer_id: CUSTOMER_ID, query: `SELECT segments.date, metrics.cost_micros, metrics.impressions, metrics.clicks, metrics.conversions, metrics.conversions_value FROM campaign WHERE segments.date BETWEEN '${dSince}' AND '${until}'` },
-        callOptions,
-      )
+      // Conversioni = soli ACQUISTI (lib/ads/googleAcquisti.js).
+      const dResp = await cercaSoloAcquisti(async (q) => (await client.search({ customer_id: CUSTOMER_ID, query: q }, callOptions))[0] || [], `SELECT segments.date, metrics.cost_micros, metrics.impressions, metrics.clicks, metrics.conversions, metrics.conversions_value FROM campaign WHERE segments.date BETWEEN '${dSince}' AND '${until}'`)
       const dayMap = {}
       for (const row of (dResp || [])) {
         const date = row?.segments?.date

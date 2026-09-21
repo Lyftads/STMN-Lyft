@@ -22,7 +22,7 @@
     },
     {
       "path": "/api/cron/scheduled-reports",
-      "schedule": "0 9 * * *"
+      "schedule": "0 9-12 * * *"
     },
     {
       "path": "/api/cron/task-reminders",

@@ -419,66 +419,66 @@ const INSIGHT_STR = {
   it: {
     noData: 'Non ci sono dati Meta disponibili nel periodo selezionato.',
     overview: (r, s, n) => `Nel periodo ${r.since} → ${r.until}, Meta ha generato ${n(s.impressions)} impression, ${n(s.reach)} persone raggiunte e ${n(s.link_clicks)} click sul link, con una spesa totale di €${n(s.spend)}.`,
-    freq: (s) => `La frequenza media è ${s.frequency.toFixed(2)}, il CPM è €${s.cpm.toFixed(2)}, il CTR link è ${s.ctr_link.toFixed(2)}% e il CPC link è €${s.cpc_link.toFixed(2)}.`,
-    purchases: (s, n) => `Sono stati rilevati ${n(s.purchases)} acquisti, ROAS ${s.roas.toFixed(2)}x, costo per risultato €${s.cost_per_result.toFixed(2)} e AOV campagna €${s.aov_campagna.toFixed(2)}.`,
+    freq: (s, n, d) => `La frequenza media è ${d(s.frequency, 2)}, il CPM è €${d(s.cpm, 2)}, il CTR link è ${d(s.ctr_link, 2)}% e il CPC link è €${d(s.cpc_link, 2)}.`,
+    purchases: (s, n, d) => `Sono stati rilevati ${n(s.purchases)} acquisti, ROAS ${d(s.roas, 2)}x, costo per risultato €${d(s.cost_per_result, 2)} e AOV campagna €${d(s.aov_campagna, 2)}.`,
     inference: '[Inferenza] In ottica Andromeda, conviene mantenere una struttura chiara: creatività differenziate, naming ordinato e segnali di conversione coerenti.',
     todoNoData: 'Nessun dato Meta disponibile per il periodo selezionato.',
-    todoFreq: (s) => `[Inferenza] Frequenza alta (${s.frequency.toFixed(2)}): controlla saturazione creativa. Inserisci nuovi hook, nuove angle e nuove prime righe copy.`,
-    todoCtr: (s) => `[Inferenza] CTR link basso (${s.ctr_link.toFixed(2)}%): testa creatività con promessa più chiara, visual più diretto e CTA più evidente.`,
+    todoFreq: (s, n, d) => `[Inferenza] Frequenza alta (${d(s.frequency, 2)}): controlla saturazione creativa. Inserisci nuovi hook, nuove angle e nuove prime righe copy.`,
+    todoCtr: (s, n, d) => `[Inferenza] CTR link basso (${d(s.ctr_link, 2)}%): testa creatività con promessa più chiara, visual più diretto e CTA più evidente.`,
     todoNoPurchase: '[Inferenza] Ci sono click ma non acquisti: controlla landing, offerta, checkout e coerenza messaggio-annuncio.',
-    todoRoas: (s) => `[Inferenza] ROAS positivo (${s.roas.toFixed(2)}x): valuta scaling graduale sulle campagne/ad set con CPA stabile.`,
+    todoRoas: (s, n, d) => `[Inferenza] ROAS positivo (${d(s.roas, 2)}x): valuta scaling graduale sulle campagne/ad set con CPA stabile.`,
     todoOk: '[Inferenza] Non emergono criticità automatiche forti dai dati disponibili. Continua a scalare gradualmente le campagne con ROAS e CRO migliori.',
   },
   en: {
     noData: 'No Meta data available for the selected period.',
     overview: (r, s, n) => `Over ${r.since} → ${r.until}, Meta generated ${n(s.impressions)} impressions, ${n(s.reach)} people reached and ${n(s.link_clicks)} link clicks, with a total spend of €${n(s.spend)}.`,
-    freq: (s) => `Average frequency is ${s.frequency.toFixed(2)}, CPM is €${s.cpm.toFixed(2)}, link CTR is ${s.ctr_link.toFixed(2)}% and link CPC is €${s.cpc_link.toFixed(2)}.`,
-    purchases: (s, n) => `${n(s.purchases)} purchases were recorded, ROAS ${s.roas.toFixed(2)}x, cost per result €${s.cost_per_result.toFixed(2)} and campaign AOV €${s.aov_campagna.toFixed(2)}.`,
+    freq: (s, n, d) => `Average frequency is ${d(s.frequency, 2)}, CPM is €${d(s.cpm, 2)}, link CTR is ${d(s.ctr_link, 2)}% and link CPC is €${d(s.cpc_link, 2)}.`,
+    purchases: (s, n, d) => `${n(s.purchases)} purchases were recorded, ROAS ${d(s.roas, 2)}x, cost per result €${d(s.cost_per_result, 2)} and campaign AOV €${d(s.aov_campagna, 2)}.`,
     inference: '[Insight] Keep a clean structure: differentiated creatives, tidy naming and consistent conversion signals.',
     todoNoData: 'No Meta data available for the selected period.',
-    todoFreq: (s) => `[Insight] High frequency (${s.frequency.toFixed(2)}): check creative saturation. Add new hooks, new angles and new opening copy lines.`,
-    todoCtr: (s) => `[Insight] Low link CTR (${s.ctr_link.toFixed(2)}%): test creatives with a clearer promise, a more direct visual and a more prominent CTA.`,
+    todoFreq: (s, n, d) => `[Insight] High frequency (${d(s.frequency, 2)}): check creative saturation. Add new hooks, new angles and new opening copy lines.`,
+    todoCtr: (s, n, d) => `[Insight] Low link CTR (${d(s.ctr_link, 2)}%): test creatives with a clearer promise, a more direct visual and a more prominent CTA.`,
     todoNoPurchase: '[Insight] There are clicks but no purchases: check landing page, offer, checkout and message-to-ad consistency.',
-    todoRoas: (s) => `[Insight] Positive ROAS (${s.roas.toFixed(2)}x): consider gradual scaling on campaigns/ad sets with stable CPA.`,
+    todoRoas: (s, n, d) => `[Insight] Positive ROAS (${d(s.roas, 2)}x): consider gradual scaling on campaigns/ad sets with stable CPA.`,
     todoOk: '[Insight] No strong automatic issues emerge from the available data. Keep scaling gradually the campaigns with the best ROAS and CRO.',
   },
   es: {
     noData: 'No hay datos de Meta disponibles para el período seleccionado.',
     overview: (r, s, n) => `En el período ${r.since} → ${r.until}, Meta generó ${n(s.impressions)} impresiones, ${n(s.reach)} personas alcanzadas y ${n(s.link_clicks)} clics en el enlace, con un gasto total de €${n(s.spend)}.`,
-    freq: (s) => `La frecuencia media es ${s.frequency.toFixed(2)}, el CPM es €${s.cpm.toFixed(2)}, el CTR de enlace es ${s.ctr_link.toFixed(2)}% y el CPC de enlace es €${s.cpc_link.toFixed(2)}.`,
-    purchases: (s, n) => `Se registraron ${n(s.purchases)} compras, ROAS ${s.roas.toFixed(2)}x, coste por resultado €${s.cost_per_result.toFixed(2)} y AOV de campaña €${s.aov_campagna.toFixed(2)}.`,
+    freq: (s, n, d) => `La frecuencia media es ${d(s.frequency, 2)}, el CPM es €${d(s.cpm, 2)}, el CTR de enlace es ${d(s.ctr_link, 2)}% y el CPC de enlace es €${d(s.cpc_link, 2)}.`,
+    purchases: (s, n, d) => `Se registraron ${n(s.purchases)} compras, ROAS ${d(s.roas, 2)}x, coste por resultado €${d(s.cost_per_result, 2)} y AOV de campaña €${d(s.aov_campagna, 2)}.`,
     inference: '[Insight] Mantén una estructura clara: creatividades diferenciadas, nomenclatura ordenada y señales de conversión coherentes.',
     todoNoData: 'No hay datos de Meta disponibles para el período seleccionado.',
-    todoFreq: (s) => `[Insight] Frecuencia alta (${s.frequency.toFixed(2)}): revisa la saturación creativa. Añade nuevos hooks, nuevos ángulos y nuevas primeras líneas de copy.`,
-    todoCtr: (s) => `[Insight] CTR de enlace bajo (${s.ctr_link.toFixed(2)}%): prueba creatividades con una promesa más clara, un visual más directo y un CTA más visible.`,
+    todoFreq: (s, n, d) => `[Insight] Frecuencia alta (${d(s.frequency, 2)}): revisa la saturación creativa. Añade nuevos hooks, nuevos ángulos y nuevas primeras líneas de copy.`,
+    todoCtr: (s, n, d) => `[Insight] CTR de enlace bajo (${d(s.ctr_link, 2)}%): prueba creatividades con una promesa más clara, un visual más directo y un CTA más visible.`,
     todoNoPurchase: '[Insight] Hay clics pero no compras: revisa la landing, la oferta, el checkout y la coherencia mensaje-anuncio.',
-    todoRoas: (s) => `[Insight] ROAS positivo (${s.roas.toFixed(2)}x): valora un escalado gradual en las campañas/conjuntos de anuncios con CPA estable.`,
+    todoRoas: (s, n, d) => `[Insight] ROAS positivo (${d(s.roas, 2)}x): valora un escalado gradual en las campañas/conjuntos de anuncios con CPA estable.`,
     todoOk: '[Insight] No surgen problemas automáticos fuertes con los datos disponibles. Sigue escalando gradualmente las campañas con mejor ROAS y CRO.',
   },
   fr: {
     noData: 'Aucune donnée Meta disponible pour la période sélectionnée.',
     overview: (r, s, n) => `Sur la période ${r.since} → ${r.until}, Meta a généré ${n(s.impressions)} impressions, ${n(s.reach)} personnes touchées et ${n(s.link_clicks)} clics sur le lien, pour une dépense totale de €${n(s.spend)}.`,
-    freq: (s) => `La fréquence moyenne est de ${s.frequency.toFixed(2)}, le CPM est de €${s.cpm.toFixed(2)}, le CTR lien est de ${s.ctr_link.toFixed(2)}% et le CPC lien est de €${s.cpc_link.toFixed(2)}.`,
-    purchases: (s, n) => `${n(s.purchases)} achats ont été enregistrés, ROAS ${s.roas.toFixed(2)}x, coût par résultat €${s.cost_per_result.toFixed(2)} et AOV campagne €${s.aov_campagna.toFixed(2)}.`,
+    freq: (s, n, d) => `La fréquence moyenne est de ${d(s.frequency, 2)}, le CPM est de €${d(s.cpm, 2)}, le CTR lien est de ${d(s.ctr_link, 2)}% et le CPC lien est de €${d(s.cpc_link, 2)}.`,
+    purchases: (s, n, d) => `${n(s.purchases)} achats ont été enregistrés, ROAS ${d(s.roas, 2)}x, coût par résultat €${d(s.cost_per_result, 2)} et AOV campagne €${d(s.aov_campagna, 2)}.`,
     inference: '[Insight] Gardez une structure claire : créations différenciées, nommage ordonné et signaux de conversion cohérents.',
     todoNoData: 'Aucune donnée Meta disponible pour la période sélectionnée.',
-    todoFreq: (s) => `[Insight] Fréquence élevée (${s.frequency.toFixed(2)}) : vérifiez la saturation créative. Ajoutez de nouveaux hooks, de nouveaux angles et de nouvelles premières lignes de copy.`,
-    todoCtr: (s) => `[Insight] CTR lien faible (${s.ctr_link.toFixed(2)}%) : testez des créations avec une promesse plus claire, un visuel plus direct et un CTA plus visible.`,
+    todoFreq: (s, n, d) => `[Insight] Fréquence élevée (${d(s.frequency, 2)}) : vérifiez la saturation créative. Ajoutez de nouveaux hooks, de nouveaux angles et de nouvelles premières lignes de copy.`,
+    todoCtr: (s, n, d) => `[Insight] CTR lien faible (${d(s.ctr_link, 2)}%) : testez des créations avec une promesse plus claire, un visuel plus direct et un CTA plus visible.`,
     todoNoPurchase: '[Insight] Il y a des clics mais pas d\'achats : vérifiez la landing, l\'offre, le checkout et la cohérence message-annonce.',
-    todoRoas: (s) => `[Insight] ROAS positif (${s.roas.toFixed(2)}x) : envisagez un scaling progressif sur les campagnes/ensembles de publicités au CPA stable.`,
+    todoRoas: (s, n, d) => `[Insight] ROAS positif (${d(s.roas, 2)}x) : envisagez un scaling progressif sur les campagnes/ensembles de publicités au CPA stable.`,
     todoOk: '[Insight] Aucun problème automatique majeur ne ressort des données disponibles. Continuez à scaler progressivement les campagnes au meilleur ROAS et CRO.',
   },
   de: {
     noData: 'Keine Meta-Daten für den gewählten Zeitraum verfügbar.',
     overview: (r, s, n) => `Im Zeitraum ${r.since} → ${r.until} hat Meta ${n(s.impressions)} Impressionen, ${n(s.reach)} erreichte Personen und ${n(s.link_clicks)} Linkklicks generiert, bei Gesamtausgaben von €${n(s.spend)}.`,
-    freq: (s) => `Die durchschnittliche Frequenz beträgt ${s.frequency.toFixed(2)}, der CPM €${s.cpm.toFixed(2)}, die Link-CTR ${s.ctr_link.toFixed(2)}% und der Link-CPC €${s.cpc_link.toFixed(2)}.`,
-    purchases: (s, n) => `Es wurden ${n(s.purchases)} Käufe erfasst, ROAS ${s.roas.toFixed(2)}x, Kosten pro Ergebnis €${s.cost_per_result.toFixed(2)} und Kampagnen-AOV €${s.aov_campagna.toFixed(2)}.`,
+    freq: (s, n, d) => `Die durchschnittliche Frequenz beträgt ${d(s.frequency, 2)}, der CPM €${d(s.cpm, 2)}, die Link-CTR ${d(s.ctr_link, 2)}% und der Link-CPC €${d(s.cpc_link, 2)}.`,
+    purchases: (s, n, d) => `Es wurden ${n(s.purchases)} Käufe erfasst, ROAS ${d(s.roas, 2)}x, Kosten pro Ergebnis €${d(s.cost_per_result, 2)} und Kampagnen-AOV €${d(s.aov_campagna, 2)}.`,
     inference: '[Insight] Halte eine klare Struktur: differenzierte Creatives, sauberes Naming und konsistente Conversion-Signale.',
     todoNoData: 'Keine Meta-Daten für den gewählten Zeitraum verfügbar.',
-    todoFreq: (s) => `[Insight] Hohe Frequenz (${s.frequency.toFixed(2)}): Prüfe die Creative-Sättigung. Füge neue Hooks, neue Angles und neue Copy-Einstiegszeilen hinzu.`,
-    todoCtr: (s) => `[Insight] Niedrige Link-CTR (${s.ctr_link.toFixed(2)}%): Teste Creatives mit klarerem Versprechen, direkterem Visual und auffälligerem CTA.`,
+    todoFreq: (s, n, d) => `[Insight] Hohe Frequenz (${d(s.frequency, 2)}): Prüfe die Creative-Sättigung. Füge neue Hooks, neue Angles und neue Copy-Einstiegszeilen hinzu.`,
+    todoCtr: (s, n, d) => `[Insight] Niedrige Link-CTR (${d(s.ctr_link, 2)}%): Teste Creatives mit klarerem Versprechen, direkterem Visual und auffälligerem CTA.`,
     todoNoPurchase: '[Insight] Es gibt Klicks, aber keine Käufe: Prüfe Landingpage, Angebot, Checkout und Botschaft-Anzeige-Konsistenz.',
-    todoRoas: (s) => `[Insight] Positiver ROAS (${s.roas.toFixed(2)}x): Erwäge schrittweises Skalieren bei Kampagnen/Anzeigengruppen mit stabilem CPA.`,
+    todoRoas: (s, n, d) => `[Insight] Positiver ROAS (${d(s.roas, 2)}x): Erwäge schrittweises Skalieren bei Kampagnen/Anzeigengruppen mit stabilem CPA.`,
     todoOk: '[Insight] Aus den verfügbaren Daten ergeben sich keine starken automatischen Probleme. Skaliere weiterhin schrittweise die Kampagnen mit dem besten ROAS und CRO.',
   },
 }
@@ -486,21 +486,26 @@ const INSIGHT_STR = {
 function insightText(range, summary, loc = 'it') {
   const T = INSIGHT_STR[loc] || INSIGHT_STR.it
   if (!summary || summary.impressions <= 0) return T.noData
-  const n = (x) => Math.round(x).toLocaleString(INSIGHT_NUM_LOC[loc] || 'it-IT')
-  const parts = [T.overview(range, summary, n), T.freq(summary)]
-  if (summary.purchases > 0) parts.push(T.purchases(summary, n))
+  // Interi e decimali nella lingua del cliente, col separatore delle migliaia sempre: toFixed
+  // scriveva "1.29x" e "3.11%" anche in italiano, e l'italiano da solo scrive "€1032".
+  const n = (x) => Math.round(x).toLocaleString(INSIGHT_NUM_LOC[loc] || 'it-IT', { useGrouping: 'always' })
+  const d = (x, k) => Number(x || 0).toLocaleString(INSIGHT_NUM_LOC[loc] || 'it-IT', { minimumFractionDigits: k, maximumFractionDigits: k, useGrouping: 'always' })
+  const parts = [T.overview(range, summary, n), T.freq(summary, n, d)]
+  if (summary.purchases > 0) parts.push(T.purchases(summary, n, d))
   parts.push(T.inference)
   return parts.join(' ')
 }
 
 function todos(summary, loc = 'it') {
   const T = INSIGHT_STR[loc] || INSIGHT_STR.it
+  const n = (x) => Math.round(x).toLocaleString(INSIGHT_NUM_LOC[loc] || 'it-IT', { useGrouping: 'always' })
+  const d = (x, k) => Number(x || 0).toLocaleString(INSIGHT_NUM_LOC[loc] || 'it-IT', { minimumFractionDigits: k, maximumFractionDigits: k, useGrouping: 'always' })
   if (!summary || summary.impressions <= 0) return [T.todoNoData]
   const out = []
-  if (summary.frequency >= 8) out.push(T.todoFreq(summary))
-  if (summary.ctr_link > 0 && summary.ctr_link < 1) out.push(T.todoCtr(summary))
+  if (summary.frequency >= 8) out.push(T.todoFreq(summary, n, d))
+  if (summary.ctr_link > 0 && summary.ctr_link < 1) out.push(T.todoCtr(summary, n, d))
   if (summary.link_clicks > 100 && summary.purchases <= 0) out.push(T.todoNoPurchase)
-  if (summary.roas > 3 && summary.purchases > 0) out.push(T.todoRoas(summary))
+  if (summary.roas > 3 && summary.purchases > 0) out.push(T.todoRoas(summary, n, d))
   if (!out.length) out.push(T.todoOk)
   return out
 }
@@ -1023,7 +1028,7 @@ export async function GET(req) {
     }
 
     // Top-level (campagne): la prima apertura pesante → cache SWR per workspace+periodo+account.
-    return swrSnapshot(req, { tab: 'metaDetail4', compute: async () => {
+    return swrSnapshot(req, { tab: 'metaDetailLocale', compute: async () => {
       // Nomi account PRIMA (sequenziale, fuori dal burst) → non vengono throttlati.
       const accountNames = await fetchAccountNames(allAccounts).catch(() => ({}))
       const rows = await getCampaignRows(accounts, range)

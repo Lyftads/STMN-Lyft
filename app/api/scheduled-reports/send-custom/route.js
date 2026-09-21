@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 300
 
 import { NextResponse } from 'next/server'
-import { withTenantContext, getCurrentUserId } from '../../../../lib/tenant/credentials'
+import { withTenantContext, getCurrentUserId, getEffectiveTenantId, isAuthorizedCron } from '../../../../lib/tenant/credentials'
 import { getAdminSupabase } from '../../../../lib/supabase/server'
 import { presetToRange } from '../../../lib/reportRange'
 import { REPORT_SECTION_MAP } from '../../../../lib/reports/sections'
@@ -22,7 +22,13 @@ export async function POST(req) {
 
     const cookie = req.headers.get('cookie') || ''
     const cron = req.headers.get('x-internal-cron') || ''
-    const isCron = !!cron
+    // Il cron si riconosce dal SEGRETO, non dalla presenza dell'intestazione. Prima bastava
+    // `x-internal-cron: qualsiasi-cosa` per saltare il controllo dell'utente e caricare una
+    // schedulazione qualunque per id; e senza intestazione e senza accesso si potevano far
+    // generare PDF e spedirli a indirizzi scelti da chi chiamava (spam col nostro mittente).
+    const isCron = isAuthorizedCron(req)
+    const uid = isCron ? null : await getCurrentUserId()
+    if (!isCron && !uid) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
 
     // Risolvi la configurazione: da DB (scheduleId) o inline.
     let cfg = null
@@ -30,13 +36,14 @@ export async function POST(req) {
     if (body?.scheduleId) {
       if (!admin) return NextResponse.json({ error: 'Storage non disponibile' }, { status: 500 })
       let q = admin.from('report_schedules').select('*').eq('id', body.scheduleId)
-      if (!isCron) {
-        const uid = await getCurrentUserId()
-        if (!uid) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
-        q = q.eq('user_id', uid)
-      }
+      if (!isCron) q = q.eq('user_id', uid)
       const { data } = await q.maybeSingle()
       if (!data) return NextResponse.json({ error: 'Schedulazione non trovata' }, { status: 404 })
+      // "Invia ora" da un workspace diverso da quello in cui e' nato il report: i PDF uscirebbero
+      // con i numeri del workspace aperto e il nome e i destinatari dell'altro.
+      if (!isCron && data.workspace_id && data.workspace_id !== await getEffectiveTenantId()) {
+        return NextResponse.json({ error: 'altro_workspace' }, { status: 409 })
+      }
       cfg = data
     } else {
       cfg = {
@@ -60,11 +67,11 @@ export async function POST(req) {
 
     const fwd = {}
     if (cookie) fwd.cookie = cookie
-    if (cron) fwd['x-internal-cron'] = cron
+    if (isCron) fwd['x-internal-cron'] = cron
     // …e il workspace per cui gira il cron: /api/report lo usa (solo insieme al segreto) per
     // leggere le credenziali di QUEL cliente e lo passa alle sue fonti (intestazioniInterne).
     const ws = req.headers.get('x-lyft-workspace')
-    if (cron && ws) fwd['x-lyft-workspace'] = ws
+    if (isCron && ws) fwd['x-lyft-workspace'] = ws
 
     // Genera un PDF per ogni sezione (sequenziale: ognuna è pesante).
     const attachments = []

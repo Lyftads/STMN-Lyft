@@ -107,6 +107,8 @@ export default function ScheduledReportsTab() {
       })
       const j = await r.json()
       if (j.ok) { setBMsg({ ok: true, msg: t('sched.scheduleSaved', null, 'Schedulazione salvata') }); setName(''); loadSchedules() }
+      else if (j.error === 'db_da_aggiornare') setBMsg({ ok: false, msg: t('sched.dbUpdate', null, 'Salvataggio non disponibile: manca un aggiornamento del database. Riprova più tardi.') })
+      else if (j.error === 'workspace_ignoto') setBMsg({ ok: false, msg: t('sched.noWorkspace', null, 'Non riesco a capire in quale workspace sei: ricarica la pagina e riprova.') })
       else setBMsg({ ok: false, msg: j.error || t('sched.sendError', null, 'Errore') })
     } catch (e) { setBMsg({ ok: false, msg: e?.message }) } finally { setBusy(false) }
   }

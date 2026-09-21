@@ -187,7 +187,7 @@ export default function ReportFilm() {
     if (prodotti.length) { const tot = prodotti.reduce((a, p) => a + (Number(p.revenue) || 0), 0), quota = s.revenue > 0 ? Math.round((tot / s.revenue) * 100) : 0
       q.push({ occhiello: t('film.products', null, 'I prodotti della settimana'), titolo: prodotti[0].label,
         frase: t('film.sProducts', { n: prodotti.length, v: e0(tot), p: quota }, `I primi ${prodotti.length} fanno ${e0(tot)}: il ${quota}% del fatturato della settimana.`),
-        grafico: <Righe formato={e0} voci={prodotti.map(p => ({ nome: p.label, valore: Number(p.revenue) || 0, foto: fotoDi(p.label), sotto: ` · ${p.quantity ?? p.orders} pz` }))} /> }) }
+        grafico: <Righe formato={e0} voci={prodotti.map(p => ({ nome: p.label, valore: Number(p.revenue) || 0, foto: fotoDi(p.label), sotto: ` · ${p.quantity ?? p.orders} ${t('inv.pcs', null, 'pz')}` }))} /> }) }
 
     if (tr) { const mese = new Intl.DateTimeFormat(intlLocale, { month: 'long' }).format(new Date(`${tr.oggi}T12:00:00`)), d = scorso > 0 ? segno(pct(tr.previsto, scorso)) : '—'
       q.push({ occhiello: t('brief.course', null, 'La rotta del mese'), valore: tr.previsto, formato: e0,

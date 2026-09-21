@@ -5,6 +5,7 @@ import Icon from './ui/Icon'
 import AgencyPricing from './AgencyPricing'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import { planRank } from '../../lib/team/orderTiers'
+import { localeNumeri } from '../../lib/client/numeri'
 
 // Customer Stripe ora persiste su DB Supabase (companies.stripe_customer_id),
 // non piu' localStorage. L'API /api/stripe/subscription lo risolve in automatico
@@ -289,7 +290,7 @@ async function startEnterprise({ contactHref, setError, setLoading, t }) {
 
 function PlanCard({ plan, isCurrent, cadence = null, locked = false, lockLabel = null }) {
   const { t } = useI18n()
-  const eur0 = n => `€${Number(n).toLocaleString('it-IT', { maximumFractionDigits: 0 })}`
+  const eur0 = n => `€${Number(n).toLocaleString(localeNumeri(), { maximumFractionDigits: 0 })}`
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const hot = !!plan.badge
@@ -445,7 +446,7 @@ function PlanCard({ plan, isCurrent, cadence = null, locked = false, lockLabel =
 
 function ComparisonTable({ cadence = null, hideEnterprise = false }) {
   const { t } = useI18n()
-  const eur0 = n => `€${Number(n).toLocaleString('it-IT', { maximumFractionDigits: 0 })}`
+  const eur0 = n => `€${Number(n).toLocaleString(localeNumeri(), { maximumFractionDigits: 0 })}`
   const heads = hideEnterprise ? ['Starter', 'Growth', 'Scale'] : ['Starter', 'Growth', 'Scale', 'Enterprise']
   const tiers = hideEnterprise ? ['starter', 'growth', 'scale'] : ['starter', 'growth', 'scale', 'enterprise']
   const prices = hideEnterprise ? [69, 149, 299] : [69, 149, 299, 599] // Starter / Growth / Scale / Enterprise (flat, no sconto annuale)
@@ -523,10 +524,10 @@ const cmpTh = (align = 'right') => ({
 const cmpTd = (align = 'right') => ({ padding: '10px 12px', fontSize: 13, textAlign: align, color: 'var(--text)' })
 
 function StatusCard({ subscription, loading, customerId, onOpenPortal }) {
-  const { t } = useI18n()
+  const { t, intlLocale } = useI18n()
   const plan = subscription?.planId ? PLANS.find(p => p.id === subscription.planId) : null
   const hasActive = !!plan && (subscription?.status === 'active' || subscription?.status === 'trialing')
-  const fmtDate = ts => ts ? new Date(ts * 1000).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'
+  const fmtDate = ts => ts ? new Date(ts * 1000).toLocaleDateString(intlLocale, { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'
   const daysLeft = subscription?.currentPeriodEnd
     ? Math.max(0, Math.ceil((subscription.currentPeriodEnd * 1000 - Date.now()) / 86400000))
     : null
@@ -589,7 +590,7 @@ function StatusCard({ subscription, loading, customerId, onOpenPortal }) {
                 <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em' }}>{plan.name}</div>
                 <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
                   {subscription?.amount != null
-                    ? `€${(subscription.amount / 100).toLocaleString('it-IT', { minimumFractionDigits: 2 })} / ${subscription.interval === 'month' ? t('settings.intervalMonth', null, 'mese') : subscription.interval || 'periodo'}`
+                    ? `€${(subscription.amount / 100).toLocaleString(localeNumeri(), { minimumFractionDigits: 2 })} / ${subscription.interval === 'month' ? t('settings.intervalMonth', null, 'mese') : subscription.interval || 'periodo'}`
                     : t('settings.subActiveLabel', null, 'Subscription attiva')}
                 </div>
               </div>
@@ -921,12 +922,12 @@ function PaymentMethodCard({ pm, customerId, loading: parentLoading, onClearCust
 }
 
 function InvoiceHistory({ invoices, loading }) {
-  const { t } = useI18n()
-  const fmtDate = ts => ts ? new Date(ts * 1000).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'
+  const { t, intlLocale } = useI18n()
+  const fmtDate = ts => ts ? new Date(ts * 1000).toLocaleDateString(intlLocale, { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'
   const fmtMoney = (amount, currency) => {
     if (amount == null) return '—'
     const sym = currency?.toLowerCase() === 'eur' ? '€' : currency?.toUpperCase() || ''
-    return `${sym}${(amount / 100).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    return `${sym}${(amount / 100).toLocaleString(localeNumeri(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   }
   // Lo stato di una fattura e' esattamente il caso in cui il colore serve: pagata,
   // da pagare, non incassata. Dai token pero', non scritto a mano — cosi' segue il

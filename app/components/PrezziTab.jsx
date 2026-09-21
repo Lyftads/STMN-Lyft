@@ -204,7 +204,7 @@ export default function PrezziTab() {
                           <div className="reg-riga-nome">
                             <span className="reg-posto">{elenco.da + k + 1}</span>
                             {r.immagine ? <img src={miniatura(r.immagine, 36)} loading="lazy" alt="" className="gpv-foto" /> : <div className="gpv-foto gpv-foto-vuota" />}
-                            <div style={{ minWidth: 0 }}><div className="reg-nome gpv-titolo">{r.titolo}</div><div className="reg-sotto">{r.marchio}{r.giacenza != null ? ` · ${intero(r.giacenza)} pz` : ''}</div></div>
+                            <div style={{ minWidth: 0 }}><div className="reg-nome gpv-titolo">{r.titolo}</div><div className="reg-sotto">{r.marchio}{r.giacenza != null ? ` · ${intero(r.giacenza)} ${t('inv.pcs', null, 'pz')}` : ''}</div></div>
                           </div>
                         </td>
                         <td className="fam-vendite stacco" data-spiega={d.prezzo}><span className="reg-valore">{soldi(r.prezzo, 2)}</span>{r.pieno > r.prezzo && <div className="reg-sotto"><s>{soldi(r.pieno, 2)}</s></div>}</td>

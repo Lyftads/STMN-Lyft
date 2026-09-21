@@ -3,6 +3,7 @@
 import { soldi } from '../../lib/client/soldi'
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import Icon from './ui/Icon'
+import { localeNumeri } from '../../lib/client/numeri'
 
 // ============================================================================
 //  La lavagna di un flusso: cosa contiene, in che ordine, dove si biforca.
@@ -207,8 +208,8 @@ export default function FlussoLavagna({ flusso, giorni = 30, tr, onClose, onApri
             {dati ? (
               <>
                 {pillStato(dati.flusso.stato)}
-                <span>{tr('klaviyo.flowTotals', { d: dati.periodoGiorni, i: (dati.totali.invii || 0).toLocaleString('it-IT', { useGrouping: 'always' }), o: dati.totali.ordini, e: euro(dati.totali.entrate) },
-                  `Ultimi ${dati.periodoGiorni} giorni · ${(dati.totali.invii || 0).toLocaleString('it-IT', { useGrouping: 'always' })} invii · ${dati.totali.ordini} ordini · ${euro(dati.totali.entrate)}`)}</span>
+                <span>{tr('klaviyo.flowTotals', { d: dati.periodoGiorni, i: (dati.totali.invii || 0).toLocaleString(localeNumeri(), { useGrouping: 'always' }), o: dati.totali.ordini, e: euro(dati.totali.entrate) },
+                  `Ultimi ${dati.periodoGiorni} giorni · ${(dati.totali.invii || 0).toLocaleString(localeNumeri(), { useGrouping: 'always' })} invii · ${dati.totali.ordini} ordini · ${euro(dati.totali.entrate)}`)}</span>
                 {dati.avvisoStatistiche && <span style={{ color: '#f59e0b' }}>{dati.avvisoStatistiche}</span>}
               </>
             ) : <span>{tr('klaviyo.flowReadOnly', null, 'Mappa del flusso · sola lettura')}</span>}
@@ -278,7 +279,7 @@ export default function FlussoLavagna({ flusso, giorni = 30, tr, onClose, onApri
                       )}
                       {n.statistiche && (
                         <div className="fl-numeri">
-                          <span><b>{(n.statistiche.destinatari || 0).toLocaleString('it-IT', { useGrouping: 'always' })}</b>{tr('klaviyo.flowSent', null, 'invii')}</span>
+                          <span><b>{(n.statistiche.destinatari || 0).toLocaleString(localeNumeri(), { useGrouping: 'always' })}</b>{tr('klaviyo.flowSent', null, 'invii')}</span>
                           <span><b>{n.statistiche.aperturePct ?? '—'}%</b>{tr('klaviyo.flowOpens', null, 'aperture')}</span>
                           <span><b>{n.statistiche.clicPct ?? '—'}%</b>{tr('klaviyo.flowClicks', null, 'clic')}</span>
                           <span><b>{euro(n.statistiche.entrate)}</b>{tr('klaviyo.flowRevenue', null, 'entrate')}</span>

@@ -13,14 +13,14 @@ import Avvisi from './ui/Avvisi'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 
 const SQUAD_AGENTS = [
-  { id: 'ceo', name: 'Chiara', role: 'CEO', color: 'var(--accent)', emoji: '👑', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' },
-  { id: 'cfo', name: 'Marco', role: 'CFO', color: '#22c55e', emoji: '📊', avatar: 'https://randomuser.me/api/portraits/men/32.jpg' },
-  { id: 'cmo', name: 'Luigi', role: 'CMO', color: '#2997ff', emoji: '🎯', avatar: 'https://randomuser.me/api/portraits/men/45.jpg' },
-  { id: 'ads', name: 'Sofia', role: 'Advertising Specialist', color: '#ef4444', emoji: '🚀', avatar: 'https://randomuser.me/api/portraits/women/44.jpg' },
-  { id: 'seo', name: 'Davide', role: 'SEO Specialist', color: '#ffd60a', emoji: '🔍', avatar: 'https://randomuser.me/api/portraits/men/52.jpg' },
-  { id: 'cro', name: 'Giulia', role: 'CRO Specialist', color: 'var(--accent)', emoji: '🧪', avatar: 'https://randomuser.me/api/portraits/women/65.jpg' },
-  { id: 'data', name: 'Alessandro', role: 'Data Analyst', color: 'var(--text)', emoji: '📈', avatar: 'https://randomuser.me/api/portraits/men/76.jpg' },
-  { id: 'creative', name: 'Valentina', role: 'Creative Strategist', color: '#f59e0b', emoji: '🎨', avatar: 'https://randomuser.me/api/portraits/women/12.jpg' },
+  { id: 'ceo', name: 'Chiara', role: 'CEO', color: 'var(--accent)', emoji: '👑', avatar: null },
+  { id: 'cfo', name: 'Marco', role: 'CFO', color: '#22c55e', emoji: '📊', avatar: null },
+  { id: 'cmo', name: 'Luigi', role: 'CMO', color: '#2997ff', emoji: '🎯', avatar: null },
+  { id: 'ads', name: 'Sofia', role: 'Advertising Specialist', color: '#ef4444', emoji: '🚀', avatar: null },
+  { id: 'seo', name: 'Davide', role: 'SEO Specialist', color: '#ffd60a', emoji: '🔍', avatar: null },
+  { id: 'cro', name: 'Giulia', role: 'CRO Specialist', color: 'var(--accent)', emoji: '🧪', avatar: null },
+  { id: 'data', name: 'Alessandro', role: 'Data Analyst', color: 'var(--text)', emoji: '📈', avatar: null },
+  { id: 'creative', name: 'Valentina', role: 'Creative Strategist', color: '#f59e0b', emoji: '🎨', avatar: null },
 ]
 
 // Estetica minimale/futuristica, coerente col resto del software (glass + var CSS).
@@ -734,7 +734,7 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
                             {/* Bordo neutro: le tinte degli agenti ora sono var()
                                 e "var(--accent)55" non e' un colore valido — il
                                 cerchio spariva senza dire niente. */}
-                            <img src={a.avatar} alt={a.name} style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border, rgba(255,255,255,0.14))' }} />
+                            <Avatar name={a.name} url={a.avatar} size={34} />
                             <span style={{ minWidth: 0 }}>
                               <span style={{ display: 'block', color: 'var(--text)', fontWeight: 600, fontSize: 13 }}>{a.name}</span>
                               <span style={{ display: 'block', color: MUTED, fontSize: 11.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.role}</span>

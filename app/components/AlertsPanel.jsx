@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import Icon from './ui/Icon'
+import { localeNumeri } from '../../lib/client/numeri'
 
 // ── Motore di alert / anomaly detection ──────────────────────────
 // Additivo: legge i dati `live` (range corrente vs precedente) e segnala
@@ -10,7 +11,7 @@ import Icon from './ui/Icon'
 
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0 }
 const pctChange = (cur, prev) => (prev > 0 ? ((cur - prev) / prev) * 100 : null)
-const money = (n) => `€${Math.round(num(n)).toLocaleString('it-IT')}`
+const money = (n) => `€${Math.round(num(n)).toLocaleString(localeNumeri())}`
 const fmtPct = (n) => `${n > 0 ? '+' : ''}${n.toFixed(0)}%`
 
 function deriveMetrics(s, m) {

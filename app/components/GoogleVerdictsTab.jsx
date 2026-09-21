@@ -14,6 +14,7 @@ import { useElenco, FiltriElenco, Paginazione } from './ui/Elenco'
 import { DoveVaIlBudget, EditorSoglie } from './GpvBudgetESoglie'
 import { leggi, inMemoria } from '../../lib/clientCache'
 import { useStatoTab } from '../../lib/client/statoTab'
+import { localeNumeri } from '../../lib/client/numeri'
 
 // ============================================================================
 //  Prodotti Google → verdetti SCALA / STAND-BY / FERMA, riconciliati con le
@@ -36,7 +37,7 @@ const GRUPPI = [
 ]
 
 export default function GoogleVerdictsTab() {
-  const { t } = useI18n()
+  const { t, intlLocale } = useI18n()
   // Periodo, gruppo e categoria restano quando si lascia la tab e ci si torna;
   // i dati anche: al ritorno si vede subito l'ultima lettura, senza attesa.
   const [since, setSince] = useStatoTab('gpv.since', () => isoDay(new Date(Date.now() - 30 * 86400000)))
@@ -129,8 +130,8 @@ export default function GoogleVerdictsTab() {
   }, [since, until]) // eslint-disable-line
 
   const money = (v) => soldi(v)
-  const num1 = (v) => v == null ? '—' : Number(v).toLocaleString('it-IT', { maximumFractionDigits: 1 })
-  const pct = (v) => v == null ? '—' : `${(v * 100).toLocaleString('it-IT', { maximumFractionDigits: 0, useGrouping: 'always' })}%`
+  const num1 = (v) => v == null ? '—' : Number(v).toLocaleString(localeNumeri(), { maximumFractionDigits: 1 })
+  const pct = (v) => v == null ? '—' : `${(v * 100).toLocaleString(localeNumeri(), { maximumFractionDigits: 0, useGrouping: 'always' })}%`
 
   const s = data?.soglie
   const q = data?.qualita
@@ -226,7 +227,7 @@ export default function GoogleVerdictsTab() {
                 {t('gpv.howJudged', null, 'Come nasce il giudizio')}
                 {data?.updatedAt && (
                   <span>
-                    {t('gpv.updatedAt', { at: new Date(data.updatedAt).toLocaleString('it-IT', { useGrouping: 'always' }) }, `Calcolato il ${new Date(data.updatedAt).toLocaleString('it-IT', { useGrouping: 'always' })}`)}
+                    {t('gpv.updatedAt', { at: new Date(data.updatedAt).toLocaleString(intlLocale, { useGrouping: 'always' }) }, `Calcolato il ${new Date(data.updatedAt).toLocaleString(intlLocale, { useGrouping: 'always' })}`)}
                     {aggiornando ? ` · ${t('gpv.refreshing', null, 'aggiornamento in corso')}` : ''}
                   </span>
                 )}
@@ -641,13 +642,13 @@ function ContoProdotto({ r, onClose, onPrecedente, onSuccessiva, posizione, t, m
             {kpi('CPA', r.cpa == null ? '—' : money(r.cpa), r.cpa == null
               ? t('gpv.kCpaNone', null, 'si calcola da un ordine intero in su')
               : t('gpv.kCpaNote', null, 'pubblicità ÷ ordini'))}
-            {kpi(t('gpv.kOrders', null, 'Ordini Google'), ordiniGoogle == null ? '—' : (ordiniGoogle > 0 && ordiniGoogle < 1 ? Number(ordiniGoogle).toLocaleString('it-IT', { maximumFractionDigits: 2 }) : num1(ordiniGoogle)), ordiniGoogle > 0 && ordiniGoogle < 1 ? t('gpv.kOrdersFraction', null, 'una parte di ordine: Google lo divide fra più prodotti') : r.clicks != null ? t('gpv.kClicks', { n: Number(r.clicks).toLocaleString('it-IT', { useGrouping: 'always' }) }, `${Number(r.clicks).toLocaleString('it-IT', { useGrouping: 'always' })} clic`) : null)}
+            {kpi(t('gpv.kOrders', null, 'Ordini Google'), ordiniGoogle == null ? '—' : (ordiniGoogle > 0 && ordiniGoogle < 1 ? Number(ordiniGoogle).toLocaleString(localeNumeri(), { maximumFractionDigits: 2 }) : num1(ordiniGoogle)), ordiniGoogle > 0 && ordiniGoogle < 1 ? t('gpv.kOrdersFraction', null, 'una parte di ordine: Google lo divide fra più prodotti') : r.clicks != null ? t('gpv.kClicks', { n: Number(r.clicks).toLocaleString(localeNumeri(), { useGrouping: 'always' }) }, `${Number(r.clicks).toLocaleString(localeNumeri(), { useGrouping: 'always' })} clic`) : null)}
             {kpi(t('gpv.kAvgPrice', null, 'Prezzo medio'), money(r.prezzoMedio), t('gpv.kAvgPriceNote', null, 'pezzi di Google = venduto ÷ prezzo medio'))}
             {kpi(t('gpv.kShopSold', null, 'Venduto su Shopify'), statoDi(r, 'shopifyRevenue') ? 'n/d' : money(r.shopifyRevenue),
               r.shopifyUnits != null ? t('gpv.kShopUnits', { n: r.shopifyUnits }, `${r.shopifyUnits} pezzi, da tutti i canali`) : null)}
             {kpi(t('gpv.kGap', null, 'Google contro Shopify'), r.scarto === 0 ? t('gpv.kGapOk', null, 'nella norma') : pct(r.scarto),
               soglie?.scartoMax != null ? t('gpv.kGapNote', { x: Math.round(soglie.scartoMax * 100) }, `oltre il ${Math.round(soglie.scartoMax * 100)}% il giudizio si sospende`) : null)}
-            {kpi(t('gpv.kStock', null, 'In magazzino'), r.giacenza == null ? '—' : Number(r.giacenza).toLocaleString('it-IT', { useGrouping: 'always' }), null)}
+            {kpi(t('gpv.kStock', null, 'In magazzino'), r.giacenza == null ? '—' : Number(r.giacenza).toLocaleString(localeNumeri(), { useGrouping: 'always' }), null)}
           </div>
     </Pannello>
   )

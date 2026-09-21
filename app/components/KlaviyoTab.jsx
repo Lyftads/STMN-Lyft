@@ -15,10 +15,10 @@ import {
   BarChart, Bar, AreaChart, Area, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
-import { num, perc } from '../../lib/client/numeri'
+import { num, perc, localeNumeri } from '../../lib/client/numeri'
 
-const fmtN = n => n != null && n > 0 ? Math.round(n).toLocaleString('it-IT', { useGrouping: 'always' }) : '—'
-const fmtE = n => n != null && n > 0 ? `€${Math.round(n).toLocaleString('it-IT', { useGrouping: 'always' })}` : '—'
+const fmtN = n => n != null && n > 0 ? Math.round(n).toLocaleString(localeNumeri(), { useGrouping: 'always' }) : '—'
+const fmtE = n => n != null && n > 0 ? `€${Math.round(n).toLocaleString(localeNumeri(), { useGrouping: 'always' })}` : '—'
 const fmtP = n => perc(n, 1)
 
 // Il saluto non nomina nessuno: i dizionari lo dicevano gia' cosi', ma il testo di
@@ -97,7 +97,7 @@ function StatusDot({ active }) {
 }
 
 export default function KlaviyoTab() {
-  const { t: tr } = useI18n()
+  const { t: tr, intlLocale } = useI18n()
   const [data, setData] = useState(null)
   const [preview, setPreview] = useState(null)     // campagna aperta in anteprima
   const [flussoAperto, setFlussoAperto] = useState(null) // flusso aperto sulla lavagna
@@ -321,7 +321,7 @@ export default function KlaviyoTab() {
                       color: c.status === 'Sent' ? '#22c55e' : c.status === 'Draft' ? '#f59e0b' : '#3b82f6',
                     }}>{({ Sent: tr('klaviyo.stSent', null, 'Inviata'), Draft: tr('klaviyo.stDraft', null, 'Bozza'), Scheduled: tr('klaviyo.stScheduled', null, 'Programmata') })[c.status] || c.status}</span>
                   </td>
-                  <td style={{ padding: '10px 16px', color: 'var(--text3)', fontSize: 13 }}>{c.sendTime ? new Date(c.sendTime).toLocaleString('it-IT', { useGrouping: 'always' }) : '—'}</td>
+                  <td style={{ padding: '10px 16px', color: 'var(--text3)', fontSize: 13 }}>{c.sendTime ? new Date(c.sendTime).toLocaleString(intlLocale, { useGrouping: 'always' }) : '—'}</td>
                   <td style={tdR}>{st ? fmtP(st.openRate) : '—'}</td>
                   <td style={tdR}>{st ? fmtP(st.clickRate) : '—'}</td>
                   <td style={tdR}>{st ? fmtN(st.conversions) : '—'}</td>
@@ -494,7 +494,7 @@ function CampaignPreview({ campaign, tr, onClose }) {
   ]
 
   return (
-    <Pannello titolo={campaign.name} sotto={<>{campaign.status}{campaign.sendTime ? ` · ${new Date(campaign.sendTime).toLocaleString('it-IT')}` : ''}</>} larghezza={780} onClose={onClose}>
+    <Pannello titolo={campaign.name} sotto={<>{campaign.status}{campaign.sendTime ? ` · ${new Date(campaign.sendTime).toLocaleString(localeNumeri())}` : ''}</>} larghezza={780} onClose={onClose}>
       <div style={{ margin: -22 }}>
           {!d && !err && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text3)', fontSize: 13 }}>{tr('klaviyo.loadingPreview', null, 'Carico l’anteprima…')}</div>}
           {err && <div style={{ padding: 30, color: '#fca5a5', fontSize: 13 }}>{tr('klaviyo.previewError', null, 'Non riesco a leggere questa campagna da Klaviyo.')}</div>}
@@ -683,8 +683,8 @@ function DettaglioPubblico({ pubblico, tr, onClose }) {
   }, [pubblico.id, pubblico.tipo])
 
   const euro = v => soldi(v, 'auto')
-  const pct = v => v == null ? '—' : `${Number(v).toLocaleString('it-IT', { maximumFractionDigits: 1 })}%`
-  const intero = v => v == null ? '—' : Number(v).toLocaleString('it-IT', { useGrouping: 'always' })
+  const pct = v => v == null ? '—' : `${Number(v).toLocaleString(localeNumeri(), { maximumFractionDigits: 1 })}%`
+  const intero = v => v == null ? '—' : Number(v).toLocaleString(localeNumeri(), { useGrouping: 'always' })
   const giorno = g => {
     const x = new Date(`${g}T12:00:00Z`)
     return `${String(x.getUTCDate()).padStart(2, '0')}/${String(x.getUTCMonth() + 1).padStart(2, '0')}`
@@ -701,7 +701,7 @@ function DettaglioPubblico({ pubblico, tr, onClose }) {
   const td = { padding: '8px 10px', fontSize: 13, color: 'var(--text2)', textAlign: 'right', whiteSpace: 'nowrap' }
 
   return (
-    <Pannello titolo={pubblico.nome} sotto={<>{pubblico.tipo === 'list' ? tr('klaviyo.tipoLista', null, 'Lista') : tr('klaviyo.tipoSegmento', null, 'Segmento')}{d?.pubblico?.profili != null ? ` · ${intero(d.pubblico.profili)} ${tr('klaviyo.profili', null, 'profili')}` : ''}{d?.pubblico?.creato ? ` · ${tr('klaviyo.creato', null, 'creato')} ${new Date(d.pubblico.creato).toLocaleDateString('it-IT')}` : ''}</>} larghezza={880} onClose={onClose}>
+    <Pannello titolo={pubblico.nome} sotto={<>{pubblico.tipo === 'list' ? tr('klaviyo.tipoLista', null, 'Lista') : tr('klaviyo.tipoSegmento', null, 'Segmento')}{d?.pubblico?.profili != null ? ` · ${intero(d.pubblico.profili)} ${tr('klaviyo.profili', null, 'profili')}` : ''}{d?.pubblico?.creato ? ` · ${tr('klaviyo.creato', null, 'creato')} ${new Date(d.pubblico.creato).toLocaleDateString(localeNumeri())}` : ''}</>} larghezza={880} onClose={onClose}>
       <div style={{ margin: -22 }}>
           {!d && !err && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text3)', fontSize: 13 }}>{tr('klaviyo.loadingPub', null, 'Carico il dettaglio…')}</div>}
           {err && <div style={{ padding: 30, color: '#fca5a5', fontSize: 13 }}>{err}</div>}
@@ -781,7 +781,7 @@ function DettaglioPubblico({ pubblico, tr, onClose }) {
                             <td style={{ padding: '8px 10px', fontSize: 13 }}>
                               <div style={{ color: 'var(--text)', fontWeight: 600 }}>{c.nome}</div>
                               <div style={{ fontSize: 10, color: 'var(--text3)' }}>
-                                {c.inviata ? new Date(c.inviata).toLocaleDateString('it-IT') : '—'}
+                                {c.inviata ? new Date(c.inviata).toLocaleDateString(localeNumeri()) : '—'}
                                 {!c.incluso && ` · ${tr('klaviyo.escluso', null, 'escluso')}`}
                               </div>
                             </td>
@@ -814,7 +814,7 @@ function MisuraInvio({ etichetta, valore, quota, colore, nota, prefisso = '' }) 
     <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '8px 10px' }}>
       <div className="kl-misura-et" title={etichetta}>{etichetta}</div>
       <div style={{ fontSize: 15, fontWeight: 680, color: colore || 'var(--text)', marginTop: 2 }}>
-        {valore != null ? `${prefisso}${Number(valore).toLocaleString('it-IT', { useGrouping: 'always' })}` : (quota != null ? `${quota}%` : '—')}
+        {valore != null ? `${prefisso}${Number(valore).toLocaleString(localeNumeri(), { useGrouping: 'always' })}` : (quota != null ? `${quota}%` : '—')}
       </div>
       {valore != null && quota != null && (
         <div style={{ fontSize: 10, color: 'var(--text3)' }}>{quota}%</div>

@@ -67,7 +67,7 @@ export function VenditePerProdotto({ righe = [], t }) {
             <li key={k}>
               {(r.image || fotoDi(r.label || r.product)) ? <img src={miniatura(r.image || fotoDi(r.label || r.product), 36)} alt="" loading="lazy" /> : <span className="lv-segnaposto" aria-hidden="true" />}
               <span className="lv-nome">{r.label || r.product}</span>
-              <span className="lv-pezzi">{r.quantity ?? r.orders ?? ''}{(r.quantity ?? r.orders) != null ? ' pz' : ''}</span>
+              <span className="lv-pezzi">{r.quantity ?? r.orders ?? ''}{(r.quantity ?? r.orders) != null ? ` ${t('inv.pcs', null, 'pz')}` : ''}</span>
               <b>{soldi(r.revenue ?? r.value)}</b>
             </li>
           ))}</ul>}

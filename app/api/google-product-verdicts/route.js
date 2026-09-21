@@ -706,7 +706,9 @@ async function compute(req, range, S, { mf, canali }) {
     // (NON gli ordini di Shopify: sono di tutti i canali, e una vendita arrivata da Meta rimetteva
     // fra i "da fermare" centinaia di prodotti — provato: 30 → 260.)
     const almenoUnaVendita = g.conversions >= 1 || g.cost >= sogliaSpesa
-    if (verdetto !== 'daVerificare' && margineNetto != null && margineNetto < 0 && almenoUnaVendita) {
+    // Non se il motivo e' gia' "spesa senza vendite": li' non ha venduto NESSUN canale, e
+    // "vende da altri canali" sarebbe falso (21 set 2026). Il verdetto resta comunque "da fermare".
+    if (verdetto !== 'daVerificare' && motivo !== 'spesaSenzaVendite' && margineNetto != null && margineNetto < 0 && almenoUnaVendita) {
       // Due storie diverse, due frasi diverse. "Venduto in perdita nonostante gli ordini" e'
       // vero solo se Google un ordine intero se l'e' attribuito; se no (14 casi su 23, verificato)
       // la verita' e' un'altra: Google ha speso oltre la soglia senza portare un ordine, e il
@@ -871,7 +873,7 @@ export async function GET(req) {
       // Shopify, non piu' con l'aliquota unica delle soglie. Senza alzare la
       // versione la cache condivisa (locale e produzione) avrebbe continuato a
       // servire i margini calcolati al 22% anche per l'olio al 4%.
-      tab: `googleVerdicts@27:${improntaSoglie(S)}:${improntaCanali}${mf ? `:${mf.ns}.${mf.key}` : ''}`,
+      tab: `googleVerdicts@28:${improntaSoglie(S)}:${improntaCanali}${mf ? `:${mf.ns}.${mf.key}` : ''}`,
       // 10 minuti: la tab si ri-controlla da sola mentre e' aperta, quindi la
       // finestra breve fa partire prima il rinfresco in background. Sotto non
       // ha senso: i dati Google arrivano con il loro ritardo.

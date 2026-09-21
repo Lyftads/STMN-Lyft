@@ -55,7 +55,7 @@ function leggiNumero(testo) {
 function scrivi(n, modello) {
   const a = Math.abs(n)
   const cifre = modello.italiano
-    ? a.toLocaleString('it-IT', { minimumFractionDigits: modello.decimali, maximumFractionDigits: modello.decimali, useGrouping: 'always' })
+    ? a.toLocaleString(localeNumeri(), { minimumFractionDigits: modello.decimali, maximumFractionDigits: modello.decimali, useGrouping: 'always' })
     : a.toFixed(modello.decimali)
   return `${modello.prima}${cifre}${modello.dopo}`
 }

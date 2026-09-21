@@ -15,6 +15,7 @@ import DownloadReportButton from './DownloadReportButton'
 import PeriodoInBarra from './ui/PeriodoInBarra'
 import { tfQuery, tfKey } from '../../lib/tfQuery'
 import { useI18n } from '../../lib/i18n/I18nProvider'
+import { localeNumeri } from '../../lib/client/numeri'
 
 // ─────────────────────────────────────────────────────────────
 //  Lead Gen Tab — economia delle campagne lead Meta.
@@ -27,9 +28,9 @@ const VIOLET = '#a78bfa'
 const BLUE = '#2997ff'
 const AMBER = '#f59e0b'
 
-const eur  = v => v != null && Number.isFinite(Number(v)) ? `€${Number(v).toLocaleString('it-IT', { maximumFractionDigits: 0, useGrouping: 'always' })}` : '—'
+const eur  = v => v != null && Number.isFinite(Number(v)) ? `€${Number(v).toLocaleString(localeNumeri(), { maximumFractionDigits: 0, useGrouping: 'always' })}` : '—'
 const eur2 = v => soldi(v, 'auto')
-const num  = v => v != null && Number.isFinite(Number(v)) ? Number(v).toLocaleString('it-IT', { maximumFractionDigits: 0, useGrouping: 'always' }) : '—'
+const num  = v => v != null && Number.isFinite(Number(v)) ? Number(v).toLocaleString(localeNumeri(), { maximumFractionDigits: 0, useGrouping: 'always' }) : '—'
 const pct0 = v => v != null && Number.isFinite(Number(v)) ? `${Number(v).toFixed(0)}%` : '—'
 
 export default function LeadGenTab() {

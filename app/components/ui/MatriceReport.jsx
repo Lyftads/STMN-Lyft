@@ -2,6 +2,7 @@
 
 import { Fonte } from './FasceTabella'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { sepDecimali } from '../../../lib/client/numeri'
 
 // ============================================================================
 //  Matrice dei report — voci in riga, periodi in colonna
@@ -98,7 +99,7 @@ export default function MatriceReport({
     if (base == null || base === 0 || v == null) return null
     return (v / base) * 100
   }
-  const fmtInc = (n) => n == null ? '' : `${n.toFixed(1).replace('.', ',')}%`
+  const fmtInc = (n) => n == null ? '' : `${n.toFixed(1).replace('.', sepDecimali())}%`
 
   const cellaValore = (riga, valori) => {
     const v = valori ? valori[riga.key] : null

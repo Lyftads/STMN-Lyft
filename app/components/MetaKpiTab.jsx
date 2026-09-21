@@ -19,6 +19,7 @@ import RecommendationsFeed from './RecommendationsFeed'
 import MetaAdsAgent from './MetaAdsAgent'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import DriveToStoreCard from './DriveToStoreCard'
+import { localeNumeri } from '../../lib/client/numeri'
 
 // Mini-grafico sparkline per le card KPI
 function Sparkline({ data, dataKey, color = '#2997ff', width = 92, height = 30 }) {
@@ -68,7 +69,7 @@ const PRESETS = [
 // migliaia, stesso meno in ogni tab. 'auto' = niente decimali sopra mille.
 const eur  = v => soldi(v)
 const eur2 = v => soldi(v, 'auto')
-const num  = v => v != null ? Number(v).toLocaleString('it-IT', { useGrouping: 'always' }) : '—'
+const num  = v => v != null ? Number(v).toLocaleString(localeNumeri(), { useGrouping: 'always' }) : '—'
 const pct  = v => v != null ? `${Number(v).toFixed(2)}%` : '—'
 const mul  = v => v != null && v > 0 ? `${Number(v).toFixed(2)}x` : '—'
 
@@ -292,7 +293,7 @@ function KpiCard({ kpi, value, prev, daily }) {
       case 'money':   return `${sign}${soldi(x, x < 100 ? 2 : 0)}`
       case 'ratio':   return `${sign}${x.toFixed(2)}`
       case 'percent': return `${sign}${x.toFixed(2)} pp`
-      case 'count':   return `${sign}${x.toLocaleString('it-IT', { maximumFractionDigits: 0, useGrouping: 'always' })}`
+      case 'count':   return `${sign}${x.toLocaleString(localeNumeri(), { maximumFractionDigits: 0, useGrouping: 'always' })}`
       default:        return `${sign}${x.toFixed(2)}`
     }
   }

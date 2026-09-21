@@ -2,12 +2,11 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
-import { withTenantContext, getMeta, getTenantInfo } from '../../../lib/tenant/credentials'
+import { withTenantContext, getMeta } from '../../../lib/tenant/credentials'
 import { getRange } from '../../../lib/metaRange'
 import { swrSnapshot } from '../../../lib/cache/swr'
 import { campagnaDaEscludere } from '../../../lib/ads/driveToStore'
-import { tipoNegozio } from '../../../lib/team/tipoNegozio'
-import { getAdminSupabase } from '../../../lib/supabase/server'
+import { etichettaDelCliente } from '../../../lib/team/canaliCliente'
 
 // ============================================================================
 //  La spesa Drive to Store, mostrata A PARTE.
@@ -28,23 +27,13 @@ import { getAdminSupabase } from '../../../lib/supabase/server'
 // tenere il riconoscimento acceso per tutti sarebbe pericoloso: un cliente che chiami una campagna
 // "Drive to Store Launch" se la vedrebbe sparire da ROAS, MER e CAC senza nessun errore.
 // Chi non l'ha configurato riceve `attivo: false` e non si chiama Meta per niente.
-async function etichettaDelCliente() {
-  try {
-    const ws = getTenantInfo().userId
-    if (!ws) return null
-    const { data } = await getAdminSupabase().from('companies')
-      .select('multimarca, marchi_rilevati, quota_primo_marchio, canali_esclusi, negozi_fisici, etichetta_negozi_fisici')
-      .eq('user_id', ws).maybeSingle()
-    const t = tipoNegozio(data || {})
-    if (!t.negoziFisici) return null
-    return t.etichettaNegoziFisici || 'drive to store'
-  } catch { return null }
-}
+// L'etichetta sta in lib/team/canaliCliente.js (etichettaDelCliente): la usa anche «Dove comprano»
+// per togliere le stesse campagne dalla spesa per regione.
 
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0 }
 const r2 = (n) => Math.round(num(n) * 100) / 100
 
-async function leggi(params) {
+async function leggi(params, etichetta) {
   const m = getMeta()
   if (!m?.accessToken || !m?.adAccountId) return { errore: 'Meta non collegato', righe: [] }
   const G = `https://graph.facebook.com/${m.graphVersion || 'v20.0'}`
@@ -54,9 +43,9 @@ async function leggi(params) {
     const url = new URL(`${G}/${acc}/insights`)
     url.searchParams.set('level', 'campaign')
     url.searchParams.set('fields', 'campaign_id,campaign_name,spend,impressions,reach,inline_link_clicks')
-    // Si chiede a Meta solo cio' che contiene "drive": meno righe da scorrere.
-    // La decisione vera la prende isDriveToStore qui sotto.
-    url.searchParams.set('filtering', JSON.stringify([{ field: 'campaign.name', operator: 'CONTAIN', value: 'drive' }]))
+    // Nessun filtro lato Meta: prima si chiedeva solo cio' che contiene "drive", e un cliente con
+    // un'etichetta diversa ("negozio", "in store"…) vedeva la barra vuota. A livello di campagna le
+    // righe sono poche; la decisione la prende campagnaDaEscludere con l'etichetta del cliente.
     url.searchParams.set('limit', '500')
     for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v)
     url.searchParams.set('access_token', m.accessToken)
@@ -78,10 +67,10 @@ export async function GET(req) {
     const sp = new URL(req.url).searchParams
 
     if (sp.get('part') === 'monthly') {
-      return swrSnapshot(req, { tab: 'driveToStoreMonthly@1', ttlMs: 6 * 60 * 60 * 1000, compute: async () => {
+      return swrSnapshot(req, { tab: 'driveToStoreMonthly@2', ttlMs: 6 * 60 * 60 * 1000, compute: async () => {
         const oggi = new Date()
         const da = new Date(Date.UTC(oggi.getUTCFullYear() - 2, 0, 1)).toISOString().slice(0, 10)
-        const { errore, righe } = await leggi({ time_range: JSON.stringify({ since: da, until: oggi.toISOString().slice(0, 10) }), time_increment: 'monthly' })
+        const { errore, righe } = await leggi({ time_range: JSON.stringify({ since: da, until: oggi.toISOString().slice(0, 10) }), time_increment: 'monthly' }, etichetta)
         if (errore) return { ok: false, error: errore, __noCache: true }
         const perMese = {}
         for (const r of righe) { const k = String(r.date_start || '').slice(0, 7); if (k) perMese[k] = r2((perMese[k] || 0) + num(r.spend)) }
@@ -94,8 +83,8 @@ export async function GET(req) {
     const su = preset.match(/^custom_(\d{4}-\d{2}-\d{2})_(\d{4}-\d{2}-\d{2})$/)
     const range = (since && until) ? { since, until } : su ? { since: su[1], until: su[2] } : getRange(preset, sp)
     if (!range?.since || !range?.until) return NextResponse.json({ ok: false, error: 'Periodo non valido' }, { status: 400 })
-    return swrSnapshot(req, { tab: 'driveToStore@1', ttlMs: 30 * 60 * 1000, compute: async () => {
-      const { errore, righe } = await leggi({ time_range: JSON.stringify(range) })
+    return swrSnapshot(req, { tab: 'driveToStore@2', ttlMs: 30 * 60 * 1000, compute: async () => {
+      const { errore, righe } = await leggi({ time_range: JSON.stringify(range) }, etichetta)
       if (errore) return { ok: false, error: errore, range, __noCache: true }
       const perCampagna = new Map()
       for (const r of righe) {

@@ -9,6 +9,7 @@ import { tfQuery, tfKey } from '../../lib/tfQuery'
 import { PlatformBadges } from './PlatformIcon'
 import Icon from './ui/Icon'
 import { useI18n } from '../../lib/i18n/I18nProvider'
+import { localeNumeri } from '../../lib/client/numeri'
 
 // Budget Advisor per Google Ads — gemella della versione Meta. Riusa le stesse
 // chiavi i18n ba.* (etichette platform-agnostic).
@@ -25,8 +26,8 @@ const ACT = {
   riduci: { color: 'var(--orange)', bg: 'rgba(255,159,10,0.14)' },
   taglia: { color: 'var(--red)', bg: 'rgba(255,69,58,0.14)' },
 }
-const eur = (n) => `€${Number(n || 0).toLocaleString('it-IT')}`
-const eur2 = (n) => (n == null ? '—' : `€${Number(n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
+const eur = (n) => `€${Number(n || 0).toLocaleString(localeNumeri())}`
+const eur2 = (n) => (n == null ? '—' : `€${Number(n).toLocaleString(localeNumeri(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
 
 export default function GoogleBudgetAdvisorPanel() {
   const { t } = useI18n()

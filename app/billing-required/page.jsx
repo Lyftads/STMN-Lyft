@@ -9,6 +9,7 @@ import LogoMark from '../components/LogoMark'
 import { getBrowserSupabase } from '../../lib/supabase/client'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import { planRank } from '../../lib/team/orderTiers'
+import { localeNumeri } from '../../lib/client/numeri'
 
 const ACCENT = '#bf5af2'
 const BLUE = '#2997ff'
@@ -181,7 +182,7 @@ function BillingContent() {
 
         {!isShopify && gate && gate.minLabel && (
           <div style={{ maxWidth: 720, margin: '0 auto 26px', padding: 14, borderRadius: 12, background: 'rgba(41,151,255,0.08)', border: '1px solid rgba(41,151,255,0.30)', color: '#9ecbff', fontSize: 13, textAlign: 'center', lineHeight: 1.5 }}>
-            <Icon name="info" size={13} /> {t('br.gateNote', { orders: Number(gate.orders || 0).toLocaleString('it-IT'), plan: gate.minLabel }, `In base al tuo volume (~{orders} ordini/mese), il piano minimo è {plan}. I piani inferiori sono disattivati.`)}
+            <Icon name="info" size={13} /> {t('br.gateNote', { orders: Number(gate.orders || 0).toLocaleString(localeNumeri()), plan: gate.minLabel }, `In base al tuo volume (~{orders} ordini/mese), il piano minimo è {plan}. I piani inferiori sono disattivati.`)}
           </div>
         )}
 

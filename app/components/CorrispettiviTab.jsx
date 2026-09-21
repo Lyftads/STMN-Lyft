@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Icon from './ui/Icon'
 import { PlatformBadges } from './PlatformIcon'
 import { useI18n } from '../../lib/i18n/I18nProvider'
+import { localeNumeri } from '../../lib/client/numeri'
 
 // ============================================================================
 //  Registro corrispettivi e-commerce.
@@ -43,7 +44,7 @@ const SCHEDE_GUIDA = ['panoramica', 'perimetri', 'shopify', 'giftcard', 'export'
 // ce ne sono il registro lo dice da se', con zero righe, che e' la verita'.
 
 export default function CorrispettiviTab() {
-  const { t } = useI18n()
+  const { t, intlLocale } = useI18n()
   const oggi = new Date()
   const meseCorrente = `${oggi.getFullYear()}-${String(oggi.getMonth() + 1).padStart(2, '0')}`
 
@@ -85,7 +86,7 @@ export default function CorrispettiviTab() {
   const euro0 = (v) => soldi(v)
   const giornoBreve = (g) => {
     const d = new Date(`${g}T12:00:00Z`)
-    return `${String(d.getUTCDate()).padStart(2, '0')} ${d.toLocaleDateString('it-IT', { month: 'short', timeZone: 'UTC' })}`
+    return `${String(d.getUTCDate()).padStart(2, '0')} ${d.toLocaleDateString(intlLocale, { month: 'short', timeZone: 'UTC' })}`
   }
 
   // ── Tutto nasce da qui: righe filtrate per perimetro ─────────────────────
@@ -233,7 +234,7 @@ export default function CorrispettiviTab() {
         </span>
         {dati?.updatedAt && (
           <span style={{ fontSize: 11.5, color: 'var(--text3)' }}>
-            {t('cor.updatedAt', { at: new Date(dati.updatedAt).toLocaleString('it-IT', { useGrouping: 'always' }) }, `Aggiornato ${new Date(dati.updatedAt).toLocaleString('it-IT', { useGrouping: 'always' })}`)}
+            {t('cor.updatedAt', { at: new Date(dati.updatedAt).toLocaleString(intlLocale, { useGrouping: 'always' }) }, `Aggiornato ${new Date(dati.updatedAt).toLocaleString(intlLocale, { useGrouping: 'always' })}`)}
           </span>
         )}
         {dati && q && !q.meseCompleto && (
@@ -286,7 +287,7 @@ export default function CorrispettiviTab() {
               <Kpi etichetta={t('cor.kpiTaxable', null, 'Imponibile')} valore={euro(tot.imponibile)} colore="var(--text)" />
               <Kpi etichetta={t('cor.kpiVat', null, 'IVA')} valore={euro(tot.iva)} colore="var(--text)" />
               <Kpi etichetta={t('cor.kpiReturns', null, 'Resi e rimborsi')} valore={euro(tot.resi)} colore={tot.resi < 0 ? '#ef4444' : 'var(--text)'} />
-              <Kpi etichetta={t('cor.kpiOrders', null, 'Ordini')} valore={tot.ordini.toLocaleString('it-IT', { useGrouping: 'always' })} colore="var(--text)" />
+              <Kpi etichetta={t('cor.kpiOrders', null, 'Ordini')} valore={tot.ordini.toLocaleString(localeNumeri(), { useGrouping: 'always' })} colore="var(--text)" />
             </div>
 
             {tot.senzaImponibile > 0 && (

@@ -13,14 +13,14 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContai
 // Toglierlo non da' errore: la pagina si apre uguale e il bottone sparisce.
 import SeoAgent from './SeoAgent'
 import { useI18n } from '../../lib/i18n/I18nProvider'
-import { num, perc } from '../../lib/client/numeri'
+import { num, perc, localeNumeri } from '../../lib/client/numeri'
 
 const STATUS = { pass: { color: '#22c55e', icon: '✓' }, warn: { color: '#f59e0b', icon: '!' }, fail: { color: '#ef4444', icon: '×' } }
 const GROUPS = ['Essenziali', 'Social/Sharing', 'Strutturati', 'Contenuto', 'Tecnici']
 const GROUP_KEYS = { 'Essenziali': 'seo.groupEssentials', 'Social/Sharing': 'seo.groupSocial', 'Strutturati': 'seo.groupStructured', 'Contenuto': 'seo.groupContent', 'Tecnici': 'seo.groupTechnical' }
 const PRIO = { alta: '#ef4444', media: '#f59e0b', bassa: 'var(--text3)' }
 const scoreCol = s => s >= 85 ? '#22c55e' : s >= 70 ? '#64d2ff' : s >= 50 ? '#f59e0b' : '#ef4444'
-const fmtDate = d => new Date(d).toLocaleString('it-IT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+const fmtDate = d => new Date(d).toLocaleString(localeNumeri(), { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
 
 const giorniDelPeriodo = (v) => v?.since ? Math.max(1, Math.round((Date.now() - new Date(`${v.since}T00:00:00`).getTime()) / 86400000)) : 28
 

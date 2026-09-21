@@ -5,6 +5,7 @@ import { scaricaCsv } from './ui/Elenco'
 import { Bottone } from './ui/Mattoni'
 import { soldi } from '../../lib/client/soldi'
 import { avvisa } from '../../lib/client/avviso'
+import { localeNumeri } from '../../lib/client/numeri'
 
 // ============================================================================
 //  Due pezzi della tab "Performance prodotti Google" nati dal debug del 19 set:
@@ -21,7 +22,7 @@ import { avvisa } from '../../lib/client/avviso'
 
 const pct = (a, b) => (b > 0 ? Math.round((a / b) * 100) : 0)
 // 'it-IT' da solo non mette il punto alle migliaia sotto 10.000: "1820" invece di "1.820".
-const IT = (n) => Number(n || 0).toLocaleString('it-IT', { useGrouping: 'always' })
+const IT = (n) => Number(n || 0).toLocaleString(localeNumeri(), { useGrouping: 'always' })
 
 export function DoveVaIlBudget({ righe = [], t, periodoGiorni }) {
   const [aperto, setAperto] = useState(false)
@@ -90,7 +91,7 @@ export function DoveVaIlBudget({ righe = [], t, periodoGiorni }) {
                   ))}
                 </tbody>
               </table>
-              {c.vuoto.length > 100 && <div className="gpv-bud-nota" style={{ padding: '8px 2px' }}>{t('gpv.budMore', { n: (c.vuoto.length - 100).toLocaleString('it-IT') }, `…e altri ${(c.vuoto.length - 100).toLocaleString('it-IT')}: nel CSV ci sono tutti.`)}</div>}
+              {c.vuoto.length > 100 && <div className="gpv-bud-nota" style={{ padding: '8px 2px' }}>{t('gpv.budMore', { n: (c.vuoto.length - 100).toLocaleString(localeNumeri()) }, `…e altri ${(c.vuoto.length - 100).toLocaleString(localeNumeri())}: nel CSV ci sono tutti.`)}</div>}
             </div>
           )}
         </>

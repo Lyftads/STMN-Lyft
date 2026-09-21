@@ -258,7 +258,7 @@ export default function InventoryTab() {
             {/* Filtri (Urgenze) */}
             {view === 'urgent' && (
               <div style={{ padding: '12px 20px 0', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {[['all', t('inv.fAll', null, 'Tutte urgenti')], ['le7', '≤ 7 gg'], ['le30', '≤ 30 gg'], ['oos_sales', t('inv.fBroken', null, 'OOS con vendite')], ['low', t('inv.fLow', null, 'Low stock (1-5)')], ['bozze', `${t('inv.fDrafts', null, 'Finiti, in bozza')} · ${bozze.length}`]].map(([id, label]) => (
+                {[['all', t('inv.fAll', null, 'Tutte urgenti')], ['le7', `≤ 7 ${t('inv.daysShort', null, 'gg')}`], ['le30', `≤ 30 ${t('inv.daysShort', null, 'gg')}`], ['oos_sales', t('inv.fBroken', null, 'OOS con vendite')], ['low', t('inv.fLow', null, 'Low stock (1-5)')], ['bozze', `${t('inv.fDrafts', null, 'Finiti, in bozza')} · ${bozze.length}`]].map(([id, label]) => (
                   <button key={id} onClick={() => setChip(id)} className={`ly-filtro senza-tocco${chip === id ? ' acceso' : ''}`}>{label}</button>
                 ))}
               </div>
@@ -299,11 +299,11 @@ export default function InventoryTab() {
                       <tr key={i.variantId} style={{ borderBottom: '1px solid var(--border)' }}>
                         <td style={{ padding: '12px 14px', maxWidth: 320 }}><div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Thumb url={i.image} /><div style={{ minWidth: 0 }}><span className="gpv-titolo" style={{ display: 'block', color: 'var(--text)', fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.productTitle}</span>
                           {/* Sul telefono: quanti pezzi restano e fra quanto finiscono, senza scorrere. */}
-                          <div className="gpv-esito-mobile"><span className={`reg-pillola ${i.oos || i.risk === 'le7' ? 'sotto' : 'media'}`}>{i.oos ? t('inv.oos', null, 'Esaurito') : `${fmtInt(i.stock)} pz${i.daysToStockout != null && !i.bozza ? ` · ${i.daysToStockout} gg` : ''}`}</span></div></div></div></td>
+                          <div className="gpv-esito-mobile"><span className={`reg-pillola ${i.oos || i.risk === 'le7' ? 'sotto' : 'media'}`}>{i.oos ? t('inv.oos', null, 'Esaurito') : `${fmtInt(i.stock)} ${t('inv.pcs', null, 'pz')}${i.daysToStockout != null && !i.bozza ? ` · ${i.daysToStockout} ${t('inv.daysShort', null, 'gg')}` : ''}`}</span></div></div></div></td>
                         <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ color: 'var(--text)', fontWeight: 600, fontSize: 13 }}>{i.size}</span>{!(i.bozza && i.risk === 'ok') && <Badge risk={i.risk} />}{i.bozza && <span className="gpv-stato">{t('gpv.stDraft', null, 'in bozza')}</span>}</div><div style={{ fontSize: 10, color: 'var(--text2)' }}>{i.sku ? <Copia testo={i.sku} /> : '—'}</div></td>
                         <td style={{ ...cell, color: i.oos ? '#ef4444' : 'var(--text)', fontWeight: 640 }}>{fmtInt(i.stock)}</td>
                         <td style={cell}>{i.velocity ? num(i.velocity, 2) : '—'}</td>
-                        <td style={{ ...cell, color: i.risk === 'le7' ? '#ef4444' : i.risk === 'le30' ? '#f59e0b' : 'var(--text2)', fontWeight: 600 }}>{i.oos ? t('inv.oos', null, 'Esaurito') : i.bozza ? '—' : i.daysToStockout != null ? `${i.daysToStockout} gg` : '∞'}</td>
+                        <td style={{ ...cell, color: i.risk === 'le7' ? '#ef4444' : i.risk === 'le30' ? '#f59e0b' : 'var(--text2)', fontWeight: 600 }}>{i.oos ? t('inv.oos', null, 'Esaurito') : i.bozza ? '—' : i.daysToStockout != null ? `${i.daysToStockout} ${t('inv.daysShort', null, 'gg')}` : '∞'}</td>
                         <td style={cell}>{fmtDate(i.stockoutDate)}</td>
                         <td style={{ ...cell, color: 'var(--text)', fontWeight: 600 }}>{(i.brokenSize || i.bozza) ? <span style={{ color: '#ef4444' }} title={t('inv.lostWeekTip', null, 'vendite perse a settimana')}>-{fmtMoney(i.lostRevPerDay * 7)}</span> : fmtMoney(i.value)}</td>
                       </tr>

@@ -6,6 +6,7 @@ import { soldi } from '../../lib/client/soldi'
 import { useEffect, useState } from 'react'
 import Icon from './ui/Icon'
 import { useI18n } from '../../lib/i18n/I18nProvider'
+import { localeNumeri } from '../../lib/client/numeri'
 
 // Vista normalizzata per provider email diversi da Klaviyo (Omnisend/Mailchimp).
 // Consuma /api/email-marketing (contratto: kpis, campaigns, flows, notes).
@@ -45,7 +46,7 @@ export default function EmailProviderView({ provider }) {
   const k = data?.kpis || {}
   const campaigns = data?.campaigns || []
   const eur = (v) => soldi(v)
-  const int = (v) => v == null ? '—' : Number(v).toLocaleString('it-IT', { useGrouping: 'always' })
+  const int = (v) => v == null ? '—' : Number(v).toLocaleString(localeNumeri(), { useGrouping: 'always' })
   const pct = (v) => v == null ? '—' : `${Number(v).toFixed(1)}%`
 
   return (

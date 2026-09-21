@@ -10,6 +10,7 @@ import { tfQuery, tfKey } from '../../lib/tfQuery'
 import { PlatformBadges } from './PlatformIcon'
 import Icon from './ui/Icon'
 import { useI18n } from '../../lib/i18n/I18nProvider'
+import { localeNumeri } from '../../lib/client/numeri'
 
 
 function DeltaBadge({ d, lowerBetter = false }) {
@@ -25,7 +26,7 @@ const SEV = {
 }
 
 const money = (n) => soldi(n, 'auto')
-const nf = (n) => Number(n || 0).toLocaleString('it-IT', { useGrouping: 'always' })
+const nf = (n) => Number(n || 0).toLocaleString(localeNumeri(), { useGrouping: 'always' })
 
 export default function CreativeFatiguePanel() {
   const { t } = useI18n()

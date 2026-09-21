@@ -13,12 +13,13 @@ import DownloadReportButton from './DownloadReportButton'
 import PeriodoInBarra from './ui/PeriodoInBarra'
 import { tfQuery, tfKey } from '../../lib/tfQuery'
 import { useI18n } from '../../lib/i18n/I18nProvider'
+import { localeNumeri } from '../../lib/client/numeri'
 
 const GOOGLE = '#eab308'
 
-const eur  = v => v != null ? `€${Number(v).toLocaleString('it-IT', { maximumFractionDigits: 0, useGrouping: 'always' })}` : '—'
+const eur  = v => v != null ? `€${Number(v).toLocaleString(localeNumeri(), { maximumFractionDigits: 0, useGrouping: 'always' })}` : '—'
 const eur2 = v => soldi(v, 'auto')
-const int0 = v => v != null ? Number(v).toLocaleString('it-IT', { maximumFractionDigits: 0, useGrouping: 'always' }) : '—'
+const int0 = v => v != null ? Number(v).toLocaleString(localeNumeri(), { maximumFractionDigits: 0, useGrouping: 'always' }) : '—'
 const pct  = v => v != null ? `${Number(v).toFixed(2)}%` : '—'
 const mul  = v => v != null && v > 0 ? `${Number(v).toFixed(2)}x` : '—'
 
@@ -42,7 +43,7 @@ const COLS = [
   { key: 'clicks',      label: 'Click',       fmt: int0, labelKey: 'gkpi.clicks' },
   { key: 'ctr',         label: 'CTR',         fmt: pct },
   { key: 'cpc',         label: 'CPC',         fmt: eur2 },
-  { key: 'conversions', label: 'Conv.',       fmt: v => Number(v || 0).toLocaleString('it-IT', { maximumFractionDigits: 2 }), labelKey: 'gkpi.conversions' },
+  { key: 'conversions', label: 'Conv.',       fmt: v => Number(v || 0).toLocaleString(localeNumeri(), { maximumFractionDigits: 2 }), labelKey: 'gkpi.conversions' },
   { key: 'convValue',   label: 'Valore conv.',fmt: eur2, labelKey: 'gkpi.convValue' },
   { key: 'roas',        label: 'ROAS',        fmt: mul },
   { key: 'cpa',         label: 'CPA',         fmt: eur2 },
@@ -54,7 +55,7 @@ const COLS = [
 const CHART_METRICS = [
   { key: 'spend',       label: 'Costo',        color: '#34A853', fmt: eur2 },
   { key: 'convValue',   label: 'Valore conv.', color: '#EA4335', fmt: eur2 },
-  { key: 'conversions', label: 'Conversioni',  color: '#FBBC04', fmt: v => Number(v || 0).toLocaleString('it-IT', { maximumFractionDigits: 2 }) },
+  { key: 'conversions', label: 'Conversioni',  color: '#FBBC04', fmt: v => Number(v || 0).toLocaleString(localeNumeri(), { maximumFractionDigits: 2 }) },
   { key: 'roas',        label: 'ROAS',         color: '#4285F4', fmt: mul },
   { key: 'cpa',         label: 'CPA',          color: '#A142F4', fmt: eur2 },
   { key: 'ctr',         label: 'CTR',          color: '#00ACC1', fmt: pct },
@@ -160,7 +161,7 @@ export default function GoogleDetailTab() {
   const SUMMARY = [
     { key: 'spend', label: t('meta.spend', null, 'Spesa'), fmt: eur, lower: false },
     { key: 'roas', label: 'ROAS', fmt: mul, lower: false },
-    { key: 'conversions', label: t('gkpi.conversions', null, 'Conversioni'), fmt: v => Number(v || 0).toLocaleString('it-IT', { maximumFractionDigits: 1 }), lower: false },
+    { key: 'conversions', label: t('gkpi.conversions', null, 'Conversioni'), fmt: v => Number(v || 0).toLocaleString(localeNumeri(), { maximumFractionDigits: 1 }), lower: false },
     { key: 'convValue', label: t('gkpi.convValue', null, 'Valore conv.'), fmt: eur, lower: false },
     { key: 'cpa', label: 'CPA', fmt: eur2, lower: true },
     { key: 'ctr', label: 'CTR', fmt: pct, lower: false },

@@ -497,8 +497,11 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
   // I pannelli dei marchi esistono solo per chi rivende marchi altrui.
   const mostraBrand = multimarca === true
   // «Dove comprano» si disegna solo se ha qualcosa da dire: senza ordini
-  // italiani resterebbe un'intestazione con sotto il vuoto.
-  const mostraDove = provLoading || !!provError
+  // italiani resterebbe un'intestazione con sotto il vuoto. Mentre carica non
+  // compare, a meno di una risposta gia' in memoria: a un negozio che alla fine
+  // non ha province (fuori dall'Italia, senza Shopify) la sezione non deve
+  // apparire per un minuto e poi sparire.
+  const mostraDove = !!provError
     || (province?.regioni?.length > 0) || (province?.province?.length > 0)
 
   const groupSources = (g) => {
@@ -1318,6 +1321,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
           money={money}
           conta0={conta0}
           t={t}
+          mostraBrand={mostraBrand}
         />
       )}
 
@@ -1714,7 +1718,27 @@ function SaleDetailModal({ brand, onClose, money, int0, tfLabel }) {
 //  comuni, marchi e categorie arrivano con l'elenco, quindi qui non si chiama
 //  niente e il pannello si apre subito.
 // ============================================================================
-function ProvinciaDetailModal({ riga, regione = false, onClose, onPrecedente, onSuccessiva, posizione, money, conta0, tfLabel, t }) {
+// Categoria e genere arrivano da /api/kpi-province come CODICI quando sono valori
+// speciali: si traducono qui, nelle cinque lingue. Le forme maiuscole italiane
+// sono quelle delle risposte di prima: stesse etichette, finche' la cache non gira.
+// Una categoria o un genere scritti dal negozio restano come li ha scritti lui.
+const CODICE_GENERE = {
+  uomo: 'uomo', UOMO: 'uomo', donna: 'donna', DONNA: 'donna', unisex: 'unisex', UNISEX: 'unisex',
+  bambino: 'bambino', BAMBINO: 'bambino', nonDichiarato: 'nonDichiarato', 'NON DICHIARATO': 'nonDichiarato',
+}
+function genereProvincia(g, t) {
+  switch (CODICE_GENERE[g]) {
+    case 'uomo': return t('kpi.provGenMen', null, 'UOMO')
+    case 'donna': return t('kpi.provGenWomen', null, 'DONNA')
+    case 'unisex': return t('kpi.provGenUnisex', null, 'UNISEX')
+    case 'bambino': return t('kpi.provGenKids', null, 'BAMBINO')
+    case 'nonDichiarato': return t('kpi.provGenUndeclared', null, 'NON DICHIARATO')
+    default: return g
+  }
+}
+const categoriaProvincia = (c, t) => (c === 'senzaCategoria' || c === 'SENZA CATEGORIA' ? t('kpi.provCatNone', null, 'SENZA CATEGORIA') : c)
+
+function ProvinciaDetailModal({ riga, regione = false, onClose, onPrecedente, onSuccessiva, posizione, money, conta0, tfLabel, t, mostraBrand = false }) {
   const [montato, setMontato] = useState(false)
   useEffect(() => { setMontato(true) }, [])
   useEffect(() => {
@@ -1727,8 +1751,12 @@ function ProvinciaDetailModal({ riga, regione = false, onClose, onPrecedente, on
   const COLORI = ['#8b5cf6', '#2997ff', '#22c55e', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#84cc16']
   const comuni = (riga.comuni || []).slice(0, 12)
   const marchi = (riga.marchi || []).slice(0, 10)
-  const categorie = (riga.categorie || []).filter(c => c.fatturato > 0)
+  const categorie = (riga.categorie || []).filter(c => c.fatturato > 0).map(c => ({ ...c, categoria: categoriaProvincia(c.categoria, t) }))
   const totCat = categorie.reduce((a, c) => a + c.fatturato, 0)
+  // «Per chi comprano» ha senso solo se almeno un prodotto venduto dichiara il
+  // genere: tutto «non dichiarato» e' una barra sola al 100%, e non si mostra.
+  const generi = (riga.generi || []).filter(g => g.fatturato > 0)
+  const mostraGeneri = generi.some(g => CODICE_GENERE[g.genere] !== 'nonDichiarato')
 
   // Le schede prendono i colori dal tema invece di avere un gradiente scuro
   // scritto a mano: su fondo bianco quel gradiente diventava una macchia
@@ -1838,7 +1866,7 @@ function ProvinciaDetailModal({ riga, regione = false, onClose, onPrecedente, on
             </div>
           </div>
 
-          <div className="m-stack" style={{display:'grid',gridTemplateColumns:'1.3fr 1fr',gap:14,marginBottom:14}}>
+          <div className="m-stack" style={{display:'grid',gridTemplateColumns: mostraGeneri ? '1.3fr 1fr' : '1fr',gap:14,marginBottom:14}}>
             <div className="prov-scheda">
               <div style={cap}>{t('kpi.provProducts', null, 'Prodotti più venduti qui')}</div>
               {(riga.prodotti || []).length === 0 ? (
@@ -1851,7 +1879,7 @@ function ProvinciaDetailModal({ riga, regione = false, onClose, onPrecedente, on
                   <div style={{minWidth:0,flex:1}}>
                     <div className="prov-prod-titolo">{pr.titolo}</div>
                     <div className="prov-prod-nota">
-                      {[pr.categoria, pr.genere].filter(Boolean).join(' · ') || t('kpi.provNoCategory', null, 'senza categoria')}
+                      {[pr.categoria ? categoriaProvincia(pr.categoria, t) : null, pr.genere ? genereProvincia(pr.genere, t) : null].filter(Boolean).join(' · ') || t('kpi.provNoCategory', null, 'senza categoria')}
                     </div>
                   </div>
                   <div style={{textAlign:'right',flexShrink:0}}>
@@ -1861,18 +1889,17 @@ function ProvinciaDetailModal({ riga, regione = false, onClose, onPrecedente, on
                 </div>
               ))}
             </div>
+            {mostraGeneri && (
             <div className="prov-scheda">
               <div style={cap}>{t('kpi.provGender', null, 'Per chi comprano')}</div>
-              {(riga.generi || []).length === 0 ? (
-                <div style={{fontSize:13,color:'var(--text3)'}}>{t('kpi.provNoGender', null, 'Genere non dichiarato sui prodotti')}</div>
-              ) : (() => {
-                const tot = (riga.generi || []).reduce((a, g) => a + g.fatturato, 0)
-                return (riga.generi || []).map((g, i) => {
+              {(() => {
+                const tot = generi.reduce((a, g) => a + g.fatturato, 0)
+                return generi.map((g, i) => {
                   const quota = tot > 0 ? (g.fatturato / tot) * 100 : 0
                   return (
                     <div key={g.genere} style={{marginBottom:10}}>
                       <div style={{display:'flex',alignItems:'baseline',gap:8,fontSize:11.5,marginBottom:4}}>
-                        <span style={{color:'var(--text2)',fontWeight:600,flex:1}}>{g.genere}</span>
+                        <span style={{color:'var(--text2)',fontWeight:600,flex:1}}>{genereProvincia(g.genere, t)}</span>
                         <span style={{color:'var(--text)',fontWeight:640}}>{money(g.fatturato)}</span>
                         <span style={{color:'var(--text3)',width:38,textAlign:'right'}}>{Math.round(quota)}%</span>
                       </div>
@@ -1884,9 +1911,13 @@ function ProvinciaDetailModal({ riga, regione = false, onClose, onPrecedente, on
                 })
               })()}
             </div>
+            )}
           </div>
 
-          <div className="m-stack" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+          <div className="m-stack" style={{display:'grid',gridTemplateColumns: mostraBrand ? '1fr 1fr' : '1fr',gap:14}}>
+            {/* Solo per chi rivende marchi altrui, come i pannelli dei brand della tab:
+                a un monomarca sarebbe una riga sola al 100%. */}
+            {mostraBrand && (
             <div className="prov-scheda">
               <div style={cap}>{t('kpi.provBrands', null, 'Marchi più venduti qui')}</div>
               {marchi.length === 0 ? (
@@ -1899,6 +1930,7 @@ function ProvinciaDetailModal({ riga, regione = false, onClose, onPrecedente, on
                 </div>
               ))}
             </div>
+            )}
             <div className="prov-scheda">
               <div style={cap}>{regione ? t('kpi.regProvincesList', null, 'Province') : t('kpi.provTownsList', null, 'Comuni')}</div>
               <div style={{maxHeight:240,overflowY:'auto'}}>

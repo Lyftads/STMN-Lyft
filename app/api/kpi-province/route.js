@@ -6,9 +6,9 @@ import { withTenantContext, getShopify, getGoogle, getMeta } from '../../../lib/
 import { getRange } from '../../../lib/metaRange'
 import { swrSnapshot } from '../../../lib/cache/swr'
 import { clausolaSenzaCanali } from '../../../lib/shopify/koongo'
-import { canaliEsclusiDelCliente } from '../../../lib/team/canaliCliente'
+import { negozioDelCliente, etichettaDi } from '../../../lib/team/canaliCliente'
 import { regioneDiProvincia, regioneCanonica } from '../../../lib/geo/regioniItalia'
-import { metaEscludiDriveToStore } from '../../../lib/ads/driveToStore'
+import { metaEscludiEtichetta, campagnaDaEscludere } from '../../../lib/ads/driveToStore'
 import { shopifyql } from '../../../lib/shopify/shopifyql'
 
 // ============================================================================
@@ -115,6 +115,7 @@ async function datiProdotti(idProdotti) {
   const out = new Map()
   const ids = [...idProdotti]
   const Q = `query N($ids:[ID!]!){ nodes(ids:$ids){ ... on Product { id title handle
+    productType
     categoria: metafield(namespace:"pdp", key:"categoria"){ value }
     g1: metafield(namespace:"pdp", key:"gender"){ value }
     g2: metafield(namespace:"pdp", key:"genere"){ value }
@@ -129,7 +130,9 @@ async function datiProdotti(idProdotti) {
         titolo: n.title || null,
         handle: n.handle || null,
         immagine: n.featuredMedia?.preview?.image?.url || null,
-        categoria: (n.categoria?.value || '').trim().toUpperCase() || null,
+        // Il metacampo pdp.categoria e' di un solo negozio: gli altri tengono la categoria dove la
+        // mette Shopify (Tipo di prodotto). Senza nessuno dei due: SENZA CATEGORIA, come prima.
+        categoria: (n.categoria?.value || n.productType || '').trim().toUpperCase() || null,
         genere: genereDi(n),
       })
     }
@@ -161,9 +164,13 @@ async function tokenGoogle() {
 //
 // Si usa ShopifyQL perche' qui serve solo l'accoppiata comune-provincia:
 // aggregata, una chiamata, nessuna pagina di ordini da sfogliare.
-let mappaCache = null
+// Una mappa PER NEGOZIO: prima era una sola per tutta la funzione, e quella imparata dagli
+// ordini di un cliente veniva riusata per il cliente dopo, fino a 7 giorni.
+const mappaCache = new Map()
 async function mappaComuni() {
-  if (mappaCache && Date.now() - mappaCache.at < 7 * 24 * ORE) return mappaCache.v
+  const chiaveNegozio = getShopify()?.storeUrl || '-'
+  const gia = mappaCache.get(chiaveNegozio)
+  if (gia && Date.now() - gia.at < 7 * 24 * ORE) return gia.v
   const oggi = new Date()
   // Due anni: tre facevano rifiutare l'interrogazione, e una mappa vuota
   // non si distingue da "nessuna sessione attribuibile".
@@ -192,7 +199,7 @@ async function mappaComuni() {
   const v = { mappa, guai, comuniNoti: mappa.size, finestra: { da, a } }
   // Una mappa vuota non si mette in cache: sarebbe un guasto congelato per
   // una settimana.
-  if (mappa.size > 0) mappaCache = { at: Date.now(), v }
+  if (mappa.size > 0) { if (mappaCache.size >= 50) mappaCache.delete(mappaCache.keys().next().value); mappaCache.set(chiaveNegozio, { at: Date.now(), v }) }
   return v
 }
 
@@ -247,7 +254,7 @@ async function sessioniPerComune(range) {
 //  Ogni fonte fallisce per conto suo e lo DICE: una regione senza spesa Meta
 //  perche' Meta ha risposto errore non e' una regione dove non si spende.
 // ════════════════════════════════════════════════════════════════════════
-async function spesaMetaPerRegione(range) {
+async function spesaMetaPerRegione(range, etichetta = null) {
   try {
     const m = getMeta()
     if (!m?.accessToken || !m?.adAccountId) return { errore: 'Meta non collegato' }
@@ -261,9 +268,11 @@ async function spesaMetaPerRegione(range) {
       url.searchParams.set('level', 'campaign')
       url.searchParams.set('fields', 'campaign_name,spend')
       url.searchParams.set('breakdowns', 'region')
-      // Fuori le Drive to Store: gonfiavano Friuli e Veneto con una spesa che
-      // all'e-commerce non serve (portano a un negozio, non al sito).
-      url.searchParams.set('filtering', JSON.stringify(metaEscludiDriveToStore()))
+      // Fuori le campagne dei negozi fisici (portano a un negozio, non al sito), ma SOLO per chi li
+      // ha dichiarati, con la LORO parola (lib/team/canaliCliente.js). Prima si toglieva a tutti
+      // "drivetostore", la parola di un solo cliente. Senza etichetta non si toglie niente.
+      const filtri = metaEscludiEtichetta(etichetta)
+      if (filtri.length) url.searchParams.set('filtering', JSON.stringify(filtri))
       url.searchParams.set('time_range', JSON.stringify({ since: range.since, until: range.until }))
       url.searchParams.set('limit', '500')
       url.searchParams.set('access_token', m.accessToken)
@@ -278,6 +287,8 @@ async function spesaMetaPerRegione(range) {
         for (const riga of (j.data || [])) {
           const spesa = num(riga.spend)
           if (spesa <= 0) continue
+          // La rete sotto il filtro di Meta, per qualunque altra grafia del nome.
+          if (campagnaDaEscludere(riga.campaign_name, etichetta)) continue
           totale += spesa
           const reg = regioneCanonica(riga.region)
           if (!reg) { sconosciute.set(riga.region, (sconosciute.get(riga.region) || 0) + spesa); continue }
@@ -377,6 +388,51 @@ async function sessioniPerRegione(range) {
   } catch (e) { return { errore: `Sessioni Shopify: ${String(e.message).slice(0, 120)}` } }
 }
 
+const ITALIA = /^(italy|italia|it)$/i
+async function mercatoDelNegozio() {
+  const oggi = new Date()
+  const da = new Date(oggi.getTime() - 90 * 86400000).toISOString().slice(0, 10)
+  const a = oggi.toISOString().slice(0, 10)
+  try {
+    const righe = await shopifyql(`FROM sales SHOW orders GROUP BY shipping_country SINCE ${da} UNTIL ${a} ORDER BY orders DESC LIMIT 100`, { ttlMs: 24 * 3_600_000 })
+    const paesi = (righe || [])
+      .map(r => ({ paese: String(r.shipping_country ?? '').trim(), ordini: num(r.orders) }))
+      .filter(r => r.ordini > 0 && !vuoto(r.paese))
+    const tot = paesi.reduce((s, r) => s + r.ordini, 0)
+    if (tot > 0) {
+      const primo = paesi.reduce((x, r) => (r.ordini > x.ordini ? r : x))
+      const it = paesi.filter(r => ITALIA.test(r.paese)).reduce((s, r) => s + r.ordini, 0)
+      return { italia: ITALIA.test(primo.paese), fonte: 'ordini', paese: primo.paese, quotaItalia: Math.round((it / tot) * 1000) / 10 }
+    }
+  } catch {}
+  try {
+    const d = await gql('query { shop { billingAddress { countryCodeV2 } } }', {})
+    const paese = d?.shop?.billingAddress?.countryCodeV2 || null
+    if (paese) return { italia: paese === 'IT', fonte: 'negozio', paese, quotaItalia: null }
+  } catch {}
+  return { italia: true, fonte: 'sconosciuto', paese: null, quotaItalia: null }
+}
+
+// La risposta senza niente dentro, con la stessa forma di quella piena: la
+// pagina la legge come "nessuna provincia" e non disegna la sezione.
+function rispostaVuota(range, motivo, mercato = null) {
+  return {
+    ok: true, motivo, mercato, range,
+    regioni: [],
+    spesaRegioni: {
+      meta: { totale: 0, fuoriItalia: [] }, google: { totale: 0, fuoriItalia: [] },
+      sessioni: { totale: 0, nonAssegnate: [] }, merMedio: null, provinceSenzaRegione: [],
+    },
+    province: [],
+    totali: { province: 0, ordini: 0, fatturato: 0, comuni: 0 },
+    fuori: {
+      ordiniTotali: 0, fatturatoTotale: 0, senzaProvincia: 0, fatturatoSenzaProvincia: 0,
+      recuperatiDallaFatturazione: 0, estero: 0, marketplace: 0, troncato: false,
+    },
+    analytics: { nota: motivo === 'nessunShopify' ? 'Shopify non collegato.' : 'Il mercato principale del negozio non e\' l\'Italia: province e regioni italiane non si calcolano.' },
+  }
+}
+
 function resolveRange(sp) {
   const since = sp.get('since'), until = sp.get('until')
   if (since && until) return { since, until }
@@ -386,9 +442,9 @@ function resolveRange(sp) {
   return getRange(preset, sp)
 }
 
-async function calcola(range, canaliCliente = []) {
+async function calcola(range, canaliCliente = [], etichetta = null) {
   // Partono subito: girano mentre si sfogliano gli ordini, non dopo.
-  const inArrivo = Promise.all([spesaMetaPerRegione(range), spesaGooglePerRegione(range), sessioniPerRegione(range)])
+  const inArrivo = Promise.all([spesaMetaPerRegione(range, etichetta), spesaGooglePerRegione(range), sessioniPerRegione(range)])
   const province = new Map()   // nome provincia → aggregato
   const idProdotti = new Set()
   let ordiniTotali = 0, fatturatoTotale = 0
@@ -684,9 +740,19 @@ export async function GET(req) {
     if (!range?.since || !range?.until) {
       return NextResponse.json({ ok: false, error: 'Periodo non valido' }, { status: 400 })
     }
-    return swrSnapshot(req, { tab: 'kpiProvinceTotali@1', ttlMs: 6 * ORE, compute: async () => {
+    // Senza Shopify non c'e' niente da leggere: lo si dice subito, invece di chiamare
+    // https://undefined e mostrare "fetch failed".
+    const { storeUrl, adminToken } = getShopify() || {}
+    if (!storeUrl || !adminToken) return NextResponse.json(rispostaVuota(range, 'nessunShopify'))
+    // @2: etichetta dei negozi fisici per cliente, categoria dal tipo di prodotto, controllo del mercato.
+    return swrSnapshot(req, { tab: 'kpiProvinceTotali@2', ttlMs: 6 * ORE, compute: async () => {
       try {
-        const out = await calcola(range, await canaliEsclusiDelCliente())
+        // Un negozio che vende soprattutto fuori dall'Italia: province e regioni italiane non si
+        // calcolano, e non si chiamano Shopify, Meta e Google per niente.
+        const mercato = await mercatoDelNegozio()
+        if (!mercato.italia) return rispostaVuota(range, 'fuoriItalia', mercato)
+        const negozio = await negozioDelCliente()
+        const out = { ...(await calcola(range, negozio.canaliEsclusi, etichettaDi(negozio))), mercato }
         // Un pezzo mancato per un inciampo esterno (limite di Shopify o di Meta, rete) NON si
         // conserva: prima la risposta con l'errore dentro restava in cache 6 ORE e veniva
         // riservita a tutti — per questo "Rate limited" sembrava capitare cosi' spesso.

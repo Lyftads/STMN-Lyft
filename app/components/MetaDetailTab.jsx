@@ -17,7 +17,7 @@ import { useI18n } from '../../lib/i18n/I18nProvider'
 import Icon from './ui/Icon'
 import PeriodoInBarra from './ui/PeriodoInBarra'
 import DriveToStoreCard from './DriveToStoreCard'
-import { num } from '../../lib/client/numeri'
+import { num, localeNumeri } from '../../lib/client/numeri'
 
 const PRESETS = [
   { id: 'today', label: 'Oggi', labelKey: 'meta.today' },
@@ -37,7 +37,7 @@ function n(v) {
 
 function fmtInt(v) {
   if (v === null || v === undefined || Number.isNaN(Number(v))) return '—'
-  return Math.round(Number(v)).toLocaleString('it-IT', { useGrouping: 'always' })
+  return Math.round(Number(v)).toLocaleString(localeNumeri(), { useGrouping: 'always' })
 }
 
 function fmtMoney(v, decimals = 0) {
@@ -47,7 +47,7 @@ function fmtMoney(v, decimals = 0) {
 
 function fmtPct(v, decimals = 2) {
   if (v == null || v === 0) return '0,00%'
-  return `${Number(v).toLocaleString('it-IT', {
+  return `${Number(v).toLocaleString(localeNumeri(), {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   })}%`
@@ -55,7 +55,7 @@ function fmtPct(v, decimals = 2) {
 
 function fmtRatio(v) {
   if (!v) return '0,00×'
-  return `${Number(v).toLocaleString('it-IT', {
+  return `${Number(v).toLocaleString(localeNumeri(), {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}×`

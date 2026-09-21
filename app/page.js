@@ -340,7 +340,7 @@ function NumInput({ value, onChange, placeholder, color, isCount }) {
   }
 
   const preview = value > 0
-    ? (isCount ? Number(value).toLocaleString('it-IT', { useGrouping: 'always' }) : `€${Math.round(value).toLocaleString('it-IT', { useGrouping: 'always' })}`)
+    ? (isCount ? Number(value).toLocaleString(localeNumeri(), { useGrouping: 'always' }) : `€${Math.round(value).toLocaleString(localeNumeri(), { useGrouping: 'always' })}`)
     : null
 
   return (
@@ -609,10 +609,10 @@ function Simulator({ cfg }) {
       advAsRevenueShare: Math.round(advAsRevenueShare * 10) / 10,
     }
   })
-  const sm0 = n => n>0 ? `€${Math.round(n).toLocaleString('it-IT', { useGrouping: 'always' })}` : n<0 ? `-€${Math.round(Math.abs(n)).toLocaleString('it-IT', { useGrouping: 'always' })}` : '€0'
-  const sm2 = n => `€${Number(n).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}`
+  const sm0 = n => n>0 ? `€${Math.round(n).toLocaleString(localeNumeri(), { useGrouping: 'always' })}` : n<0 ? `-€${Math.round(Math.abs(n)).toLocaleString(localeNumeri(), { useGrouping: 'always' })}` : '€0'
+  const sm2 = n => `€${Number(n).toLocaleString(localeNumeri(),{minimumFractionDigits:2,maximumFractionDigits:2})}`
   const sp1 = n => `${Number(n).toFixed(1)}%`
-  const si0 = n => n>0 ? Math.round(n).toLocaleString('it-IT', { useGrouping: 'always' }) : '0'
+  const si0 = n => n>0 ? Math.round(n).toLocaleString(localeNumeri(), { useGrouping: 'always' }) : '0'
 
   // Stile slider futuristico riutilizzabile
   const sliderStyle = {
@@ -1513,21 +1513,21 @@ function DeltaMini({ current, previous, kind = 'number' }) {
   const abs = Math.abs(diff)
 
   const formatAbs = () => {
-    if (kind === 'euro0') return `€${Math.round(abs).toLocaleString('it-IT', { useGrouping: 'always' })}`
+    if (kind === 'euro0') return `€${Math.round(abs).toLocaleString(localeNumeri(), { useGrouping: 'always' })}`
     if (kind === 'euro2') {
-      return `€${abs.toLocaleString('it-IT', {
+      return `€${abs.toLocaleString(localeNumeri(), {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       })}`
     }
-    if (kind === 'int') return Math.round(abs).toLocaleString('it-IT', { useGrouping: 'always' })
+    if (kind === 'int') return Math.round(abs).toLocaleString(localeNumeri(), { useGrouping: 'always' })
     if (kind === 'percent') {
-      return `${abs.toLocaleString('it-IT', {
+      return `${abs.toLocaleString(localeNumeri(), {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       })}%`
     }
-    return abs.toLocaleString('it-IT', {
+    return abs.toLocaleString(localeNumeri(), {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })
@@ -1550,7 +1550,7 @@ function DeltaMini({ current, previous, kind = 'number' }) {
 
       {pct != null && (
         <div>
-          {sign}{Math.abs(pct).toLocaleString('it-IT', {
+          {sign}{Math.abs(pct).toLocaleString(localeNumeri(), {
             minimumFractionDigits: 1,
             maximumFractionDigits: 1,
           })}%
@@ -1565,12 +1565,12 @@ function MonthlyValue({ value, previous, kind = 'euro0', suffix = '' }) {
 
   const money0 = n =>
     n != null && Number(n) > 0
-      ? `€${Math.round(Number(n)).toLocaleString('it-IT', { useGrouping: 'always' })}`
+      ? `€${Math.round(Number(n)).toLocaleString(localeNumeri(), { useGrouping: 'always' })}`
       : '—'
 
   const money2 = n =>
     n != null && Number(n) > 0
-      ? `€${Number(n).toLocaleString('it-IT', {
+      ? `€${Number(n).toLocaleString(localeNumeri(), {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2,
         })}`
@@ -1578,12 +1578,12 @@ function MonthlyValue({ value, previous, kind = 'euro0', suffix = '' }) {
 
   const int0 = n =>
     n != null && Number(n) > 0
-      ? Math.round(Number(n)).toLocaleString('it-IT', { useGrouping: 'always' })
+      ? Math.round(Number(n)).toLocaleString(localeNumeri(), { useGrouping: 'always' })
       : '—'
 
   const pct1 = n =>
     n != null
-      ? `${Number(n).toLocaleString('it-IT', {
+      ? `${Number(n).toLocaleString(localeNumeri(), {
           minimumFractionDigits: 1,
           maximumFractionDigits: 1,
         })}%`
@@ -1591,7 +1591,7 @@ function MonthlyValue({ value, previous, kind = 'euro0', suffix = '' }) {
 
   const pct2 = n =>
     n != null
-      ? `${Number(n).toLocaleString('it-IT', {
+      ? `${Number(n).toLocaleString(localeNumeri(), {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2,
         })}%`
@@ -1599,7 +1599,7 @@ function MonthlyValue({ value, previous, kind = 'euro0', suffix = '' }) {
 
   const dec2 = n =>
     n != null
-      ? Number(n).toLocaleString('it-IT', {
+      ? Number(n).toLocaleString(localeNumeri(), {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2,
         })
@@ -1649,12 +1649,12 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, googleWeekly, onUpd
   const WHITE = '#f8fafc'
   const RED = '#ef4444'
 
-  const money0 = n => n != null && Number(n) > 0 ? `€${Math.round(Number(n)).toLocaleString('it-IT', { useGrouping: 'always' })}` : '—'
-  const money2 = n => n != null && Number(n) > 0 ? `€${Number(n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'
-  const int0 = n => n != null && Number(n) > 0 ? Math.round(Number(n)).toLocaleString('it-IT', { useGrouping: 'always' }) : '—'
-  const pct1 = n => n != null ? `${Number(n).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%` : '—'
-  const pct2 = n => n != null ? `${Number(n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%` : '—'
-  const dec2 = n => n != null ? Number(n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'
+  const money0 = n => n != null && Number(n) > 0 ? `€${Math.round(Number(n)).toLocaleString(localeNumeri(), { useGrouping: 'always' })}` : '—'
+  const money2 = n => n != null && Number(n) > 0 ? `€${Number(n).toLocaleString(localeNumeri(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'
+  const int0 = n => n != null && Number(n) > 0 ? Math.round(Number(n)).toLocaleString(localeNumeri(), { useGrouping: 'always' }) : '—'
+  const pct1 = n => n != null ? `${Number(n).toLocaleString(localeNumeri(), { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%` : '—'
+  const pct2 = n => n != null ? `${Number(n).toLocaleString(localeNumeri(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%` : '—'
+  const dec2 = n => n != null ? Number(n).toLocaleString(localeNumeri(), { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'
 
   const asNum = v => Number.isFinite(Number(v)) ? Number(v) : 0
   const div = (a, b) => b > 0 ? a / b : null
@@ -1676,28 +1676,28 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, googleWeekly, onUpd
     const abs = Math.abs(Number(v || 0))
 
     if (kind === 'euro0') {
-      return `€${Math.round(abs).toLocaleString('it-IT', { useGrouping: 'always' })}`
+      return `€${Math.round(abs).toLocaleString(localeNumeri(), { useGrouping: 'always' })}`
     }
 
     if (kind === 'euro2') {
-      return `€${abs.toLocaleString('it-IT', {
+      return `€${abs.toLocaleString(localeNumeri(), {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       })}`
     }
 
     if (kind === 'int') {
-      return Math.round(abs).toLocaleString('it-IT', { useGrouping: 'always' })
+      return Math.round(abs).toLocaleString(localeNumeri(), { useGrouping: 'always' })
     }
 
     if (kind === 'percent') {
-      return `${abs.toLocaleString('it-IT', {
+      return `${abs.toLocaleString(localeNumeri(), {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       })}%`
     }
 
-    return abs.toLocaleString('it-IT', {
+    return abs.toLocaleString(localeNumeri(), {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })
@@ -1727,7 +1727,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, googleWeekly, onUpd
 
         {d.pct != null && (
           <div>
-            {sign}{Math.abs(d.pct).toLocaleString('it-IT', {
+            {sign}{Math.abs(d.pct).toLocaleString(localeNumeri(), {
               minimumFractionDigits: 1,
               maximumFractionDigits: 1,
             })}%
@@ -2053,7 +2053,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, googleWeekly, onUpd
   }
 
   const ratioColor2 = r => ratioColor(r) // stesse soglie: un solo posto dove cambiarle
-  const fr2 = n => n!=null ? `${Number(n).toFixed(2).replace('.',',')}` : '—'
+  const fr2 = n => n!=null ? `${Number(n).toFixed(2).replace('.',sepDecimali())}` : '—'
   const kpiCards = [
     { label:t('dash.revenue', null, 'Fatturato'), val:tf.fat, prev:tfP.fat, fmt:money0, color:'var(--green)', key:'fat', sources:['shopify'] },
     ...((tf.koongo > 0 || tfP.koongo > 0) ? [
@@ -3288,15 +3288,15 @@ export default function App() {
           const sign = diff > 0 ? '+' : '−'
           const abs = Math.abs(diff)
           let fmtAbs = '—'
-          if (kind === 'euro0') fmtAbs = `€${Math.round(abs).toLocaleString('it-IT', { useGrouping: 'always' })}`
-          else if (kind === 'euro2') fmtAbs = `€${abs.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}`
-          else if (kind === 'int') fmtAbs = Math.round(abs).toLocaleString('it-IT', { useGrouping: 'always' })
-          else if (kind === 'percent') fmtAbs = `${abs.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}%`
-          else fmtAbs = abs.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})
+          if (kind === 'euro0') fmtAbs = `€${Math.round(abs).toLocaleString(localeNumeri(), { useGrouping: 'always' })}`
+          else if (kind === 'euro2') fmtAbs = `€${abs.toLocaleString(localeNumeri(),{minimumFractionDigits:2,maximumFractionDigits:2})}`
+          else if (kind === 'int') fmtAbs = Math.round(abs).toLocaleString(localeNumeri(), { useGrouping: 'always' })
+          else if (kind === 'percent') fmtAbs = `${abs.toLocaleString(localeNumeri(),{minimumFractionDigits:2,maximumFractionDigits:2})}%`
+          else fmtAbs = abs.toLocaleString(localeNumeri(),{minimumFractionDigits:2,maximumFractionDigits:2})
           return (
             <div style={{marginTop:8,color,fontSize:13,lineHeight:1.2,fontWeight:680,whiteSpace:'nowrap'}}>
               <div>{sign}{fmtAbs}</div>
-              {pctV != null && <div>{sign}{Math.abs(pctV).toLocaleString('it-IT',{minimumFractionDigits:1,maximumFractionDigits:1})}%</div>}
+              {pctV != null && <div>{sign}{Math.abs(pctV).toLocaleString(localeNumeri(),{minimumFractionDigits:1,maximumFractionDigits:1})}%</div>}
             </div>
           )
         }
@@ -3306,9 +3306,9 @@ export default function App() {
           if (kind==='euro0') shown = f0(value)
           else if (kind==='euro2') shown = f2(value)
           else if (kind==='int') shown = fn(value)
-          else if (kind==='percent1') shown = value!=null?`${Number(value).toLocaleString('it-IT',{minimumFractionDigits:1,maximumFractionDigits:1})}%`:'—'
-          else if (kind==='percent2') shown = value!=null?`${Number(value).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}%`:'—'
-          else if (kind==='ratio') shown = value!=null?`${Number(value).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}${suffix}`:'—'
+          else if (kind==='percent1') shown = value!=null?`${Number(value).toLocaleString(localeNumeri(),{minimumFractionDigits:1,maximumFractionDigits:1})}%`:'—'
+          else if (kind==='percent2') shown = value!=null?`${Number(value).toLocaleString(localeNumeri(),{minimumFractionDigits:2,maximumFractionDigits:2})}%`:'—'
+          else if (kind==='ratio') shown = value!=null?`${Number(value).toLocaleString(localeNumeri(),{minimumFractionDigits:2,maximumFractionDigits:2})}${suffix}`:'—'
           return (<div><div style={mVal}>{shown}</div>{mDelta(value, prev, kind==='percent1'||kind==='percent2'?'percent':kind, inverse)}</div>)
         }
 
@@ -3847,15 +3847,15 @@ export default function App() {
           const sign = diff > 0 ? '+' : '−'
           const abs = Math.abs(diff)
           let fmtAbs = '—'
-          if (kind === 'euro0') fmtAbs = `€${Math.round(abs).toLocaleString('it-IT', { useGrouping: 'always' })}`
-          else if (kind === 'euro2') fmtAbs = `€${abs.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}`
-          else if (kind === 'int') fmtAbs = Math.round(abs).toLocaleString('it-IT', { useGrouping: 'always' })
-          else if (kind === 'percent') fmtAbs = `${abs.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}%`
-          else fmtAbs = abs.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})
+          if (kind === 'euro0') fmtAbs = `€${Math.round(abs).toLocaleString(localeNumeri(), { useGrouping: 'always' })}`
+          else if (kind === 'euro2') fmtAbs = `€${abs.toLocaleString(localeNumeri(),{minimumFractionDigits:2,maximumFractionDigits:2})}`
+          else if (kind === 'int') fmtAbs = Math.round(abs).toLocaleString(localeNumeri(), { useGrouping: 'always' })
+          else if (kind === 'percent') fmtAbs = `${abs.toLocaleString(localeNumeri(),{minimumFractionDigits:2,maximumFractionDigits:2})}%`
+          else fmtAbs = abs.toLocaleString(localeNumeri(),{minimumFractionDigits:2,maximumFractionDigits:2})
           return (
             <div style={{marginTop:8,color,fontSize:13,lineHeight:1.2,fontWeight:680,whiteSpace:'nowrap'}}>
               <div>{sign}{fmtAbs}</div>
-              {pctV != null && <div>{sign}{Math.abs(pctV).toLocaleString('it-IT',{minimumFractionDigits:1,maximumFractionDigits:1})}%</div>}
+              {pctV != null && <div>{sign}{Math.abs(pctV).toLocaleString(localeNumeri(),{minimumFractionDigits:1,maximumFractionDigits:1})}%</div>}
             </div>
           )
         }
@@ -3864,9 +3864,9 @@ export default function App() {
           if (kind==='euro0') shown = f0(value)
           else if (kind==='euro2') shown = f2(value)
           else if (kind==='int') shown = fn(value)
-          else if (kind==='percent1') shown = value!=null?`${Number(value).toLocaleString('it-IT',{minimumFractionDigits:1,maximumFractionDigits:1})}%`:'—'
-          else if (kind==='percent2') shown = value!=null?`${Number(value).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}%`:'—'
-          else if (kind==='ratio') shown = value!=null?`${Number(value).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}${suffix}`:'—'
+          else if (kind==='percent1') shown = value!=null?`${Number(value).toLocaleString(localeNumeri(),{minimumFractionDigits:1,maximumFractionDigits:1})}%`:'—'
+          else if (kind==='percent2') shown = value!=null?`${Number(value).toLocaleString(localeNumeri(),{minimumFractionDigits:2,maximumFractionDigits:2})}%`:'—'
+          else if (kind==='ratio') shown = value!=null?`${Number(value).toLocaleString(localeNumeri(),{minimumFractionDigits:2,maximumFractionDigits:2})}${suffix}`:'—'
           return (<div><div style={qVal}>{shown}</div>{qDelta(value, prev, kind==='percent1'||kind==='percent2'?'percent':kind, inverse)}</div>)
         }
 
@@ -4250,15 +4250,15 @@ export default function App() {
           const sign = diff > 0 ? '+' : '−'
           const abs = Math.abs(diff)
           let fmtAbs = '—'
-          if (kind === 'euro0') fmtAbs = `€${Math.round(abs).toLocaleString('it-IT', { useGrouping: 'always' })}`
-          else if (kind === 'euro2') fmtAbs = `€${abs.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}`
-          else if (kind === 'int') fmtAbs = Math.round(abs).toLocaleString('it-IT', { useGrouping: 'always' })
-          else if (kind === 'percent') fmtAbs = `${abs.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}%`
-          else fmtAbs = abs.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})
+          if (kind === 'euro0') fmtAbs = `€${Math.round(abs).toLocaleString(localeNumeri(), { useGrouping: 'always' })}`
+          else if (kind === 'euro2') fmtAbs = `€${abs.toLocaleString(localeNumeri(),{minimumFractionDigits:2,maximumFractionDigits:2})}`
+          else if (kind === 'int') fmtAbs = Math.round(abs).toLocaleString(localeNumeri(), { useGrouping: 'always' })
+          else if (kind === 'percent') fmtAbs = `${abs.toLocaleString(localeNumeri(),{minimumFractionDigits:2,maximumFractionDigits:2})}%`
+          else fmtAbs = abs.toLocaleString(localeNumeri(),{minimumFractionDigits:2,maximumFractionDigits:2})
           return (
             <div style={{marginTop:8,color,fontSize:13,lineHeight:1.2,fontWeight:680,whiteSpace:'nowrap'}}>
               <div>{sign}{fmtAbs}</div>
-              {pctV != null && <div>{sign}{Math.abs(pctV).toLocaleString('it-IT',{minimumFractionDigits:1,maximumFractionDigits:1})}%</div>}
+              {pctV != null && <div>{sign}{Math.abs(pctV).toLocaleString(localeNumeri(),{minimumFractionDigits:1,maximumFractionDigits:1})}%</div>}
             </div>
           )
         }
@@ -4267,9 +4267,9 @@ export default function App() {
           if (kind==='euro0') shown = f0(value)
           else if (kind==='euro2') shown = f2(value)
           else if (kind==='int') shown = fn(value)
-          else if (kind==='percent1') shown = value!=null?`${Number(value).toLocaleString('it-IT',{minimumFractionDigits:1,maximumFractionDigits:1})}%`:'—'
-          else if (kind==='percent2') shown = value!=null?`${Number(value).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}%`:'—'
-          else if (kind==='ratio') shown = value!=null?`${Number(value).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}${suffix}`:'—'
+          else if (kind==='percent1') shown = value!=null?`${Number(value).toLocaleString(localeNumeri(),{minimumFractionDigits:1,maximumFractionDigits:1})}%`:'—'
+          else if (kind==='percent2') shown = value!=null?`${Number(value).toLocaleString(localeNumeri(),{minimumFractionDigits:2,maximumFractionDigits:2})}%`:'—'
+          else if (kind==='ratio') shown = value!=null?`${Number(value).toLocaleString(localeNumeri(),{minimumFractionDigits:2,maximumFractionDigits:2})}${suffix}`:'—'
           return (<div><div style={qVal}>{shown}</div>{qDelta(value, prev, kind==='percent1'||kind==='percent2'?'percent':kind, inverse)}</div>)
         }
 

@@ -1,5 +1,7 @@
 'use client'
 
+import { sepDecimali } from '../../lib/client/numeri'
+
 export default function DeltaBadge({ current, previous, inverse = false }) {
   // Una percentuale su una base nulla o NEGATIVA non vuol dire niente: il giorno di un reso il
   // fatturato di confronto puo' essere -28 €, e ne usciva "+2637%". Senza base, niente cifra.
@@ -18,7 +20,7 @@ export default function DeltaBadge({ current, previous, inverse = false }) {
   const sign = pct >= 0 ? '+' : ''
   const display = Math.abs(pct) >= 100
     ? `${sign}${Math.round(pct)}%`
-    : `${sign}${pct.toFixed(1).replace('.', ',')}%`
+    : `${sign}${pct.toFixed(1).replace('.', sepDecimali())}%`
 
   return (
     <span

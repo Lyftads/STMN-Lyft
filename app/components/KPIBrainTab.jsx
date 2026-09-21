@@ -18,10 +18,10 @@ import DownloadReportButton from './DownloadReportButton'
 import MetaSegmentsPanel from './MetaSegmentsPanel'
 import GoogleSegmentsPanel from './GoogleSegmentsPanel'
 import { useI18n } from '../../lib/i18n/I18nProvider'
-import { num } from '../../lib/client/numeri'
+import { num, localeNumeri } from '../../lib/client/numeri'
 
 export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeeklyAll = [], metaWeeklyAll = [], googleDailyAll = [], onRefresh, loading, preset = 'today', setPreset }) {
-  const { t } = useI18n()
+  const { t, locale, intlLocale } = useI18n()
 
   const asNum = v => { const n = Number(v); return Number.isFinite(n) ? n : 0 }
   const safeDiv = (a, b) => b > 0 ? a / b : null
@@ -116,10 +116,10 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
   const availableMonths = data.filter(m => m.fatturato > 0 || m.totalSpend > 0)
 
   const money = n => soldi(n, 0, { zeroVuoto: true })
-  const money2 = n => n > 0 ? `€${n.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}` : '—'
-  const int0 = n => n > 0 ? Math.round(n).toLocaleString('it-IT', { useGrouping: 'always' }) : '—'
-  const pct = n => n != null ? `${n.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}%` : '—'
-  const ratio = n => n != null ? `${n.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}x` : '—'
+  const money2 = n => n > 0 ? `€${n.toLocaleString(localeNumeri(),{minimumFractionDigits:2,maximumFractionDigits:2})}` : '—'
+  const int0 = n => n > 0 ? Math.round(n).toLocaleString(localeNumeri(), { useGrouping: 'always' }) : '—'
+  const pct = n => n != null ? `${n.toLocaleString(localeNumeri(),{minimumFractionDigits:2,maximumFractionDigits:2})}%` : '—'
+  const ratio = n => n != null ? `${n.toLocaleString(localeNumeri(),{minimumFractionDigits:2,maximumFractionDigits:2})}x` : '—'
   const shortMoney = n => { const v=Number(n||0); if(v>=1e6)return`€${num(v/1e6,1)}M`; if(v>=1e3)return`€${num(v/1e3,1)}K`; return money(v) }
   const shortNum = n => { const v=Number(n||0); if(v>=1e6)return`${num(v/1e6,2)}M`; if(v>=1e3)return`${num(v/1e3,1)}K`; return int0(v) }
 
@@ -420,7 +420,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
     const d = curr - prev
     if (d === 0) return '€0'
     const sign = d > 0 ? '+' : '-'
-    return `${sign}€${Math.round(Math.abs(d)).toLocaleString('it-IT', { useGrouping: 'always' })}`
+    return `${sign}€${Math.round(Math.abs(d)).toLocaleString(localeNumeri(), { useGrouping: 'always' })}`
   }
   const deltaColor = (curr, prev) => {
     if (prev === 0 && curr > 0) return '#a5b4fc' // NEW
@@ -461,7 +461,12 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
   const dayNameIT = d => {
     const map = { sun:'Domenica',sunday:'Domenica',mon:'Lunedì',monday:'Lunedì',tue:'Martedì',tuesday:'Martedì',wed:'Mercoledì',wednesday:'Mercoledì',thu:'Giovedì',thursday:'Giovedì',fri:'Venerdì',friday:'Venerdì',sat:'Sabato',saturday:'Sabato',
       domenica:'Domenica',lunedi:'Lunedì',lunedì:'Lunedì',martedi:'Martedì',martedì:'Martedì',mercoledi:'Mercoledì',mercoledì:'Mercoledì',giovedi:'Giovedì',giovedì:'Giovedì',venerdi:'Venerdì',venerdì:'Venerdì',sabato:'Sabato' }
-    return map[String(d||'').toLowerCase()] || d
+    const it = map[String(d||'').toLowerCase()]
+    // Fuori dall'italiano il giorno si scrive nella lingua dell'interfaccia, con la maiuscola come qui sopra.
+    if (!it || locale === 'it') return it || d
+    const k = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'].indexOf(it)
+    const s = new Intl.DateTimeFormat(intlLocale, { weekday: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(2021, 0, 3 + k)))
+    return s.charAt(0).toUpperCase() + s.slice(1)
   }
   const dayBreakdown = (live?.shopifyDayBreakdown || []).map(r => ({
     label: dayNameIT(r.day || r.label),
@@ -484,7 +489,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
   // Uno zero e' un fatto — "nessun cliente di ritorno" e' un'informazione, un
   // trattino sembra un dato che manca. Il trattino resta per cio' che davvero
   // non e' misurabile (null).
-  const conta0 = n => n == null ? '—' : Math.round(n).toLocaleString('it-IT', { useGrouping: 'always' })
+  const conta0 = n => n == null ? '—' : Math.round(n).toLocaleString(localeNumeri(), { useGrouping: 'always' })
   const comuniLabel = (n) => n === 1
     ? t('kpi.provTownOne', null, '1 comune')
     : t('kpi.provTownsInline', { n }, `${n} comuni`)
@@ -693,7 +698,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
                       </div>
                       <div style={{width:58,textAlign:'right',fontSize:11.5,fontWeight:640,flexShrink:0,color: d == null ? 'var(--text3)' : d >= 0 ? '#22c55e' : '#ef4444'}}
                         title={t('kpi.brandVsPrev', null, 'vs periodo precedente')}>
-                        {d == null ? '—' : `${d >= 0 ? '+' : ''}${d.toLocaleString('it-IT',{maximumFractionDigits:1})}%`}
+                        {d == null ? '—' : `${d >= 0 ? '+' : ''}${d.toLocaleString(localeNumeri(),{maximumFractionDigits:1})}%`}
                       </div>
                       <div style={{width:14,fontSize:13,color:open?'#a78bfa':'var(--text3)',flexShrink:0}}>›</div>
                     </div>
@@ -770,7 +775,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
                         {' '}{t('kpi.unitsWord', null, 'pezzi')}
                       </div>
                       <div style={{width:58,textAlign:'right',fontSize:11.5,fontWeight:640,flexShrink:0,color:'#f59e0b'}} title={t('kpi.saleShare', null, 'quota in saldo')}>
-                        {quotaSaldo.toLocaleString('it-IT',{maximumFractionDigits:1})}%
+                        {quotaSaldo.toLocaleString(localeNumeri(),{maximumFractionDigits:1})}%
                       </div>
                       <div style={{width:14,fontSize:13,color:saleOpen?.brand === b.brand ? '#a78bfa' : 'var(--text3)',flexShrink:0}}>›</div>
                     </div>
@@ -952,7 +957,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
                           )}
                         </div>
                         <div style={{fontSize:10,fontWeight:640,color:topDeltaColor,opacity:0.85,marginTop:2}}>
-                          {isNew ? money(row.revenue) : (deltaRev !== 0 ? (deltaRev > 0 ? `+€${Math.round(deltaRev).toLocaleString('it-IT', { useGrouping: 'always' })}` : `-€${Math.round(Math.abs(deltaRev)).toLocaleString('it-IT', { useGrouping: 'always' })}`) : '€0')}
+                          {isNew ? money(row.revenue) : (deltaRev !== 0 ? (deltaRev > 0 ? `+€${Math.round(deltaRev).toLocaleString(localeNumeri(), { useGrouping: 'always' })}` : `-€${Math.round(Math.abs(deltaRev)).toLocaleString(localeNumeri(), { useGrouping: 'always' })}`) : '€0')}
                         </div>
                         <div style={{fontSize:10,color:topDeltaColor,fontWeight:600,letterSpacing:'0.06em',textTransform:'uppercase',opacity:0.6,marginTop:1}}>{t('kpi.vsPrevious', null, 'vs precedente')}</div>
                       </div>
@@ -1122,11 +1127,11 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
                                         <div className="reg-doppia">
                                           <div className="reg-doppia-riga">
                                             <div className="reg-doppia-binario"><div className="reg-doppia-piena" style={{width:`${Math.max(2, (r.quotaSpesa / maxQuota) * 100)}%`,background:'var(--gpv-google)'}} /></div>
-                                            <span className="reg-doppia-num">{r.quotaSpesa.toLocaleString('it-IT', { useGrouping: 'always' })}%</span>
+                                            <span className="reg-doppia-num">{r.quotaSpesa.toLocaleString(localeNumeri(), { useGrouping: 'always' })}%</span>
                                           </div>
                                           <div className="reg-doppia-riga">
                                             <div className="reg-doppia-binario"><div className="reg-doppia-piena" style={{width:`${Math.max(2, ((r.quotaFatturato || 0) / maxQuota) * 100)}%`,background:'var(--gpv-shopify)'}} /></div>
-                                            <span className="reg-doppia-num">{(r.quotaFatturato ?? 0).toLocaleString('it-IT', { useGrouping: 'always' })}%</span>
+                                            <span className="reg-doppia-num">{(r.quotaFatturato ?? 0).toLocaleString(localeNumeri(), { useGrouping: 'always' })}%</span>
                                           </div>
                                         </div>
                                       )}
@@ -1139,14 +1144,14 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
                                   <div className="reg-barra"><div className="reg-barra-piena" style={{width:`${Math.max(2, (r.fatturato / maxFatt) * 100)}%`}} /></div>
                                 </td>
                                 <td className="fam-traffico stacco">{conta0(r.sessioni)}</td>
-                                <td className="fam-traffico"><span className={`reg-pillola ${giudizio(r.cro, croMedio)}`}>{r.cro == null ? '—' : `${r.cro.toLocaleString('it-IT', { useGrouping: 'always' })}%`}</span></td>
+                                <td className="fam-traffico"><span className={`reg-pillola ${giudizio(r.cro, croMedio)}`}>{r.cro == null ? '—' : `${r.cro.toLocaleString(localeNumeri(), { useGrouping: 'always' })}%`}</span></td>
                                 <td className="fam-pub stacco">{r.spesaMeta == null ? '—' : money(r.spesaMeta)}</td>
                                 <td className="fam-pub">{r.spesaGoogle == null ? '—' : money(r.spesaGoogle)}</td>
                                 <td className="fam-pub">
                                   <div className="reg-valore">{r.spesa == null ? '—' : money(r.spesa)}</div>
                                   {r.spesa != null && <div className="reg-barra"><div className="reg-barra-piena" style={{width:`${Math.max(2, (r.spesa / maxSpesa) * 100)}%`}} /></div>}
                                 </td>
-                                <td className="fam-resa stacco"><span className={`reg-pillola ${giudizio(r.mer, merMedio)}`}>{r.mer == null ? '—' : `${r.mer.toLocaleString('it-IT', { useGrouping: 'always' })}×`}</span></td>
+                                <td className="fam-resa stacco"><span className={`reg-pillola ${giudizio(r.mer, merMedio)}`}>{r.mer == null ? '—' : `${r.mer.toLocaleString(localeNumeri(), { useGrouping: 'always' })}×`}</span></td>
                                 <td className="fam-resa">{r.cpo == null ? '—' : money(r.cpo)}</td>
                               </tr>
                             ))}
@@ -1161,13 +1166,13 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
                                   non stanno in nessuna riga, ma nel totale si'. */}
                               <td className="stacco">
                                 {conta0(sessTotali ?? tot.sessioni)}
-                                {sessSenzaRegione > 0 && <div className="reg-sotto">{t('kpi.regSessNoRegion', { n: sessSenzaRegione.toLocaleString('it-IT', { useGrouping: 'always' }) }, `${sessSenzaRegione.toLocaleString('it-IT', { useGrouping: 'always' })} senza regione`)}</div>}
+                                {sessSenzaRegione > 0 && <div className="reg-sotto">{t('kpi.regSessNoRegion', { n: sessSenzaRegione.toLocaleString(localeNumeri(), { useGrouping: 'always' }) }, `${sessSenzaRegione.toLocaleString(localeNumeri(), { useGrouping: 'always' })} senza regione`)}</div>}
                               </td>
-                              <td>{croTotale == null ? '—' : `${croTotale.toLocaleString('it-IT', { useGrouping: 'always' })}%`}</td>
+                              <td>{croTotale == null ? '—' : `${croTotale.toLocaleString(localeNumeri(), { useGrouping: 'always' })}%`}</td>
                               <td className="stacco">{sr.meta?.errore ? '—' : money(tot.meta)}</td>
                               <td>{sr.google?.errore ? '—' : money(tot.google)}</td>
                               <td>{spesaCompleta ? money(tot.spesa) : '—'}</td>
-                              <td className="stacco">{merMedio == null ? '—' : `${merMedio.toLocaleString('it-IT', { useGrouping: 'always' })}×`}</td>
+                              <td className="stacco">{merMedio == null ? '—' : `${merMedio.toLocaleString(localeNumeri(), { useGrouping: 'always' })}×`}</td>
                               <td>{spesaCompleta && tot.ordini > 0 ? money(tot.spesa / tot.ordini) : '—'}</td>
                             </tr>
                           </tfoot>
@@ -1184,8 +1189,8 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
                   {sr.meta?.errore && <div style={{color:'#ef4444'}}>{t('kpi.regMetaErr', { e: sr.meta.errore }, `Spesa Meta non disponibile (${sr.meta.errore}): il totale e il MER non si calcolano.`)}</div>}
                   {sr.google?.errore && <div style={{color:'#ef4444'}}>{t('kpi.regGoogleErr', { e: sr.google.errore }, `Spesa Google non disponibile (${sr.google.errore}): il totale e il MER non si calcolano.`)}</div>}
                   {!sr.sessioni?.errore && sr.sessioni?.totale > 0 && (
-                    <div>{t('kpi.regSessNote', { n: sr.sessioni.totale.toLocaleString('it-IT', { useGrouping: 'always' }) },
-                      `Sessioni di Shopify, solo Italia: ${sr.sessioni.totale.toLocaleString('it-IT', { useGrouping: 'always' })} nel periodo, le stesse che leggi nel pannello Shopify filtrando per paese. Quelle di cui Shopify non rileva la regione stanno nel totale, non nelle righe.`)}</div>
+                    <div>{t('kpi.regSessNote', { n: sr.sessioni.totale.toLocaleString(localeNumeri(), { useGrouping: 'always' }) },
+                      `Sessioni di Shopify, solo Italia: ${sr.sessioni.totale.toLocaleString(localeNumeri(), { useGrouping: 'always' })} nel periodo, le stesse che leggi nel pannello Shopify filtrando per paese. Quelle di cui Shopify non rileva la regione stanno nel totale, non nelle righe.`)}</div>
                   )}
                   {sr.sessioni?.errore && (/rate limit|riprova|retry/i.test(sr.sessioni.errore)
                     ? <div style={{ color: 'var(--text3)' }}>{t('kpi.regSessWait', null, 'Sessioni in aggiornamento: Shopify ha chiesto di attendere, riprovo da solo tra poco.')}</div>
@@ -1255,7 +1260,7 @@ export default function KPIBrainTab({ data, dataYear, live, cfg, S, shopifyWeekl
                             <td className="fam-resa stacco">{conta0(r.nuovi)}</td>
                             <td className="fam-resa">{conta0(r.ritorno)}</td>
                             <td className="fam-traffico stacco">{conta0(r.sessioni)}</td>
-                            <td className="fam-traffico">{r.cro == null ? '—' : `${r.cro.toLocaleString('it-IT', { useGrouping: 'always' })}%`}</td>
+                            <td className="fam-traffico">{r.cro == null ? '—' : `${r.cro.toLocaleString(localeNumeri(), { useGrouping: 'always' })}%`}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -1667,7 +1672,7 @@ function SaleDetailModal({ brand, onClose, money, int0, tfLabel }) {
                 {[
                   { k: t('kpi.saleFull', null, 'prezzo pieno'), v: `${int0(brand.fullUnits || 0)}`, c: '#22c55e' },
                   { k: t('kpi.saleDiscounted', null, 'in saldo'), v: `${int0(brand.saleUnits || 0)}`, c: '#f59e0b' },
-                  { k: t('kpi.saleShare', null, 'quota in saldo'), v: `${quota.toLocaleString('it-IT',{maximumFractionDigits:1})}%`, c: '#f59e0b' },
+                  { k: t('kpi.saleShare', null, 'quota in saldo'), v: `${quota.toLocaleString(localeNumeri(),{maximumFractionDigits:1})}%`, c: '#f59e0b' },
                   { k: t('kpi.saleFull', null, 'prezzo pieno'), v: money(brand.fullRevenue || 0), c: '#22c55e' },
                   { k: t('kpi.saleDiscounted', null, 'in saldo'), v: money(brand.saleRevenue || 0), c: '#f59e0b' },
                 ].map((x, i) => (
@@ -1760,7 +1765,7 @@ function ProvinciaDetailModal({ riga, regione = false, onClose, onPrecedente, on
               <div className="m-grid2" style={{display:'grid',gridTemplateColumns:'repeat(4, minmax(0,1fr))',gap:12,marginBottom:14}}>
                 {kpi(t('kpi.regMeta', null, 'Spesa Meta'), riga.spesaMeta == null ? '—' : money(riga.spesaMeta))}
                 {kpi(t('kpi.regGoogle', null, 'Spesa Google'), riga.spesaGoogle == null ? '—' : money(riga.spesaGoogle))}
-                {kpi('MER', riga.mer == null ? '—' : `${riga.mer.toLocaleString('it-IT', { useGrouping: 'always' })}×`,
+                {kpi('MER', riga.mer == null ? '—' : `${riga.mer.toLocaleString(localeNumeri(), { useGrouping: 'always' })}×`,
                   riga.quotaSpesa != null ? t('kpi.regShare', { s: riga.quotaSpesa, f: riga.quotaFatturato ?? 0 }, `${riga.quotaSpesa}% spesa · ${riga.quotaFatturato ?? 0}% vendite`) : null)}
                 {kpi(t('kpi.regCpo', null, 'Costo per ordine'), riga.cpo == null ? '—' : money(riga.cpo))}
               </div>
@@ -1977,7 +1982,7 @@ function BrandDetailModal({ brand, range, totals, onClose, money, int0, tfLabel,
                 ))}
                 <div className="country-segment-value" style={{padding:'7px 12px', borderRadius:12, background:'var(--glass)', border:'1px solid var(--border)'}}>
                   <div style={{fontSize:15, fontWeight:680, color: d == null ? 'var(--text3)' : d >= 0 ? '#22c55e' : '#ef4444'}}>
-                    {d == null ? '—' : `${d >= 0 ? '+' : ''}${d.toLocaleString('it-IT', { maximumFractionDigits: 1 })}%`}
+                    {d == null ? '—' : `${d >= 0 ? '+' : ''}${d.toLocaleString(localeNumeri(), { maximumFractionDigits: 1 })}%`}
                   </div>
                   <div style={{fontSize:10, color:'var(--text3)', fontWeight:600, textTransform:'uppercase', letterSpacing:'.08em'}}>{t('kpi.brandVsPrev', null, 'vs periodo precedente')}</div>
                 </div>
@@ -2164,9 +2169,9 @@ function HourlyBandsPanel({ data, loading, error, metric, setMetric, panel, mone
   const dayLabel = (d) => t(`kpi.dow${d}`, null, ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'][d])
   const metricLabel = { orders: t('kpi.hourlyMetricOrders', null, 'Ordini'), sessions: t('kpi.hourlyMetricSessions', null, 'Visite'), cro: 'CRO' }
   const fmt = (b) => {
-    if (metric === 'cro') return b.cro == null ? '—' : `${b.cro.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`
+    if (metric === 'cro') return b.cro == null ? '—' : `${b.cro.toLocaleString(localeNumeri(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`
     const v = b[metric] || 0
-    if (metric === 'sessions' && v >= 1000) return `${(v / 1000).toLocaleString('it-IT', { maximumFractionDigits: 1 })}k`
+    if (metric === 'sessions' && v >= 1000) return `${(v / 1000).toLocaleString(localeNumeri(), { maximumFractionDigits: 1 })}k`
     return int0(v)
   }
   // Scala di intensita' sulla metrica scelta, su tutta la settimana: cosi' si

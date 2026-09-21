@@ -1,6 +1,7 @@
 'use client'
 
 import { soldi } from '../../lib/client/soldi'
+import { localeNumeri } from '../../lib/client/numeri'
 import { leggi, inMemoria } from '../../lib/clientCache'
 import { useEffect, useState } from 'react'
 import { useI18n } from '../../lib/i18n/I18nProvider'
@@ -70,7 +71,7 @@ export default function DriveToStoreCard({ since, until, preset, style }) {
           {(d.campagne || []).map(c => (
             <div key={c.nome} className="dts-riga">
               <span className="dts-nome">{c.nome}</span>
-              <span className="dts-det">{(c.impression || 0).toLocaleString('it-IT', { useGrouping: 'always' })} {t('dts.impr', null, 'impression')} · {(c.clic || 0).toLocaleString('it-IT', { useGrouping: 'always' })} {t('dts.clicks', null, 'clic')}</span>
+              <span className="dts-det">{(c.impression || 0).toLocaleString(localeNumeri(), { useGrouping: 'always' })} {t('dts.impr', null, 'impression')} · {(c.clic || 0).toLocaleString(localeNumeri(), { useGrouping: 'always' })} {t('dts.clicks', null, 'clic')}</span>
               <b>{euro(c.spesa)}</b>
             </div>
           ))}

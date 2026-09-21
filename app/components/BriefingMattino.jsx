@@ -5,6 +5,7 @@ import Pannello from './ui/Pannello'
 import { Bottone } from './ui/Mattoni'
 import { leggi } from '../../lib/clientCache'
 import { soldi } from '../../lib/client/soldi'
+import { localeNumeri } from '../../lib/client/numeri'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import { FUSO_PREDEFINITO } from '../../lib/periodi'
 import { parla, zitto, puoParlare, linguaVoce, euroDetti } from '../../lib/client/voce'
@@ -66,7 +67,7 @@ export default function BriefingMattino() {
   if (!dati) return null
   const chiudi = () => { zitto(); try { localStorage.setItem('lyft-briefing', oggiQui()) } catch {} ; setDati(null) }
   const { ieri, avvisi, nome, pilota } = dati
-  const volte = (v) => (v == null ? '—' : `${Number(v).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}×`)
+  const volte = (v) => (v == null ? '—' : `${Number(v).toLocaleString(localeNumeri(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}×`)
   const dataIeri = dati.giornoIeri ? new Date(`${dati.giornoIeri}T00:00:00Z`).toLocaleDateString(intlLocale || 'it-IT', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }) : ''
   const pulisci = (s) => String(s || '').replace(/^\[Auto-scan [^\]]+\]\s*/, '')
 

@@ -19,6 +19,7 @@ import { useI18n } from '../../lib/i18n/I18nProvider'
 // ============================================================================
 
 function Linea({ serie, formatta }) {
+  const { intlLocale } = useI18n()
   const punti = (serie || []).filter(p => p && Number.isFinite(p.v))
   if (punti.length < 3) return null
   const W = 640, H = 150, m = { s: 8, d: 8, a: 14, b: 22 }
@@ -27,7 +28,7 @@ function Linea({ serie, formatta }) {
   const y = (v) => m.a + (1 - (v - min) / (max - min || 1)) * (H - m.a - m.b)
   const d = punti.map((p, k) => `${k ? 'L' : 'M'}${x(k).toFixed(1)},${y(p.v).toFixed(1)}`).join(' ')
   const ultimo = punti[punti.length - 1], picco = punti.reduce((a, p) => (p.v > a.v ? p : a), punti[0])
-  const giorno = (s) => { const dt = new Date(`${String(s).slice(0, 10)}T00:00:00Z`); return Number.isNaN(+dt) ? s : dt.toLocaleDateString('it-IT', { day: 'numeric', month: 'short', timeZone: 'UTC' }) }
+  const giorno = (s) => { const dt = new Date(`${String(s).slice(0, 10)}T00:00:00Z`); return Number.isNaN(+dt) ? s : dt.toLocaleDateString(intlLocale, { day: 'numeric', month: 'short', timeZone: 'UTC' }) }
   return (
     <div className="sn-grafico">
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="andamento" preserveAspectRatio="none">

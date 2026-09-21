@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { leggi, inMemoria } from '../../lib/clientCache'
 import { soldi } from '../../lib/client/soldi'
+import { localeNumeri } from '../../lib/client/numeri'
 import { miniatura } from '../../lib/client/miniatura'
 
 // ============================================================================
@@ -14,7 +15,7 @@ import { miniatura } from '../../lib/client/miniatura'
 //  Qui: il COMPORTAMENTO DEI CLIENTI (sessioni → carrello → check-out → acquisto, dal CRO del
 //  periodo scelto) e le VENDITE PER PRODOTTO (i piu' venduti del periodo).
 // ============================================================================
-const IT = (n) => Number(n || 0).toLocaleString('it-IT', { useGrouping: 'always' })
+const IT = (n) => Number(n || 0).toLocaleString(localeNumeri(), { useGrouping: 'always' })
 
 export function ComportamentoClienti({ since, until, t }) {
   const url = since && until ? `/api/cro?since=${since}&until=${until}` : null
@@ -41,7 +42,7 @@ export function ComportamentoClienti({ since, until, t }) {
           <div key={nome}>
             <span>{nome}</span>
             <b>{v != null ? IT(v) : '—'}</b>
-            <i>{base && v != null ? `${((v / base) * 100).toLocaleString('it-IT', { maximumFractionDigits: 2 })}% ${t('lv.ofSessions', null, 'delle sessioni')}` : ' '}</i>
+            <i>{base && v != null ? `${((v / base) * 100).toLocaleString(localeNumeri(), { maximumFractionDigits: 2 })}% ${t('lv.ofSessions', null, 'delle sessioni')}` : ' '}</i>
           </div>
         ))}
       </div>

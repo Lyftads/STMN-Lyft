@@ -10,7 +10,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import Icon from './ui/Icon'
-import { num, perc } from '../../lib/client/numeri'
+import { num, perc, localeNumeri } from '../../lib/client/numeri'
 
 const LS_KEY = 'lyft_pnl_cfg'
 const DEF_CFG = {
@@ -375,7 +375,7 @@ export default function PnLTab({ data = [] }) {
     return () => ro.disconnect()
   }, [asc.length, incAperta, yoyAperta, rows.length, showTotal])
 
-  const fmtCell = (line, v) => line.pct ? pctv(v) : line.int ? (v == null ? '—' : Math.round(v).toLocaleString('it-IT', { useGrouping: 'always' })) : eur(v)
+  const fmtCell = (line, v) => line.pct ? pctv(v) : line.int ? (v == null ? '—' : Math.round(v).toLocaleString(localeNumeri(), { useGrouping: 'always' })) : eur(v)
 
   // Incidenza sul fatturato: il valore assoluto dice quanto, la percentuale
   // dice quanto PESA — ed e' la seconda a far vedere se un costo sta scappando

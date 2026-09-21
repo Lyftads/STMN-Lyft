@@ -107,7 +107,7 @@ export default function TeamTab() {
         } finally { setTranscribing(false) }
       }
       recRef.current = mr; mr.start(); setRecording(true)
-    } catch { alert('Microfono non disponibile o permesso negato') }
+    } catch { alert(t('team.micDenied', null, 'Microfono non disponibile o permesso negato')) }
   }
   function stopRec() { try { recRef.current?.stop() } catch {}; setRecording(false) }
 
@@ -187,7 +187,7 @@ export default function TeamTab() {
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginBottom: 12 }}>
           <button type="button" onClick={scheduleCall} disabled={scheduling}
             style={{ cursor: scheduling ? 'default' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 7, border: '1px solid var(--border)', background: 'var(--glass)', color: 'var(--text)', borderRadius: 10, padding: '9px 14px', fontSize: 13, fontWeight: 600 }}>
-            <Icon name="calendar" size={15} />{scheduling ? '…' : 'Programma call settimanale'}</button>
+            <Icon name="calendar" size={15} />{scheduling ? '…' : t('team.scheduleCall', null, 'Programma call settimanale')}</button>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
           {roster.map(a => (
@@ -237,11 +237,11 @@ export default function TeamTab() {
           <span style={{ display: 'block', color: agent.color, fontSize: 12.5, fontWeight: 600 }}>{agent.role}</span>
         </span>
         {speaking
-          ? <button type="button" onClick={stopSpeak} title="Ferma voce"
+          ? <button type="button" onClick={stopSpeak} title={t('team.stopVoice', null, 'Ferma voce')}
               style={{ cursor: 'pointer', background: agent.color, border: 'none', color: 'var(--text)', borderRadius: 8, padding: '7px 11px', fontSize: 13 }}>⏹ Stop</button>
           : <button type="button" onClick={() => setAutoVoice(v => !v)} title="Risposte a voce automatiche"
               style={{ cursor: 'pointer', background: autoVoice ? agent.color : 'transparent', border: `1px solid ${autoVoice ? agent.color : 'var(--border)'}`, color: autoVoice ? 'var(--text)' : 'var(--text2)', borderRadius: 8, padding: '7px 11px', fontSize: 13 }}>
-              {autoVoice ? '🔊 Voce ON' : '🔈 Voce'}</button>}
+              {autoVoice ? `🔊 ${t('team.voiceOn', null, 'Voce ON')}` : `🔈 ${t('team.voice', null, 'Voce')}`}</button>}
         <AgentCall agent={agent} label={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icon name="phone" size={14} />{t('team.callBtn', null, 'Chiama')}</span>} />
       </div>
 
@@ -262,8 +262,8 @@ export default function TeamTab() {
               border: m.role === 'user' ? 'none' : '1px solid var(--border)' }}>
               {bubbleText(m.content)}
               {m.role === 'assistant' && (
-                <button type="button" onClick={() => speak(m.content, sel)} title="Ascolta"
-                  style={{ display: 'block', marginTop: 6, cursor: 'pointer', background: 'transparent', border: 'none', color: agent.color, fontSize: 12, padding: 0 }}>🔊 Ascolta</button>
+                <button type="button" onClick={() => speak(m.content, sel)} title={t('team.listen', null, 'Ascolta')}
+                  style={{ display: 'block', marginTop: 6, cursor: 'pointer', background: 'transparent', border: 'none', color: agent.color, fontSize: 12, padding: 0 }}>🔊 {t('team.listen', null, 'Ascolta')}</button>
               )}
             </div>
           </div>
@@ -279,13 +279,13 @@ export default function TeamTab() {
       {/* Input */}
       <div style={{ display: 'flex', gap: 8, padding: 12, borderTop: '1px solid var(--border)', background: 'var(--glass)', alignItems: 'center' }}>
         <button type="button" onClick={recording ? stopRec : startRec} disabled={transcribing || busy}
-          title={recording ? 'Ferma e invia' : 'Parla'}
+          title={recording ? t('team.stopSend', null, 'Ferma e invia') : t('team.speak', null, 'Parla')}
           style={{ cursor: transcribing || busy ? 'default' : 'pointer', border: `1px solid ${recording ? 'var(--negativo)' : 'var(--border)'}`, borderRadius: 10, width: 44, height: 44, flexShrink: 0, fontSize: 18,
             background: recording ? 'var(--negativo)' : 'var(--surface)', color: recording ? 'var(--text)' : 'var(--text2)' }}>
           {transcribing ? '…' : recording ? '⏺' : '🎤'}</button>
         <input value={input} onChange={e => setInput(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
-          placeholder={recording ? 'Sto ascoltando… parla pure' : t('team.placeholder', { name: agent.name }, `Scrivi a ${agent.name}…`)}
+          placeholder={recording ? t('team.listening', null, 'Sto ascoltando… parla pure') : t('team.placeholder', { name: agent.name }, `Scrivi a ${agent.name}…`)}
           style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '11px 14px', color: 'var(--text)', fontSize: 14, outline: 'none' }} />
         <button type="button" onClick={() => send()} disabled={busy || !input.trim()}
           style={{ cursor: busy || !input.trim() ? 'default' : 'pointer', border: 'none', borderRadius: 10, padding: '0 18px', height: 44,

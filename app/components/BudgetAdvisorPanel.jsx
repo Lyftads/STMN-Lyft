@@ -9,6 +9,7 @@ import { tfQuery, tfKey } from '../../lib/tfQuery'
 import { PlatformBadges } from './PlatformIcon'
 import Icon from './ui/Icon'
 import { useI18n } from '../../lib/i18n/I18nProvider'
+import { localeNumeri } from '../../lib/client/numeri'
 
 function DeltaBadge({ d, lowerBetter = false }) {
   if (!d || d.pct == null) return null
@@ -22,8 +23,8 @@ const ACT = {
   riduci: { color: 'var(--orange)', bg: 'rgba(255,159,10,0.14)', label: 'RIDUCI' },
   taglia: { color: 'var(--red)', bg: 'rgba(255,69,58,0.14)', label: 'TAGLIA' },
 }
-const eur = (n) => `€${Number(n || 0).toLocaleString('it-IT')}`
-const eur2 = (n) => (n == null ? '—' : `€${Number(n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
+const eur = (n) => `€${Number(n || 0).toLocaleString(localeNumeri())}`
+const eur2 = (n) => (n == null ? '—' : `€${Number(n).toLocaleString(localeNumeri(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
 
 export default function BudgetAdvisorPanel() {
   const { t } = useI18n()

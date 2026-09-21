@@ -26,6 +26,8 @@ import { I18nProvider, useI18n } from '../../lib/i18n/I18nProvider'
 import { browserToLocale } from '../../lib/i18n/geoLocale'
 import { TESTI, LINGUE } from './testi'
 import { LOGHI } from './loghi'
+import Immagini from './Immagini'
+import { Produttivita, TempoReale } from './Squadra'
 import s from './landing.module.css'
 
 // Il globo (three.js, ~1,8 MB non compressi) arriva in un pezzo a parte e dopo il testo: la pagina
@@ -39,17 +41,6 @@ const PERCORSO = { it: '/welcome', en: '/en', es: '/es', fr: '/fr', de: '/de' }
 // Le piattaforme da cui arrivano i numeri: nomi di marchi, non si traducono.
 const FONTI = ['Shopify', 'Meta', 'Google Ads', 'Google Analytics 4', 'Search Console', 'Klaviyo', 'Mailchimp', 'Omnisend']
 
-// Un'immagine del prodotto, nei due temi: foto della demo a 1920×1200, una serie per lingua e
-// per tema (<id>.webp di giorno, <id>-scuro.webp di notte). Si vede quella del tema scelto; sono
-// tutte pigre, e quella nascosta non si scarica.
-function Immagini({ lang, id, alt, className }) {
-  return (
-    <>
-      <img src={`/landing/${lang}/${id}.webp`} alt={alt} width={1920} height={1200} loading="lazy" decoding="async" className={`${s.soloChiaro} ${className || ''}`} />
-      <img src={`/landing/${lang}/${id}-scuro.webp`} alt={alt} width={1920} height={1200} loading="lazy" decoding="async" className={`${s.soloScuro} ${className || ''}`} />
-    </>
-  )
-}
 function Foto({ lang, id, alt }) {
   return <div className={s.cornice}><Immagini lang={lang} id={id} alt={alt} /></div>
 }
@@ -665,6 +656,8 @@ export default function LandingPage({ initialLang = null }) {
         <Vetrina t={t} lang={lang} />
         <Blocchi t={t} lang={lang} />
         <Cervello t={t} />
+        <Produttivita t={t} lang={lang} />
+        <TempoReale t={t} lang={INTL[lang]} />
         <Tutto t={t} />
         <Agenzie t={t} vai={setPubblico} />
         <Prezzi t={t} lang={lang} pubblico={pubblico} setPubblico={setPubblico} />

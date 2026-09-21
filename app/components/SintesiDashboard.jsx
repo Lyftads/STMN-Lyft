@@ -2,6 +2,7 @@
 
 import { NumeroAnimato, Variazione } from './ui/Mattoni'
 import { soldi } from '../../lib/client/soldi'
+import { localeNumeri } from '../../lib/client/numeri'
 
 // ============================================================================
 //  I tre numeri di Marino — fatturato, spesa ADV, MER — in cima alla Dashboard.
@@ -29,7 +30,7 @@ export default function SintesiDashboard({ periodo, stessaOra = null, fatturato,
   const conIeri = !!stessaOra?.ieriAllaStessaOra
   const base = conIeri ? stessaOra.ieriAllaStessaOra : prima
   const merPrima = conIeri ? base.mer : (prima.fatturato > 0 && prima.spesa > 0 ? prima.fatturato / prima.spesa : null)
-  const volte = (v) => (v == null ? '—' : `${v.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}×`)
+  const volte = (v) => (v == null ? '—' : `${v.toLocaleString(localeNumeri(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}×`)
   const etichettaPrima = conIeri ? t('dash.sumYesterday', null, 'ieri') : t('dash.sumBefore', null, 'prima')
 
   const vFatturato = fatturato > 0 ? soldi(fatturato) : '—'

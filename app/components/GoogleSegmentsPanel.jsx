@@ -1,6 +1,7 @@
 'use client'
 
 import { soldi } from '../../lib/client/soldi'
+import { localeNumeri } from '../../lib/client/numeri'
 import { useEffect, useState } from 'react'
 import Sparkline from './Sparkline'
 import { useI18n } from '../../lib/i18n/I18nProvider'
@@ -11,7 +12,7 @@ import { useI18n } from '../../lib/i18n/I18nProvider'
 // Se il segmento non è disponibile sull'account, non mostra nulla. Props: since, until.
 const eur0 = (n) => soldi(n)
 const eur2 = (n) => soldi(n, 2)
-const num0 = (n) => (n == null ? '—' : Number(n).toLocaleString('it-IT', { maximumFractionDigits: 0, useGrouping: 'always' }))
+const num0 = (n) => (n == null ? '—' : Number(n).toLocaleString(localeNumeri(), { maximumFractionDigits: 0, useGrouping: 'always' }))
 
 function Delta({ cur, prev }) {
   if (cur == null || prev == null || !Number.isFinite(prev) || prev === 0) return null

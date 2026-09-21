@@ -18,7 +18,7 @@ import { useStatoTab } from '../../lib/client/statoTab'
 import { useState, useMemo, useEffect } from 'react'
 import PeriodoInBarra from './ui/PeriodoInBarra'
 import { useI18n } from '../../lib/i18n/I18nProvider'
-import { num, perc } from '../../lib/client/numeri'
+import { num, perc, localeNumeri } from '../../lib/client/numeri'
 
 const ACCENT_GLOW = '#2997ff'
 
@@ -29,9 +29,9 @@ let __croCache = {}
 
 // I numeri si scrivono all'italiana in tutto il prodotto (lib/client/numeri):
 // `toFixed()` metteva il punto decimale, e in italiano 1.5% si legge sbagliato.
-const fmtN = n => n != null && n > 0 ? Math.round(n).toLocaleString('it-IT', { useGrouping: 'always' }) : '—'
+const fmtN = n => n != null && n > 0 ? Math.round(n).toLocaleString(localeNumeri(), { useGrouping: 'always' }) : '—'
 const fmtP = n => perc(n, 1)
-const fmtE = n => n != null && n > 0 ? `€${Math.round(n).toLocaleString('it-IT', { useGrouping: 'always' })}` : '—'
+const fmtE = n => n != null && n > 0 ? `€${Math.round(n).toLocaleString(localeNumeri(), { useGrouping: 'always' })}` : '—'
 
 // Wrapper black glass 3D condiviso (stesso pattern di Simulator/Meta Detail)
 function GlassCard({ children, padding = 22, delay = 0, glow = ACCENT_GLOW, style = {} }) {

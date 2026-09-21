@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { PlatformBadges } from '../PlatformIcon'
 import { Fonte } from './FasceTabella'
+import { localeNumeri } from '../../../lib/client/numeri'
 
 // ============================================================================
 //  I MATTONI — i pezzi con cui si costruisce una tab (stili in lyft-system.css).
@@ -121,7 +122,7 @@ export function Variazione({ delta, inverso = false, suffisso = '%' }) {
   const tono = Math.abs(d) < 0.005 ? '' : buono ? 'positivo' : 'negativo'
   return (
     <span className={`ly-pastiglia ${tono}`}>
-      {d > 0 ? '▲' : d < 0 ? '▼' : ''} {Math.abs(d).toLocaleString('it-IT', { maximumFractionDigits: 2 })}{suffisso}
+      {d > 0 ? '▲' : d < 0 ? '▼' : ''} {Math.abs(d).toLocaleString(localeNumeri(), { maximumFractionDigits: 2 })}{suffisso}
     </span>
   )
 }

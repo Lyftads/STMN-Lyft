@@ -2,6 +2,7 @@
 
 import Icon from './ui/Icon'
 import { soldi } from '../../lib/client/soldi'
+import { localeNumeri } from '../../lib/client/numeri'
 import { useEffect, useId, useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts'
 import FxCard from './ui/FxCard'
@@ -52,7 +53,7 @@ function Sparkline({ data, dataKey, color: _colore, width = 88, height = 28 }) {
 
 const eur = (n) => soldi(n || 0)
 const eur2 = (n) => soldi(n, 2)
-const nf = (n) => Number(n || 0).toLocaleString('it-IT', { useGrouping: 'always' })
+const nf = (n) => Number(n || 0).toLocaleString(localeNumeri(), { useGrouping: 'always' })
 
 // Palette canali (coerente con il resto)
 const CH_COLORS = ['#2997ff', '#bf5af2', '#22c55e', '#f59e0b', '#ef4444', '#64d2ff', '#ff6482', '#5e5ce6', '#ffd60a', '#0866FF']

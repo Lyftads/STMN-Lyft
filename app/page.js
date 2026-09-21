@@ -8,6 +8,7 @@ import { ComportamentoClienti, VenditePerProdotto } from './components/Dashboard
 import { rangeLabel } from './components/ui/BmTimeframe'
 import { Kpi, coloreFamiglia } from './components/ui/Mattoni'
 import { soldi } from '../lib/client/soldi'
+import { localeNumeri, sepDecimali } from '../lib/client/numeri'
 import { useState, useEffect, useCallback, useRef } from 'react'
 
 // anti-race fetchLive: la risposta di un preset vecchio non sovrascrive l'attivo
@@ -123,9 +124,9 @@ function precaricaCodice() {
 // ── Utils ─────────────────────────────────────────────────────
 const f0 = n => soldi(n, 0, { zeroVuoto: true })
 const f2 = n => soldi(n, 2, { zeroVuoto: true })
-const fn = n => n>0 ? Number(n).toLocaleString('it-IT', { useGrouping: 'always' }) : '—'
+const fn = n => n>0 ? Number(n).toLocaleString(localeNumeri(), { useGrouping: 'always' }) : '—'
 const fp = n => n!=null ? `${Number(n).toFixed(1)}x` : '—'
-const fr = n => n!=null ? `${Number(n).toFixed(2).replace('.',',')}` : '—'
+const fr = n => n!=null ? `${Number(n).toFixed(2).replace('.',sepDecimali())}` : '—'
 
 // Stesso mese dell'anno prima: '2026-08' → '2025-08'
 // Stessa settimana dell'anno prima: 364 giorni indietro, cosi' resta un lunedi'

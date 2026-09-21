@@ -1,6 +1,7 @@
 'use client'
 
 import { soldi } from '../../lib/client/soldi'
+import { localeNumeri } from '../../lib/client/numeri'
 import { useEffect, useState } from 'react'
 import Sparkline from './Sparkline'
 import { useI18n } from '../../lib/i18n/I18nProvider'
@@ -11,7 +12,7 @@ import { useI18n } from '../../lib/i18n/I18nProvider'
 // Riusato in KPI Brain. Props: since, until.
 const eur0 = (n) => soldi(n)
 const eur2 = (n) => soldi(n, 2)
-const int0 = (n) => (n == null ? '—' : Number(n).toLocaleString('it-IT', { useGrouping: 'always' }))
+const int0 = (n) => (n == null ? '—' : Number(n).toLocaleString(localeNumeri(), { useGrouping: 'always' }))
 
 const ORDER = [
   { key: 'new', label: 'Nuovi clienti', color: '#22c55e' },

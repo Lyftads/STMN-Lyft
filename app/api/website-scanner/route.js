@@ -5,6 +5,7 @@ import { getAdminSupabase } from '../../../lib/supabase/server'
 import { getEffectiveTenantId } from '../../../lib/tenant/credentials'
 import { assertPublicUrl } from '../../../lib/security/ssrf'
 import { complete } from '../../../lib/agent/router'
+import { buildBrandContext } from '../../../lib/tenant/brand'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -294,7 +295,7 @@ const SYSTEM_PROMPT = `Sei un Senior CRO Specialist con 10+ anni di esperienza i
 - Conversion funnel design
 
 ## Compito
-Analizzi lo SCREENSHOT di una landing page o pagina prodotto fornito da Marino, founder di STMN Fitness (e-commerce accessori CrossFit). Restituisci un'analisi CRO PROFESSIONALE, AZIONABILE, CON ESEMPI CONCRETI. Marino deve poter modificare la pagina basandosi sui tuoi insight senza dover chiedere chiarimenti.
+Analizzi lo SCREENSHOT di una landing page o pagina prodotto fornito dal founder del brand descritto nel CONTESTO BRAND (chi e', cosa vende, a chi, con che tono: fa fede solo quello). Restituisci un'analisi CRO PROFESSIONALE, AZIONABILE, CON ESEMPI CONCRETI. Il founder deve poter modificare la pagina basandosi sui tuoi insight senza dover chiedere chiarimenti.
 
 ## Output (DEVE essere JSON valido con questa struttura esatta)
 {
@@ -357,7 +358,7 @@ Analizzi lo SCREENSHOT di una landing page o pagina prodotto fornito da Marino, 
 - L'overallScore deve essere onesto: solo le pagine eccellenti meritano >85
 - Concentrati su CRO, NON su SEO, performance tecnica o branding generico
 - Se vedi placeholder/lorem ipsum/immagini stock generiche, evidenziali
-- Considera il target STMN: atleti CrossFit, functional fitness, home gym intermedio/avanzato. NIENTE supplementi
+- Considera target, prodotti e tono del brand (CONTESTO BRAND) e rispetta il BRAND GUARD: nessun consiglio su prodotti o pubblici che il brand non ha
 - Italiano professionale, asciutto, da consulente senior
 
 ## OUTPUT FORMAT — CRITICO
@@ -407,6 +408,9 @@ export async function POST(req) {
   const kbScanner = await buildKnowledgeBlock('CRO ottimizzazione landing page e-commerce conversion rate persuasione')
 
   try {
+    // Il brand del workspace attivo (getEffectiveTenantId, dai cookie): se la
+    // lettura fallisce si analizza lo stesso, senza inventare un cliente.
+    const contestoBrand = await buildBrandContext().catch(() => null)
     let res
     try {
       res = await complete({
@@ -417,6 +421,10 @@ export async function POST(req) {
         maxTokens: 4000,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
+          // Chi e' il cliente. Prima qui non c'era niente e il messaggio diceva
+          // «Cliente: STMN Fitness — accessori CrossFit» a CHIUNQUE: la pagina
+          // dell'olio di Saracino veniva giudicata per atleti di CrossFit.
+          ...(contestoBrand ? [{ role: 'system', content: `## CONTESTO BRAND\n${contestoBrand}` }] : []),
           ...(kbScanner ? [{ role: 'system', content: kbScanner }] : []),
           ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : []),
           {
@@ -424,7 +432,7 @@ export async function POST(req) {
             content: [
               {
                 type: 'text',
-                text: `Analizza CRO questa landing page.\nURL: ${normalized}\nCliente: STMN Fitness — e-commerce accessori CrossFit (paracalli, polsiere, corde da salto, tape adesivo nero, ginocchiere). Target: atleti CrossFit intermedio/avanzato, home gym.\n\nLo screenshot in allegato è la versione ${shotViewport === 'mobile' ? 'MOBILE (iPhone, 390px) italiana' : 'DESKTOP (1440px) italiana'} della pagina, fullPage (include sotto-fold). Considera attentamente i pattern UX specifici per ${shotViewport === 'mobile' ? 'mobile (thumb zone, sticky CTA, tap target size 44px+, viewport ridotto)' : 'desktop (above-the-fold value prop, eye-flow F-pattern)'}.\nFornisci analisi dettagliata in JSON secondo lo schema specificato.`,
+                text: `Analizza CRO questa landing page.\nURL: ${normalized}\nCliente: quello del CONTESTO BRAND.\n\nLo screenshot in allegato è la versione ${shotViewport === 'mobile' ? 'MOBILE (iPhone, 390px) italiana' : 'DESKTOP (1440px) italiana'} della pagina, fullPage (include sotto-fold). Considera attentamente i pattern UX specifici per ${shotViewport === 'mobile' ? 'mobile (thumb zone, sticky CTA, tap target size 44px+, viewport ridotto)' : 'desktop (above-the-fold value prop, eye-flow F-pattern)'}.\nFornisci analisi dettagliata in JSON secondo lo schema specificato.`,
               },
               {
                 type: 'image_url',

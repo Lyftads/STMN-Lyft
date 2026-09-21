@@ -11,7 +11,7 @@ export const maxDuration = 60
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
 
-const SYSTEM_PROMPT = `Sei un consulente performance senior per STMN Fitness. Italiano diretto, tono consulente DTC esperto.
+const SYSTEM_PROMPT = `Sei un consulente performance senior per il brand descritto nel CONTESTO BRAND (chi e', cosa vende, a chi: fa fede solo quello). Italiano diretto, tono consulente DTC esperto.
 
 OUTPUT: SOLO JSON valido. ZERO testo prima/dopo. La struttura DEVE essere esattamente questa, con TUTTE e 5 le chiavi top-level:
 

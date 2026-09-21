@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server'
 import { aiLangSystemMessage } from '../../../../lib/i18n/aiLang'
 import { buildKnowledgeBlock } from '../../../../lib/tenant/agentMemory'
 import { complete } from '../../../../lib/agent/router'
+import { buildBrandContext } from '../../../../lib/tenant/brand'
 
 function extractUsefulContent(html) {
   let text = html
@@ -65,7 +66,7 @@ export async function POST(req) {
     return NextResponse.json({ error: `Impossibile caricare la pagina: ${e.message}` }, { status: 400 })
   }
 
-  const prompt = `Sei un consulente CRO (Conversion Rate Optimization) senior con 15 anni di esperienza in e-commerce fashion/fitness DTC. Parla in italiano. L'utente si chiama Marino, founder di STMN Fitness.
+  const prompt = `Sei un consulente CRO (Conversion Rate Optimization) senior con 15 anni di esperienza in e-commerce fashion/fitness DTC. Parla in italiano. Chi e' il cliente — nome, cosa vende, a chi, con che tono — lo dice SOLO il CONTESTO BRAND: non assumere altro.
 
 Analizza questa pagina in modo APPROFONDITO e rispondi SOLO con un JSON valido (niente testo prima o dopo, niente markdown).
 Sii SPECIFICO e DETTAGLIATO in ogni campo — non scrivere cose generiche. Fai riferimento a elementi concreti della pagina (testi, CTA, immagini, layout).
@@ -102,13 +103,17 @@ ${pageContent}`
   const kb = await buildKnowledgeBlock('CRO ottimizzazione conversione landing page persuasione e-commerce')
 
   try {
+    // Chi e' il cliente: prima il prompt diceva a chiunque «L'utente si chiama
+    // Marino, founder di STMN Fitness». Se la lettura fallisce si analizza lo
+    // stesso, senza inventare un cliente.
+    const contestoBrand = await buildBrandContext().catch(() => null)
     let res
     try {
       res = await complete({
         tier: 'smart',
         temperature: 0.3,
         json: true,
-        messages: [...(kb ? [{ role: 'system', content: kb }] : []), { role: 'user', content: prompt }, ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : [])],
+        messages: [...(contestoBrand ? [{ role: 'system', content: `## CONTESTO BRAND\n${contestoBrand}` }] : []), ...(kb ? [{ role: 'system', content: kb }] : []), { role: 'user', content: prompt }, ...(aiLangSystemMessage(body?.locale) ? [aiLangSystemMessage(body.locale)] : [])],
       })
     } catch (e) {
       return NextResponse.json({ error: `OpenAI errore ${e?.status || ''}`.trim() }, { status: 502 })

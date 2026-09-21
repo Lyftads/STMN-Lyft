@@ -195,7 +195,7 @@ const BrandIdentityPanel = forwardRef(function BrandIdentityPanel({ embedded = f
           <Field label={t('bi.categoryLabel', null, 'Categoria principale')}>
             <Select value={identity.category} onChange={v => setField('category', v)} options={CATEGORIES} />
           </Field>
-          <Field label={t('bi.subcatLabel', null, 'Sotto-categorie / tag')} hint={t('bi.subcatHint', null, 'Es: CrossFit, Accessori, Functional')}>
+          <Field label={t('bi.subcatLabel', null, 'Sotto-categorie / tag')} hint={t('bi.subcatHint', null, 'Es: Categoria, Accessori, Premium')}>
             <TagInput tags={identity.subcategories} onChange={v => setField('subcategories', v)} placeholder={t('bi.subcatPh', null, 'Aggiungi tag + Invio')} />
           </Field>
         </FieldRow>
@@ -203,10 +203,10 @@ const BrandIdentityPanel = forwardRef(function BrandIdentityPanel({ embedded = f
           <Textarea value={(identity.products || []).join('\n')} onChange={v => setField('products', v.split('\n'))} rows={4} placeholder={'Prodotto 1\nProdotto 2\nProdotto 3'} />
         </Field>
         <Field label={t('bi.notSellingLabel', null, 'Cosa NON vendi / brand guard')} hint={t('bi.notSellingHint', null, "Questi prodotti/contenuti NON sono consentiti negli AI agent (es: 'mai integratori', 'no nutrizione')")}>
-          <Textarea value={identity.notSelling} onChange={v => setField('notSelling', v)} rows={2} placeholder={t('bi.notSellingPh', null, 'Es: mai supplementi/integratori/nutrizione')} />
+          <Textarea value={identity.notSelling} onChange={v => setField('notSelling', v)} rows={2} placeholder={t('bi.notSellingPh', null, 'Es: categorie o prodotti che NON vendi e che l’AI non deve mai proporre')} />
         </Field>
         <Field label={t('bi.audienceLabel', null, 'Target audience')} hint={t('bi.audienceHint', null, "Descrizione cliente ideale: eta', genere, livello, dolori, desideri")}>
-          <Textarea value={identity.targetAudience} onChange={v => setField('targetAudience', v)} rows={3} placeholder={t('bi.audiencePh', null, "Es: Atleti CrossFit 25-45 anni, intermedio/avanzato, frequentatori di box, alla ricerca di durabilita' e performance")} />
+          <Textarea value={identity.targetAudience} onChange={v => setField('targetAudience', v)} rows={3} placeholder={t('bi.audiencePh', null, "Es: Clienti 25-45 anni, attenti alla qualità, che cercano durabilità e design")} />
         </Field>
         <FieldRow>
           <Field label={t('bi.marketsLabel', null, 'Mercati principali')} hint={t('bi.marketsHint', null, 'Country codes (IT, EU, US, ...)')}>
@@ -240,7 +240,7 @@ const BrandIdentityPanel = forwardRef(function BrandIdentityPanel({ embedded = f
           </Field>
         </FieldRow>
         <Field label={t('bi.copyLabel', null, 'Esempi di copy che ti piacciono')} hint={t('bi.copyHint', null, '3-5 esempi (uno per riga)')}>
-          <Textarea value={(identity.copyExamples || []).join('\n')} onChange={v => setField('copyExamples', v.split('\n'))} rows={4} placeholder={t('bi.copyPh', null, "Es: 'Costruiti per chi non molla mai'")} />
+          <Textarea value={(identity.copyExamples || []).join('\n')} onChange={v => setField('copyExamples', v.split('\n'))} rows={4} placeholder={t('bi.copyPh', null, "Es: 'Fatto per durare'")} />
         </Field>
         <Field label={t('bi.personaLabel', null, 'Brand persona')} hint={t('bi.personaHint', null, 'Se il brand fosse una persona, chi sarebbe?')}>
           <Textarea value={identity.brandPersona} onChange={v => setField('brandPersona', v)} rows={3} placeholder={t('bi.personaPh', null, 'Es: Coach pragmatico, ex-atleta, parla schietto e tecnico, niente fronzoli')} />

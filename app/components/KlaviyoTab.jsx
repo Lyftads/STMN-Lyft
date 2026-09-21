@@ -21,11 +21,15 @@ const fmtN = n => n != null && n > 0 ? Math.round(n).toLocaleString('it-IT', { u
 const fmtE = n => n != null && n > 0 ? `€${Math.round(n).toLocaleString('it-IT', { useGrouping: 'always' })}` : '—'
 const fmtP = n => perc(n, 1)
 
-function greetMarino(t) {
+// Il saluto non nomina nessuno: i dizionari lo dicevano gia' cosi', ma il testo di
+// riserva era rimasto «Ciao Marino» dal fork, a un passo dal ricomparire se una
+// chiave mancasse. Il nome dell'utente qui non c'e': meglio nessun nome che quello
+// di un altro.
+function saluto(t) {
   const h = new Date().getHours()
-  if (h < 12) return t('klaviyo.greetMorning', null, 'Buongiorno Marino — ecco come vanno le email')
-  if (h < 18) return t('klaviyo.greetAfternoon', null, 'Ciao Marino — il punto su Klaviyo')
-  return t('klaviyo.greetEvening', null, 'Sera Marino — riepilogo Klaviyo')
+  if (h < 12) return t('klaviyo.greetMorning', null, 'Buongiorno — ecco come vanno le email')
+  if (h < 18) return t('klaviyo.greetAfternoon', null, 'Ciao — il punto su Klaviyo')
+  return t('klaviyo.greetEvening', null, 'Buonasera — riepilogo Klaviyo')
 }
 
 function kpiComment(kpis, t) {
@@ -186,7 +190,7 @@ export default function KlaviyoTab() {
     <div>
       {/* Header: saluto + selettore giorni */}
       <div className="barra-strumenti" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
-        <p className="a-tutta-riga" style={{ color: 'var(--text3)', fontSize: 13, margin: 0 }}>{greetMarino(tr)}</p>
+        <p className="a-tutta-riga" style={{ color: 'var(--text3)', fontSize: 13, margin: 0 }}>{saluto(tr)}</p>
         <PeriodoInBarra value={tf} onChange={setTf} disabled={loading} />
       </div>
 

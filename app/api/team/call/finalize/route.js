@@ -177,7 +177,7 @@ export async function POST(req) {
             skill: { id: `team-${ag.id}`, systemPrompt: teamSkillPrompt(ag) },
             query: `Dalla call sono usciti questi task per te: ${myTasks}. Commenta brevemente come li affronterai.`,
             messages: [], locale: 'it', temperature: 0.5,
-            guardTail: `Sei ${ag.name} (${ag.role}) in LyftTalk dopo il recap della call di Chiara. In 1-2 frasi naturali, conferma i TUOI task (${myTasks}) e come li affronti. Rivolgiti a Chiara/Marino per nome. NON risalutare, niente elenchi.`,
+            guardTail: `Sei ${ag.name} (${ag.role}) in LyftTalk dopo il recap della call di Chiara. In 1-2 frasi naturali, conferma i TUOI task (${myTasks}) e come li affronti. Rivolgiti a Chiara per nome, e alle persone del team solo col nome con cui compaiono qui (mai un nome preso da un altro cliente). NON risalutare, niente elenchi.`,
           })
           const txt = String(r.content || '').trim()
           if (txt) await admin.from('channel_messages').insert({ channel_id: general.id, workspace_id: ws.workspaceId, author_id: null, author_name: `${ag.name} · ${ag.role}`, body: txt })

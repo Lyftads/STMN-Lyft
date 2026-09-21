@@ -46,7 +46,7 @@ export async function GET(request) {
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <title>STMN Dashboard — Token ottenuto!</title>
+  <title>LyftAI — Token ottenuto!</title>
   <style>
     body { font-family: Arial, sans-serif; background: #1A1A2E; color: #fff; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
     .box { background: #16213E; border-radius: 16px; padding: 2rem; max-width: 600px; width: 90%; }

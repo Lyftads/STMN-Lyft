@@ -31,15 +31,21 @@ class DemoBoundary extends Component {
   componentDidCatch(err, info) { try { console.error('[demo]', err, info) } catch {}; this.setState({ cs: (info && info.componentStack) || '' }) }
   render() {
     if (this.state.err) {
-      const e = this.state.err
+      // Chi guarda la demo e' un visitatore: niente traccia tecnica (resta in console, sopra),
+      // un messaggio nella sua lingua e un modo per ripartire. Prima era un titolo BIANCO su
+      // fondo chiaro, illeggibile, con lo stack di React sotto.
+      const lingua = (typeof document !== 'undefined' && document.documentElement.lang) || 'it'
+      const M = {
+        it: ['Questa schermata della demo si è interrotta.', 'Ricarica la demo'],
+        en: ['This demo screen stopped working.', 'Reload the demo'],
+        es: ['Esta pantalla de la demo se ha interrumpido.', 'Recargar la demo'],
+        fr: ['Cet écran de la démo s’est interrompu.', 'Recharger la démo'],
+        de: ['Diese Demo-Ansicht wurde unterbrochen.', 'Demo neu laden'],
+      }[String(lingua).slice(0, 2)] || ['Questa schermata della demo si è interrotta.', 'Ricarica la demo']
       return (
-        <div style={{ padding: '60px 24px', textAlign: 'center', color: '#fff', fontFamily: 'system-ui' }}>
-          <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 10 }}>Errore nella demo</div>
-          <div style={{ fontSize: 13, color: '#ff8095', fontFamily: 'monospace', maxWidth: 760, margin: '0 auto 8px', wordBreak: 'break-word' }}>{String(e && (e.message || e))}</div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', maxWidth: 820, margin: '0 auto', textAlign: 'left' }}>
-            <div style={{ fontWeight: 700, marginBottom: 4 }}>Componente:</div>
-            <pre style={{ whiteSpace: 'pre-wrap', maxHeight: 260, overflow: 'auto' }}>{String(this.state.cs || '').slice(0, 1400)}</pre>
-          </div>
+        <div role="alert" style={{ padding: '96px 24px', textAlign: 'center', color: 'var(--text)', fontFamily: 'inherit' }}>
+          <div style={{ fontSize: 20, fontWeight: 650, marginBottom: 20 }}>{M[0]}</div>
+          <a href="/demo?tab=dashboard" style={{ display: 'inline-flex', alignItems: 'center', height: 40, padding: '0 20px', borderRadius: 999, background: 'var(--btn-primario)', color: 'var(--btn-primario-testo)', fontSize: 15, fontWeight: 600, textDecoration: 'none' }}>{M[1]}</a>
         </div>
       )
     }
@@ -141,7 +147,7 @@ export default function DemoApp() {
           frasi solo in italiano anche a chi guardava la demo in tedesco. Ora ha i colori del
           prodotto (fondo, bordo, testo) e parla la lingua di chi guarda. */}
       <div style={{
-        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999,
+        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 800, // sotto pannelli (1100) e lavagna dei flussi (900): prima ne copriva la testata, titolo e chiusura compresi
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, flexWrap: 'wrap',
         minHeight: 34, padding: '6px 16px', fontSize: 13, fontWeight: 500,
         background: 'var(--surface)', color: 'var(--text2)', borderBottom: '1px solid var(--border)',

@@ -135,6 +135,34 @@
 .promesse span { display: inline-flex; align-items: center; gap: 6px; }
 .vetrina { margin: 64px auto 0; max-width: 1180px; padding: 0 24px; }
 
+/* Testo a sinistra, il globo a destra e piu' in basso (Marino: «sotto a quello che hai scritto,
+   spostato verso destra»). */
+.aperturaGriglia { display: grid; grid-template-columns: minmax(0, 11fr) minmax(0, 9fr); gap: 40px; align-items: start; text-align: left; }
+.aperturaTesto { padding-top: 24px; }
+.aperturaTesto .h1 { max-width: none; margin: 0; }
+.aperturaTesto .sotto { margin-left: 0; margin-right: 0; max-width: 560px; }
+.aperturaTesto .azioni, .aperturaTesto .promesse { justify-content: flex-start; }
+.aperturaGlobo { margin-top: 64px; }
+.globoAttesa { width: 100%; aspect-ratio: 1 / 1; }
+
+/* Il globo e i suoi numeri: le stesse schede del prodotto, appoggiate sul mondo. */
+.globo { position: relative; width: 100%; min-width: 0; }
+.aperturaGlobo { min-width: 0; }
+.globoNumeri { position: absolute; left: 0; bottom: 9%; display: grid; gap: 8px; justify-items: start; }
+.globoNumeri > div {
+  display: grid; gap: 2px; min-width: 164px; padding: 10px 14px;
+  background: var(--scheda); border: 1px solid var(--bordo); border-radius: 14px; box-shadow: var(--ombra);
+}
+.globoNumeri span { font-size: var(--t-6); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--testo3); }
+.globoNumeri strong { font-size: var(--t-3); font-weight: 650; letter-spacing: -.01em; color: var(--testo); font-variant-numeric: tabular-nums; }
+.globoUltimo {
+  margin: 0; padding: 6px 12px; border-radius: 999px; white-space: nowrap;
+  background: var(--scheda); border: 1px solid var(--bordo); font-size: var(--t-6); color: var(--testo2);
+  animation: globoEntra .5s var(--ease);
+}
+@keyframes globoEntra { from { opacity: 0; transform: translateY(6px); } }
+.globoNota { position: absolute; right: 4px; bottom: 0; margin: 0; font-size: var(--t-6); color: var(--testo3); }
+
 /* La cornice di un'immagine del prodotto: come una finestra, niente di piu'. */
 .cornice {
   border-radius: 16px; overflow: hidden; background: var(--fondo2);
@@ -238,6 +266,7 @@
 .compare.visto { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce) {
   .compare { opacity: 1; transform: none; transition: none; }
+  .globoUltimo { animation: none; }
   .btn, .btnVuoto, .voce, .domanda summary svg { transition: none; }
 }
 
@@ -258,7 +287,12 @@
   .menuAperto a { padding: 12px 0; font-size: var(--t-4); text-decoration: none; color: var(--testo); border-bottom: 1px solid var(--bordo); }
   .nascondiPiccolo { display: none !important; }
   .sezione { padding: 80px 0; }
-  .apertura { padding-top: 64px; }
+  .apertura { padding-top: 48px; }
+  /* minmax(0, 1fr) e non 1fr: con 1fr la colonna si allargava alla misura iniziale del globo
+     (520 px) e sul telefono tutto sbordava a destra. */
+  .aperturaGriglia { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .aperturaTesto { padding-top: 0; }
+  .aperturaGlobo { margin: 24px auto 0; width: 100%; max-width: 460px; }
   .vetrina { margin-top: 44px; }
   .blocco { grid-template-columns: 1fr; }
   .bloccoRovescio .bloccoTesto { order: 0; }

@@ -22,6 +22,7 @@ const it = {
     demo: 'Guarda la demo',
     promesse: ['Nessuna carta richiesta', 'Si collega in pochi minuti', 'In cinque lingue'],
     alt: 'La Dashboard di LyftAI: fatturato, spesa pubblicitaria e MER confrontati con il periodo prima, e i visitatori in tempo reale sul globo',
+    globo: { sessioni: 'Sul sito adesso', ordini: 'Ordini oggi', nuovo: 'Nuovo ordine', nota: 'Negozio d’esempio, dati simulati' },
   },
   fonti: { etichetta: 'Legge i dati da' },
   blocchi: [
@@ -208,6 +209,7 @@ const en = {
     demo: 'Watch the demo',
     promesse: ['No card required', 'Connects in minutes', 'In five languages'],
     alt: 'The LyftAI Dashboard: revenue, ad spend and MER compared with the previous period, and live visitors on the globe',
+    globo: { sessioni: 'On the site now', ordini: 'Orders today', nuovo: 'New order', nota: 'Sample store, simulated data' },
   },
   fonti: { etichetta: 'Reads data from' },
   blocchi: [
@@ -391,6 +393,7 @@ const es = {
     demo: 'Ver la demo',
     promesse: ['Sin tarjeta', 'Se conecta en pocos minutos', 'En cinco idiomas'],
     alt: 'La Dashboard de LyftAI: facturación, gasto publicitario y MER comparados con el periodo anterior, y los visitantes en tiempo real sobre el globo',
+    globo: { sessioni: 'En la web ahora', ordini: 'Pedidos hoy', nuovo: 'Nuevo pedido', nota: 'Tienda de ejemplo, datos simulados' },
   },
   fonti: { etichetta: 'Lee los datos de' },
   blocchi: [
@@ -574,6 +577,7 @@ const fr = {
     demo: 'Voir la démo',
     promesse: ['Aucune carte demandée', 'Connecté en quelques minutes', 'En cinq langues'],
     alt: 'Le Dashboard de LyftAI : chiffre d’affaires, dépenses publicitaires et MER comparés à la période précédente, et les visiteurs en temps réel sur le globe',
+    globo: { sessioni: 'Sur le site en ce moment', ordini: 'Commandes aujourd’hui', nuovo: 'Nouvelle commande', nota: 'Boutique d’exemple, données simulées' },
   },
   fonti: { etichetta: 'Lit les données de' },
   blocchi: [
@@ -757,6 +761,7 @@ const de = {
     demo: 'Demo ansehen',
     promesse: ['Keine Kreditkarte nötig', 'In wenigen Minuten verbunden', 'In fünf Sprachen'],
     alt: 'Das LyftAI-Dashboard: Umsatz, Werbeausgaben und MER im Vergleich zum Vorzeitraum, dazu die Besucher in Echtzeit auf dem Globus',
+    globo: { sessioni: 'Gerade im Shop', ordini: 'Bestellungen heute', nuovo: 'Neue Bestellung', nota: 'Beispielshop, simulierte Daten' },
   },
   fonti: { etichetta: 'Liest die Daten aus' },
   blocchi: [

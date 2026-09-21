@@ -16,6 +16,7 @@
 // ════════════════════════════════════════════════════════════════════════════
 
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { useEffect, useRef, useState } from 'react'
 import Icon from '../components/ui/Icon'
 import LogoMark from '../components/LogoMark'
@@ -24,6 +25,11 @@ import { I18nProvider, useI18n } from '../../lib/i18n/I18nProvider'
 import { browserToLocale } from '../../lib/i18n/geoLocale'
 import { TESTI, LINGUE } from './testi'
 import s from './landing.module.css'
+
+// Il globo (three.js, ~1,8 MB non compressi) arriva in un pezzo a parte e dopo il testo: la pagina
+// si legge subito, il mondo compare appena pronto. Al suo posto, intanto, un riquadro vuoto della
+// stessa misura, cosi' niente salta.
+const Globo = dynamic(() => import('./GloboLanding'), { ssr: false, loading: () => <div className={s.globoAttesa} /> })
 
 const NOMI_LINGUA = { it: 'Italiano', en: 'English', es: 'Español', fr: 'Français', de: 'Deutsch' }
 const INTL = { it: 'it-IT', en: 'en-IE', es: 'es-ES', fr: 'fr-FR', de: 'de-DE' }
@@ -99,17 +105,21 @@ function Apertura({ t, lang }) {
   const a = t.apertura
   return (
     <section id="inizio" className={s.apertura}>
-      <div className={s.largo}>
-        <p className={s.etichetta}>{a.etichetta}</p>
-        <h1 className={s.h1}>{a.titolo}</h1>
-        <p className={s.sotto}>{a.sotto}</p>
-        <div className={s.azioni}>
-          <Link href="/register" className={s.btn}>{a.prova}</Link>
-          <Link href="/demo" className={s.btnVuoto}>{a.demo} <Icon name="play" size={12} /></Link>
+      <div className={`${s.largo} ${s.aperturaGriglia}`}>
+        <div className={s.aperturaTesto}>
+          <p className={s.etichetta}>{a.etichetta}</p>
+          <h1 className={s.h1}>{a.titolo}</h1>
+          <p className={s.sotto}>{a.sotto}</p>
+          <div className={s.azioni}>
+            <Link href="/register" className={s.btn}>{a.prova}</Link>
+            <Link href="/demo" className={s.btnVuoto}>{a.demo} <Icon name="play" size={12} /></Link>
+          </div>
+          <div className={s.promesse}>
+            {a.promesse.map(p => <span key={p}><Icon name="check" size={14} /> {p}</span>)}
+          </div>
         </div>
-        <div className={s.promesse}>
-          {a.promesse.map(p => <span key={p}><Icon name="check" size={14} /> {p}</span>)}
-        </div>
+        {/* Sotto al testo e spostato a destra: il mondo che gira, con le sessioni e gli ordini. */}
+        <div className={s.aperturaGlobo}><Globo testi={a.globo} lingua={INTL[lang]} /></div>
       </div>
       <div className={s.vetrina}>
         <div className={`${s.cornice} ${s.corniceAperta}`} style={{ boxShadow: 'none' }}>

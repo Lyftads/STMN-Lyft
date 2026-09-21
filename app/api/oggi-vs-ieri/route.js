@@ -76,13 +76,37 @@ function finoA(ore, ora, minuti) {
   return s + (ore[ora] || 0) * (minuti / 60)
 }
 
-async function shopifyAOre(ieri, oggi) {
+// ShopifyQL restituisce le ore come ISTANTI IN UTC: «2026-09-19T22:00:00Z» e' la mezzanotte
+// del 20 a Roma. Leggerle alla lettera (data e ora dalla stringa) spostava tutto di due ore
+// d'estate e di una d'inverno: «ieri alle 11:50» sommava in realta' ieri fino alle 13:50, e
+// gli ordini fra mezzanotte e le due finivano sul giorno prima e venivano scartati (su
+// Saracino, 20 set: 2 ordini e 148,50 EUR — esattamente lo scarto col totale della
+// Dashboard). Meta e Google danno invece l'ora LOCALE dell'account: vendite e spesa erano
+// anche disallineate fra loro. Qui l'istante si riporta nel fuso del negozio. Una stringa
+// senza fuso (se un giorno Shopify la mandasse cosi') si prende com'e': e' gia' locale.
+function oraNelFuso(fuso) {
+  const f = new Intl.DateTimeFormat('en-CA', { timeZone: fuso, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' })
+  return (valore) => {
+    const t = String(valore || '')
+    if (!/(Z|[+-]\d{2}:?\d{2})$/.test(t)) {
+      const m = /^(\d{4}-\d{2}-\d{2})[T ](\d{2})/.exec(t)
+      return m ? [m[1], Number(m[2])] : null
+    }
+    const ms = Date.parse(t)
+    if (!Number.isFinite(ms)) return null
+    const p = Object.fromEntries(f.formatToParts(new Date(ms)).map(x => [x.type, x.value]))
+    return [`${p.year}-${p.month}-${p.day}`, Number(p.hour)]
+  }
+}
+
+async function shopifyAOre(ieri, oggi, fuso) {
   // In fila e non in parallelo: ShopifyQL sta a ~30 richieste al minuto per negozio.
   const vendite = await shopifyql(`FROM sales SHOW total_sales, orders, orders_first_time, orders_returning GROUP BY hour SINCE ${ieri} UNTIL ${oggi} ORDER BY hour ASC LIMIT 1000`, { ttlMs: 10 * 60_000 })
   const sess = await shopifyql(`FROM sessions SHOW sessions GROUP BY hour SINCE ${ieri} UNTIL ${oggi} ORDER BY hour ASC LIMIT 200`, { ttlMs: 10 * 60_000 })
   const serie = () => ({ [ieri]: vuota(), [oggi]: vuota() })
   const out = { venduto: serie(), ordini: serie(), nuovi: serie(), abituali: serie(), sessioni: serie() }
-  const dove = (r) => { const m = /^(\d{4}-\d{2}-\d{2})[T ](\d{2})/.exec(String(r.hour || '')); return m && out.venduto[m[1]] ? [m[1], Number(m[2])] : null }
+  const locale = oraNelFuso(fuso)
+  const dove = (r) => { const d = locale(r.hour); return d && out.venduto[d[0]] && d[1] >= 0 && d[1] < 24 ? d : null }
   for (const r of (vendite || [])) {
     const d = dove(r); if (!d) continue
     out.venduto[d[0]][d[1]] += num(r.total_sales); out.ordini[d[0]][d[1]] += num(r.orders)
@@ -142,11 +166,11 @@ async function googleAOre(ieri, oggi) {
 }
 
 export async function GET(req) {
-  return withTenantContext(req, async () => swrSnapshot(req, { tab: 'oggiVsIeri@1', ttlMs: 10 * 60_000, compute: async () => {
+  return withTenantContext(req, async () => swrSnapshot(req, { tab: 'oggiVsIeri@2', ttlMs: 10 * 60_000, compute: async () => {
     const fuso = await fusoNegozio()
     const { oggi, ora, minuti } = adesso(fuso)
     const ieri = ieriDi(oggi)
-    const [sh, me, go] = await Promise.allSettled([shopifyAOre(ieri, oggi), metaAOre(ieri, oggi), googleAOre(ieri, oggi)])
+    const [sh, me, go] = await Promise.allSettled([shopifyAOre(ieri, oggi, fuso), metaAOre(ieri, oggi), googleAOre(ieri, oggi)])
     const errori = [sh, me, go].filter(x => x.status === 'rejected').map(x => String(x.reason?.message || x.reason).slice(0, 100))
     const s = sh.status === 'fulfilled' ? sh.value : null
     const m = me.status === 'fulfilled' ? me.value : null

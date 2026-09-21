@@ -39,7 +39,7 @@ const TITOLI_TAB = {
   prezzi: ['prz.title', 'Prezzi', 'prz.subtitle', 'Lo stesso articolo da te e dai concorrenti: dove sei più caro, dove più conveniente. Si aggiorna da solo due volte al giorno.'],
   googleProducts: ['gp.title', 'Prodotti Google', 'gp.subtitleShell', 'Clic, costo e acquisti di ogni articolo del catalogo su Google Shopping e Performance Max.'],
   googleVerdicts: ['gpv.title', 'Performance prodotti Google', 'gpv.subtitle', 'Verdetti per prodotto, confrontati con le vendite reali di Shopify'],
-  corrispettivi: ['cor.title', 'Corrispettivi e-commerce', 'cor.subtitle', 'Registro delle vendite per giorno e paese, con IVA scorporata e regime fiscale, pronto per il commercialista.'],
+  corrispettivi: ['cor.title', 'Corrispettivi e-commerce', 'cor.subtitle', 'Registro delle vendite per giorno e paese, con l’IVA registrata da Shopify e il regime fiscale, pronto per il commercialista.'],
   clienti: ['cli.title', 'Clienti', 'cli.subtitle2', 'Clienti divisi per ciclo di vita (RFM). Scegli un segmento e lancia la campagna giusta in un click.'],
 }
 

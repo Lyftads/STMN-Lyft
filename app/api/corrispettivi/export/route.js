@@ -21,6 +21,10 @@ import { calcolaRegistro } from '../../../../lib/fiscal/registro'
 // ============================================================================
 
 const EURO = '#,##0.00'
+// Etichette della colonna «Fonte IVA». Le righe calcolate prima di questa colonna
+// non hanno il campo: allora erano tutte stime, ma quelle non passano piu' da qui
+// (il registro si ricalcola a ogni export), quindi il ripiego e' «Shopify».
+const FONTE_IVA = { shopify: 'Registrata da Shopify', ordinaria: 'Stima (aliquota ordinaria)', ignota: 'Non determinabile' }
 const ETICHETTA = {
   ITALIA: 'Corrispettivi Italia',
   OSS: 'IVA OSS',
@@ -71,13 +75,13 @@ export async function GET(req) {
       ['Fonte', 'Shopify Analytics (ShopifyQL), dataset vendite, per giorno e paese di spedizione'],
       ['Canali inclusi', 'Tutti i canali di vendita, marketplace compresi'],
       ['Paese fiscale', 'Paese di spedizione; dove manca si usa quello di fatturazione, dato che diversi clienti inseriscono li i dati di spedizione'],
-      ['Imponibile e IVA', 'Scorporati dal lordo con l\'aliquota ordinaria del paese in vigore quel giorno'],
-      ['Differenza con Shopify', 'L\'IVA qui è quella del regime applicabile, non quella registrata da Shopify'],
+      ['Imponibile e IVA', 'L\'IVA e\' quella registrata da Shopify sull\'ordine; l\'imponibile e\' il lordo meno quell\'IVA. Dove Shopify non la fornisce si scorpora con l\'aliquota ordinaria del paese, e la colonna "Fonte IVA" lo dichiara riga per riga'],
+      ['Aliquota %', 'E\' l\'aliquota EFFETTIVA, dedotta dai numeri (imposta su imponibile), non quella ordinaria del paese: un negozio con articoli al 4, al 10 e al 22 non ha una sola aliquota'],
       ['Italia', 'Vendite domestiche, aliquota ordinaria italiana'],
       ['IVA OSS', 'Paesi UE non italiani, aliquota del paese di destinazione'],
       ['Extra-UE', 'Fuori Unione Europea: IVA 0%'],
       ['Da verificare', 'Nessuno dei due paesi presente: la riga non viene attribuita a un regime'],
-      ['Limite noto', 'Aliquote ridotte e territori speciali (Livigno, Campione, Canarie) non sono distinguibili dal solo paese'],
+      ['Limite noto', 'Le righe con "Fonte IVA: ordinaria" sono una stima: li\' aliquote ridotte e territori speciali (Livigno, Campione, Canarie) restano approssimati all\'aliquota del paese'],
       ['Gift card', dati.rettificaValida
         ? 'Incluse: tassate all\'emissione, neutralizzate al riscatto. Dettaglio nel foglio GIFT CARD'
         : 'NON incluse: manca il permesso per leggere i riscatti, sommare le emissioni tasserebbe due volte'],
@@ -142,6 +146,9 @@ export async function GET(req) {
       { header: 'Paese', key: 'paese', width: 22 },
       { header: 'ISO', key: 'iso', width: 7 },
       { header: 'Aliquota %', key: 'aliquota', width: 11 },
+      // Da dove viene l'IVA della riga. La nota metodologica rimanda a questa
+      // colonna: chi firma deve poter distinguere l'imposta registrata da una stima.
+      { header: 'Fonte IVA', key: 'fonteIvaTesto', width: 22 },
       { header: 'Ordini', key: 'ordini', width: 9 },
       { header: 'Vendite lorde', key: 'vendite', width: 15, style: { numFmt: EURO } },
       { header: 'Sconti', key: 'sconti', width: 13, style: { numFmt: EURO } },
@@ -156,7 +163,7 @@ export async function GET(req) {
     intesta(det, colonneDettaglio)
     const righeOrdinate = [...dati.righe].sort((a, b) => a.giorno.localeCompare(b.giorno) || (b.lordo - a.lordo))
     for (const r of righeOrdinate) {
-      det.addRow({ ...r, regime: ETICHETTA[r.perimetro] || r.perimetro, iso: r.iso || '' })
+      det.addRow({ ...r, regime: ETICHETTA[r.perimetro] || r.perimetro, iso: r.iso || '', fonteIvaTesto: FONTE_IVA[r.fonteIva] || 'Registrata da Shopify' })
     }
     det.autoFilter = { from: 'A1', to: { row: 1, column: colonneDettaglio.length } }
 
@@ -166,7 +173,7 @@ export async function GET(req) {
       const f = wb.addWorksheet(nome)
       intesta(f, colonneDettaglio)
       for (const r of righe.sort((a, b) => a.giorno.localeCompare(b.giorno))) {
-        f.addRow({ ...r, regime: ETICHETTA[r.perimetro] || r.perimetro, iso: r.iso || '' })
+        f.addRow({ ...r, regime: ETICHETTA[r.perimetro] || r.perimetro, iso: r.iso || '', fonteIvaTesto: FONTE_IVA[r.fonteIva] || 'Registrata da Shopify' })
       }
       const s = righe.reduce((a, r) => ({
         ordini: a.ordini + r.ordini, lordo: a.lordo + r.lordo,

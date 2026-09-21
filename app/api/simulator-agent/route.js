@@ -1,5 +1,7 @@
 import { handleVerticalAgent } from '../../../lib/agent/verticalAgent'
 import { buildAgentContext, persistTurnMemory } from '../../../lib/tenant/agentContext'
+import { withTenantContext } from '../../../lib/tenant/credentials'
+import { aliquoteProdotti } from '../../../lib/fiscal/aliquote'
 
 const AGENT_ID = 'simulator'
 
@@ -39,7 +41,7 @@ Quando Marino apre il simulatore, ha sliders per:
 - **Scenari Advertising**: 3 scenari (Conservativo, Base, Aggressivo) ognuno con spesa ADV mensile, ROAS target, AOV (IVA inclusa), COGS %
 
 Per ogni scenario calcola:
-- Fatturato IVA inclusa, IVA scorporata 22%, fatturato netto
+- Fatturato IVA inclusa, IVA scorporata con l'aliquota DEL NEGOZIO (campo «aliquotaIva» in SIMULATOR DATA, letta da Shopify), fatturato netto. Se «aliquotaIva» manca, DILLO e chiedi l'aliquota: non assumere il 22% — un negozio di alimentari sta al 4 o al 10
 - Ordini, AOV netto, ROAS, CPO
 - COGS €, margine per ordine, margine %
 - Profitto lordo (post COGS), profitto netto (post ADV), net margin %
@@ -102,6 +104,21 @@ Per la generazione di PIANI/STRATEGIE/ROADMAP sei creativo MA ancorato ai numeri
 const tenantSystem = () => tenantPrompt(SYSTEM_PROMPT)
 
 export async function POST(req) {
+  // L'aliquota IVA del negozio, letta da Shopify PRIMA di passare all'agente.
+  // Qui il prompt diceva «IVA scorporata 22%»: su Saracino, dove quasi tutto e'
+  // al 4%, il simulatore avrebbe tolto dal fatturato il 18% che non c'e' e
+  // progettato ogni scenario su un netto piu' basso del vero.
+  // Si legge qui e non dentro buildContext perche' handleVerticalAgent non entra
+  // nel contesto del cliente (Shopify da li' non si raggiunge), e cambiarlo
+  // toccherebbe i quattro agenti che lo condividono. withTenantContext non legge
+  // il corpo della richiesta, quindi l'agente lo trova intatto.
+  const ivaNegozio = await withTenantContext(req, async () => {
+    const tab = await aliquoteProdotti().catch(() => null)
+    return tab?.predefinita != null ? { percento: tab.predefinita, fonte: "Shopify: l'aliquota piu' frequente sulle righe d'ordine del negozio" } : null
+  }).catch(() => null)
+  // withTenantContext puo' restituire una risposta (abbonamento scaduto) invece del
+  // valore: allora non e' un'aliquota, e l'agente la trattera' come mancante.
+  const aliquotaIva = ivaNegozio && typeof ivaNegozio.percento === 'number' ? ivaNegozio : null
   return handleVerticalAgent(req, {
     id: AGENT_ID,
     systemPrompt: SYSTEM_PROMPT,
@@ -110,6 +127,7 @@ export async function POST(req) {
       ltvOutputs: body?.ltvOutputs || null,
       scenarios: Array.isArray(body?.scenarios) ? body.scenarios : [],
       cashFlowAnalysis: Array.isArray(body?.cashFlowAnalysis) ? body.cashFlowAnalysis : [],
+      aliquotaIva,
     }),
     dataLabel: 'SIMULATOR DATA — usa SOLO questi numeri per le citazioni, mai inventare:',
     dataMax: 50000,

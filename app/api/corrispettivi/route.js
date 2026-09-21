@@ -39,7 +39,14 @@ export async function GET(req) {
     // calcolo, perche' la richiesta puo' arrivare vuota (= mese corrente).
     const meseChiave = periodoDelMese(mese).mese
     return swrSnapshot(req, {
-      tab: `corrispettivi@6:${meseChiave}`,
+      // @7 (21 set 2026): l'IVA si legge da Shopify invece di ricalcolarla al 22%.
+      // Senza alzare la versione la cache condivisa (locale e produzione) serviva il
+      // registro calcolato DAL CODICE DI PRIMA: su Saracino tutte le righe al 22% e
+      // ~54.000 EUR di IVA, mentre l'export — che non passa dalla cache — dava gia'
+      // il numero giusto. Schermo ed export avrebbero detto due cose diverse, cioe'
+      // proprio cio' che l'intestazione di lib/fiscal/registro.js vieta. Trovato
+      // aprendo la tab nel workspace di Saracino, non leggendo il codice.
+      tab: `corrispettivi@7:${meseChiave}`,
       ttlMs: 15 * 60 * 1000,
       compute: async () => {
         try { return await calcolaRegistro(mese) } catch (e) {

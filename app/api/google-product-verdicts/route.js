@@ -9,6 +9,7 @@ import { getRange } from '../../../lib/metaRange'
 import { conSoloAcquisti, CAMPO_CATEGORIA } from '../../../lib/ads/googleAcquisti'
 import { shopifyql } from '../../../lib/shopify/shopifyql'
 import { soglieValide, improntaSoglie } from '../../../lib/ads/soglieVerdetti'
+import { aliquoteProdotti, aliquotaDi } from '../../../lib/fiscal/aliquote'
 import { leggiImpostazioni } from '../../../lib/impostazioni'
 
 // ============================================================================
@@ -432,7 +433,14 @@ async function compute(req, range, S, { mf, canali }) {
   const origin = new URL(req.url).origin
   const cookie = req.headers.get('cookie') || ''
   const scadenza = Date.now() + 38000
+  // L'aliquota del workspace (regolabile nelle soglie) non e' piu' L'aliquota:
+  // e' l'ULTIMO ripiego. Con una sola aliquota per negozio, l'olio di Saracino
+  // al 4% veniva scorporato al 22 e ogni margine usciva piu' basso del 18%.
+  // Ora ogni prodotto ha la sua, letta dalle righe d'ordine di Shopify
+  // (lib/fiscal/aliquote.js); il valore delle soglie si usa solo per un
+  // negozio senza vendite tassate lette.
   const IVA = S.iva
+  const tabellaIva = await aliquoteProdotti().catch(() => null)
 
   // 1. Google (gia' abbinato a Shopify dalla route sorella, che risolve
   //    l'ID articolo shopify_it_<id> in productId e porta titolo e immagine).
@@ -536,6 +544,7 @@ async function compute(req, range, S, { mf, canali }) {
   const righe = [...googlePerProdotto.entries()].map(([chiaveProdotto, g]) => {
     const match = perItem.get(String(g.itemId))
     const productId = match?.productId || null
+    const { aliquota: ivaProdotto, fonte: fonteIva } = aliquotaDi(productId, tabellaIva, IVA)
     if (productId) abbinati++
     const cat = productId ? catalogo.get(productId) : null
     if (cat?.cost != null) conCosto++
@@ -571,7 +580,7 @@ async function compute(req, range, S, { mf, canali }) {
     // IVA scorporata PRIMA di qualunque conto di margine: il valore che
     // Google riporta e' lordo, il costo prodotto no. L'aliquota e' del cliente
     // (soglie, per workspace): a 0 lo scorporo non si fa.
-    const ricavoNetto = r2(g.convValue / (1 + IVA / 100))
+    const ricavoNetto = r2(g.convValue / (1 + ivaProdotto / 100))
     // Pezzi su cui applicare il costo: quelli che GOOGLE ha venduto, non tutti
     // quelli usciti dal negozio. Prima si prendevano i pezzi di Shopify, che
     // contano anche le vendite di Meta, email e ricerca: il costo di tre borse
@@ -604,7 +613,7 @@ async function compute(req, range, S, { mf, canali }) {
     const gPrec = googlePrecPerProdotto.get(chiaveProdotto) || null
     const vPrec = productId ? venditePrec.get(productId) : null
     const prec = gPrec ? (() => {
-      const ricavoNettoP = r2(gPrec.convValue / (1 + IVA / 100))
+      const ricavoNettoP = r2(gPrec.convValue / (1 + ivaProdotto / 100))
       const prezzoMedioP = (vPrec?.units > 0 && vPrec.revenue > 0) ? r2(vPrec.revenue / vPrec.units) : prezzoMedio
       const pezziP = pezziDiGoogle(gPrec, prezzoMedioP)
       const cogsP = costoUnitario != null ? r2(costoUnitario * pezziP) : null
@@ -739,6 +748,11 @@ async function compute(req, range, S, { mf, canali }) {
       convValue: r2(g.convValue),
       ricavoNetto,
       iva: r2(g.convValue - ricavoNetto),
+      // l'aliquota usata per QUESTO prodotto, e da dove viene: 'prodotto' (letta
+      // dalle sue righe d'ordine), 'negozio' (la piu' frequente del negozio,
+      // perche' lui non ha venduto nel periodo), 'ripiego' (quella delle soglie).
+      aliquotaIva: ivaProdotto,
+      fonteIva,
       pezzi,
       prezzoMedio,
       costoUnitario,
@@ -774,7 +788,12 @@ async function compute(req, range, S, { mf, canali }) {
       sogliaRipiego: S.sogliaRipiego,
       scortaMinima: S.scortaMinima,
       roasMinimo: S.roasMinimo,
+      // Resta l'aliquota delle soglie, ma ora e' solo il ripiego: quella vera e'
+      // su ogni riga (aliquotaIva). `ivaDaShopify` dice se le righe d'ordine sono
+      // state lette davvero, cosi' la tab non spaccia il ripiego per una misura.
       iva: IVA,
+      ivaDaShopify: (tabellaIva?.righe || 0) > 0,
+      ivaPredefinitaNegozio: tabellaIva?.predefinita ?? null,
       poasPareggio: 1,
       // Se e' null, la tab NON deve mostrare verdetti come se fossero fondati.
       // Il verdetto e' possibile dove c'e' il costo del prodotto.
@@ -848,7 +867,11 @@ export async function GET(req) {
     const improntaCanali = canali.join('+').slice(0, 40)
 
     return swrSnapshot(req, {
-      tab: `googleVerdicts@26:${improntaSoglie(S)}:${improntaCanali}${mf ? `:${mf.ns}.${mf.key}` : ''}`,
+      // @27 (21 set 2026): l'IVA si scorpora per PRODOTTO, dalle righe d'ordine di
+      // Shopify, non piu' con l'aliquota unica delle soglie. Senza alzare la
+      // versione la cache condivisa (locale e produzione) avrebbe continuato a
+      // servire i margini calcolati al 22% anche per l'olio al 4%.
+      tab: `googleVerdicts@27:${improntaSoglie(S)}:${improntaCanali}${mf ? `:${mf.ns}.${mf.key}` : ''}`,
       // 10 minuti: la tab si ri-controlla da sola mentre e' aperta, quindi la
       // finestra breve fa partire prima il rinfresco in background. Sotto non
       // ha senso: i dati Google arrivano con il loro ritardo.

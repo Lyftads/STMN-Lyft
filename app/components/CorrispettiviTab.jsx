@@ -108,11 +108,17 @@ export default function CorrispettiviTab() {
     commissioniReso: a.commissioniReso + (r.commissioniReso || 0),
     ordini: a.ordini + r.ordini,
     senzaImponibile: a.senzaImponibile + (r.imponibile == null ? r.lordo : 0),
+    // righe la cui IVA NON e' quella registrata da Shopify ma una stima
+    // dall'aliquota ordinaria (o ignota): vanno segnalate, non mescolate.
+    stime: (a.stime || 0) + (r.fonteIva && r.fonteIva !== 'shopify' ? 1 : (r.stime || 0)),
   }), {
     lordo: 0, imponibile: 0, iva: 0, vendite: 0, sconti: 0, resi: 0, netto: 0,
     spedizioni: 0, ivaShopify: 0, commissioniReso: 0, ordini: 0, senzaImponibile: 0,
   })
 
+  // Aliquota effettiva di un insieme di righe: l'unico numero che,
+  // moltiplicato per l'imponibile, ridà l'IVA che si vede in tabella.
+  const aliquotaDi = (t) => (t.imponibile > 0 ? Math.round((t.iva / t.imponibile) * 1000) / 10 : null)
   const tot = useMemo(() => somma(filtrate), [filtrate])
 
   const perPaese = useMemo(() => {
@@ -122,7 +128,10 @@ export default function CorrispettiviTab() {
       if (!m.has(k)) m.set(k, { chiave: k, paese: r.paese, iso: r.iso, perimetro: r.perimetro, aliquota: r.aliquota, elenco: [] })
       m.get(k).elenco.push(r)
     }
-    return [...m.values()].map(g => ({ ...g, ...somma(g.elenco) })).sort((a, b) => b.lordo - a.lordo)
+    // L'aliquota del paese era quella della PRIMA riga. Con l'IVA letta da
+    // Shopify un paese ne ha piu' d'una (olio al 4, conserve al 10, gadget al
+    // 22 nello stesso giorno): va la media vera, imposta totale su imponibile.
+    return [...m.values()].map(g => { const t = somma(g.elenco); return { ...g, ...t, aliquota: aliquotaDi(t) } }).sort((a, b) => b.lordo - a.lordo)
   }, [filtrate])
 
   const perGiorno = useMemo(() => {
@@ -131,7 +140,9 @@ export default function CorrispettiviTab() {
       if (!m.has(r.giorno)) m.set(r.giorno, { giorno: r.giorno, elenco: [] })
       m.get(r.giorno).elenco.push(r)
     }
-    return [...m.values()].map(g => ({ ...g, ...somma(g.elenco) })).sort((a, b) => a.giorno.localeCompare(b.giorno))
+    // Per giorno l'aliquota non c'era (colonna a trattini): con l'IVA vera di
+    // Shopify ora ha un senso, e dice come si e' composto quel giorno.
+    return [...m.values()].map(g => { const t = somma(g.elenco); return { ...g, ...t, aliquota: aliquotaDi(t) } }).sort((a, b) => a.giorno.localeCompare(b.giorno))
   }, [filtrate])
 
   const q = dati?.qualita
@@ -331,7 +342,10 @@ export default function CorrispettiviTab() {
                       <tr key={`${etichetta}-${i}`} style={{ borderTop: '1px solid var(--border)', background: i % 2 ? 'var(--gpv-riga)' : 'transparent' }}>
                         <td style={{ padding: '9px 12px', fontSize: 13, color: 'var(--text)', fontWeight: 600 }}>{etichetta}</td>
                         <td style={cella}>{per ? <Etichetta perimetro={per} t={t} /> : '—'}</td>
-                        <td style={cella}>{r.aliquota == null ? '—' : `${r.aliquota}%`}</td>
+                        <td style={cella} title={(r.stime || (r.fonteIva && r.fonteIva !== 'shopify')) ? t('cor.ivaStimata', null, 'Stima: Shopify non ha fornito l\'IVA per questa riga, è stata scorporata con l\'aliquota ordinaria del paese.') : undefined}>
+                          {r.aliquota == null ? '—' : `${String(r.aliquota).replace('.', ',')}%`}
+                          {(r.stime || (r.fonteIva && r.fonteIva !== 'shopify')) ? <span style={{ color: 'var(--attenzione)' }}> *</span> : null}
+                        </td>
                         <td style={cella}>{r.ordini}</td>
                         <td style={{ ...cella, color: r.resi < 0 ? '#ef4444' : 'var(--text3)' }}>{euro(r.resi)}</td>
                         <td style={{ ...cella, fontWeight: 640 }}>{euro(r.lordo)}</td>
@@ -382,7 +396,15 @@ export default function CorrispettiviTab() {
             <Riepilogo titolo={t('cor.sumGross', null, 'Vendite lorde')} valore={euro(tot.vendite)} nota={t('cor.sumGrossNote', { n: tot.ordini }, `${tot.ordini} ordini nel periodo`)} />
             <Riepilogo titolo={t('cor.sumDiscounts', null, 'Sconti')} valore={euro(tot.sconti)} nota={t('cor.sumDiscountsNote', null, 'Esposti con segno negativo')} />
             <Riepilogo titolo={t('cor.sumReturns', null, 'Resi e rimborsi')} valore={euro(tot.resi)} nota={t('cor.sumReturnsNote', { x: euro(tot.commissioniReso) }, `Commissioni di reso: ${euro(tot.commissioniReso)}`)} />
-            <Riepilogo titolo={t('cor.sumVat', null, 'IVA scorporata')} valore={euro(tot.iva)} nota={t('cor.sumVatNote', { x: euro(tot.ivaShopify) }, `IVA registrata da Shopify: ${euro(tot.ivaShopify)}`)} />
+            {/* Era «IVA scorporata», con accanto «IVA registrata da Shopify» come
+                confronto: i due numeri differivano perche' la nostra si ricalcolava
+                al 22%. Ora l'IVA E' quella di Shopify, e mettere lo stesso numero
+                due volte non direbbe niente. Quello che conta e' se una parte e'
+                stimata — e allora lo si dice. */}
+            <Riepilogo titolo={t('cor.sumVatReal', null, 'IVA')} valore={euro(tot.iva)}
+              nota={tot.stime > 0
+                ? t('cor.sumVatNoteMixed', { n: tot.stime }, `Da Shopify, tranne ${tot.stime} righe stimate con l'aliquota ordinaria`)
+                : t('cor.sumVatNoteReal', null, 'Registrata da Shopify sugli ordini, aliquota per aliquota')} />
           </div>
 
           {/* ── Registro giornaliero + ordini ─────────────────────────── */}
@@ -700,9 +722,9 @@ function ContenutoGuida({ scheda, t }) {
         <L><strong>Extra-UE</strong> — {t('cor.g.perimetri3', null, 'fuori UE: IVA 0%.')}</L>
         <L><strong>Da verificare</strong> — {t('cor.g.perimetri4', null, 'paese mancante su Shopify: la riga non viene attribuita a nessun regime.')}</L>
       </UL>
-      <P>{t('cor.g.perimetri5', null, 'L\'imponibile si ricava scorporando dal lordo con l\'aliquota ordinaria in vigore quel giorno, non con l\'IVA registrata da Shopify. Le aliquote cambiano nel tempo e il registro usa quella del periodo ricostruito.')}</P>
+      <P>{t('cor.g.perimetri5', null, 'L\'IVA e\' quella che Shopify ha registrato sull\'ordine, e l\'imponibile e\' il lordo meno quell\'IVA: e\' l\'imposta davvero applicata quel giorno, non una ricostruzione. Dove Shopify non la fornisce si scorpora con l\'aliquota ordinaria del paese, e la riga lo dichiara.')}</P>
       <P>{t('cor.g.perimetri7', null, 'Quando il paese di spedizione manca, si usa quello di fatturazione: arrivano dalla stessa interrogazione, quindi il registro resta una sola contabilità. Le righe dedotte così vengono contate e dichiarate a parte.')}</P>
-      <P>{t('cor.g.perimetri6', null, 'Limite noto: aliquote ridotte e territori speciali (Livigno, Campione, Canarie) non sono distinguibili dal solo paese e restano approssimati all\'aliquota ordinaria.')}</P>
+      <P>{t('cor.g.perimetri6', null, 'L\'aliquota mostrata e\' quella EFFETTIVA, dedotta dai numeri: un negozio che vende al 4, al 10 e al 22 non ha una sola aliquota. Il limite resta sulle sole righe senza IVA da Shopify, dove i territori speciali (Livigno, Campione, Canarie) restano approssimati all\'aliquota del paese.')}</P>
     </>
   )
   if (scheda === 'shopify') return (

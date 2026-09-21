@@ -105,7 +105,7 @@ export default function PrezziTab() {
   const SP = {
     articolo: t('prz.hItem', null, 'L’articolo del tuo negozio (una riga per variante), col marchio e i pezzi in giacenza. Un clic sulla riga apre il conto completo.'),
     prezzo: t('prz.hPrice', null, 'Il prezzo a cui lo vendi oggi su Shopify, IVA compresa. Sotto, barrato, il prezzo pieno se è in sconto.'),
-    margine: t('prz.hMargin', null, 'Quanto ti resta per pezzo al prezzo di oggi: prezzo senza IVA (22%) meno il costo del prodotto. Non comprende pubblicità, spedizione e commissioni.'),
+    margine: t('prz.hMargin', null, 'Quanto ti resta per pezzo al prezzo di oggi: prezzo senza IVA meno il costo del prodotto. L’IVA è quella di ciascun prodotto, letta da Shopify. Non comprende pubblicità, spedizione e commissioni.'),
     mercato: t('prz.hMarket', null, 'Il prezzo di riferimento di Google: a quanto vendono lo stesso articolo (stesso EAN) gli altri negozi che lo pubblicizzano su Google Shopping, pesato sui clic.'),
     scartoMercato: t('prz.hGap', null, 'Di quanto il tuo prezzo è sopra (+) o sotto (−) il prezzo di mercato.'),
     margineMercato: t('prz.hMarginMarket', null, 'Il margine per pezzo che ti resterebbe vendendo al prezzo di mercato. «In perdita» vuol dire che fin lì non puoi scendere.'),
@@ -118,9 +118,16 @@ export default function PrezziTab() {
     const tf = r.traffico?.[giorni] || (r.clic != null ? { clic: r.clic, impressioni: r.impressioni } : null)
     const nienteMercato = r.soloNoi ? t('prz.onlyYouHint', null, 'Nessun altro negozio pubblicizza questo marchio su Google: non esiste un prezzo di mercato') : t('prz.noMarket', null, 'Google non ha ancora un prezzo di mercato per questo articolo')
     const nienteSuggerito = t('prz.noSuggestion', null, 'Google non suggerisce un prezzo diverso per questo articolo')
-    const margineDi = (prezzo, v) => (r.costo == null || v == null ? t('prz.dNoCost', null, 'Costo non inserito: aggiungilo in «Costi prodotto» per vedere il margine.')
-      : v < 0 ? t('prz.dMarginLoss', { p: soldi(prezzo, 2), n: soldi(prezzo / 1.22, 2), c: soldi(r.costo, 2), v: soldi(Math.abs(v), 2) }, `${soldi(prezzo, 2)} senza IVA fa ${soldi(prezzo / 1.22, 2)}; meno il costo di ${soldi(r.costo, 2)} perdi ${soldi(Math.abs(v), 2)} a pezzo. A questo prezzo non puoi vendere.`)
-      : t('prz.dMargin', { p: soldi(prezzo, 2), n: soldi(prezzo / 1.22, 2), c: soldi(r.costo, 2), v: soldi(v, 2) }, `${soldi(prezzo, 2)} senza IVA fa ${soldi(prezzo / 1.22, 2)}; meno il costo di ${soldi(r.costo, 2)} restano ${soldi(v, 2)} a pezzo.`))
+    // Il netto con l'aliquota DEL PRODOTTO, che il server manda su ogni riga
+    // (lib/fiscal/aliquote.js). Prima qui c'era `prezzo / 1.22`: accanto a un
+    // margine calcolato dal server all'aliquota giusta, la frase ricalcolava il
+    // netto al 22 — e per l'olio di Saracino i due numeri non tornavano fra loro.
+    const aIva = Number.isFinite(+r.aliquotaIva) ? +r.aliquotaIva : null
+    const netto = (prezzo) => (aIva == null ? null : prezzo / (1 + aIva / 100))
+    const aTesto = aIva == null ? '—' : String(aIva).replace('.', ',')
+    const margineDi = (prezzo, v) => (r.costo == null || v == null || netto(prezzo) == null ? t('prz.dNoCost', null, 'Costo non inserito: aggiungilo in «Costi prodotto» per vedere il margine.')
+      : v < 0 ? t('prz.dMarginLoss', { p: soldi(prezzo, 2), a: aTesto, n: soldi(netto(prezzo), 2), c: soldi(r.costo, 2), v: soldi(Math.abs(v), 2) }, `${soldi(prezzo, 2)} senza IVA (${aTesto}%) fa ${soldi(netto(prezzo), 2)}; meno il costo di ${soldi(r.costo, 2)} perdi ${soldi(Math.abs(v), 2)} a pezzo. A questo prezzo non puoi vendere.`)
+      : t('prz.dMargin', { p: soldi(prezzo, 2), a: aTesto, n: soldi(netto(prezzo), 2), c: soldi(r.costo, 2), v: soldi(v, 2) }, `${soldi(prezzo, 2)} senza IVA (${aTesto}%) fa ${soldi(netto(prezzo), 2)}; meno il costo di ${soldi(r.costo, 2)} restano ${soldi(v, 2)} a pezzo.`))
     const previsto = (f) => (f == null ? '—' : pct(f * 100))
     return {
       prezzo: r.pieno > r.prezzo
@@ -291,7 +298,14 @@ export default function PrezziTab() {
             const r = scheda, m = r.mercato || {}
             const col = [{ p: r.prezzo, oggi: true }, m.prezzo != null ? { p: m.prezzo } : null, m.suggerito != null ? { p: m.suggerito } : null]
             const cella = (k, f, forte) => (col[k] ? f(col[k].p, k) : <span className="prz-vuoto">—</span>)
-            const iva = (p) => p - p / 1.22, marg = (p) => (r.costo != null ? p / 1.22 - r.costo : null)
+            // Stessa aliquota del prodotto anche qui: questi margini si RIFANNO a
+            // schermo per le tre colonne (oggi, mercato, suggerito), e al 22 fisso
+            // davano all'olio un margine piu' basso del 18% in tutte e tre.
+            const aIvaS = Number.isFinite(+r.aliquotaIva) ? +r.aliquotaIva : null
+            const nettoS = (p) => (aIvaS == null ? null : p / (1 + aIvaS / 100))
+            const iva = (p) => (nettoS(p) == null ? null : p - nettoS(p)), marg = (p) => (r.costo != null && nettoS(p) != null ? nettoS(p) - r.costo : null)
+            const aTestoS = aIvaS == null ? '—' : String(aIvaS).replace('.', ',')
+            const fTestoS = aIvaS == null ? '—' : String(Math.round((1 + aIvaS / 100) * 1000) / 1000).replace('.', ',')
             const riga = (segno, nome, nota, f, forte, spiega) => (
               <div className={`gpv-voce${forte ? ' forte' : ''}`} data-spiega={spiega || undefined}>
                 <b className="gpv-segno">{segno}</b>
@@ -311,7 +325,7 @@ export default function PrezziTab() {
                     <span className="gpv-voce-ora prz-col">{t('prz.sSuggestedShort', null, 'Al suggerito')}</span>
                   </div>
                   {riga('', t('prz.rowPrice', null, 'Prezzo al cliente'), t('prz.vatIncluded', null, 'IVA compresa'), (p) => soldi(p, 2), false, t('prz.pPrice', null, 'Il prezzo che paga il cliente, IVA compresa, nei tre casi: oggi, al prezzo di mercato, al prezzo suggerito da Google.'))}
-                  {riga('−', t('prz.rowVat', null, 'IVA 22%'), null, (p) => soldi(iva(p), 2), false, t('prz.pVat', null, 'L’IVA al 22% contenuta nel prezzo: prezzo − (prezzo ÷ 1,22).'))}
+                  {riga('−', t('prz.rowVat', { a: aTestoS }, `IVA ${aTestoS}%`), null, (p) => soldi(iva(p), 2), false, t('prz.pVat', { a: aTestoS, f: fTestoS }, `L’IVA al ${aTestoS}% contenuta nel prezzo, letta da Shopify per questo prodotto: prezzo − (prezzo ÷ ${fTestoS}).`))}
                   {riga('−', t('prz.cost', null, 'Costo'), r.costo == null ? t('prz.noCost', null, 'Costo non inserito') : null, () => (r.costo == null ? '?' : soldi(r.costo, 2)), false, t('prz.pCost', null, 'Il costo del prodotto: quello di Shopify, sostituito dal costo che hai inserito in «Costi prodotto» se c’è.'))}
                   {riga('=', t('prz.cMargin', null, 'Margine'), t('prz.perPiece', null, 'per pezzo'), (p) => { const v = marg(p); return v == null ? '?' : <span style={{ color: v < 0 ? '#ef4444' : undefined }}>{soldi(v, 2)}{v < 0 ? ` · ${t('prz.loss', null, 'in perdita')}` : ''}</span> }, true, t('prz.pMargin', null, 'Prezzo senza IVA meno costo, per un pezzo. Non comprende pubblicità, spedizione e commissioni.'))}
                   {r.giacenza > 0 && r.costo != null && riga('×', t('prz.onStockRow', { n: intero(r.giacenza) }, `${intero(r.giacenza)} pezzi in giacenza`), null, (p) => <span style={{ color: marg(p) < 0 ? '#ef4444' : undefined }}>{soldi(marg(p) * r.giacenza, 0)}</span>, false, t('prz.pStock', null, 'Il margine per pezzo moltiplicato per i pezzi in magazzino: quanto rende la giacenza a quel prezzo.'))}
@@ -341,7 +355,7 @@ export default function PrezziTab() {
                     ))}
                   </div>
                 )}
-                <p className="prz-nota">{t('prz.marginNote', null, 'Il margine è il prezzo senza IVA (22%) meno il costo del prodotto: non comprende pubblicità, spedizione e commissioni.')} {t('prz.forecastNote', null, 'Le previsioni di clic e conversioni sono stime di Google, non dati misurati.')}</p>
+                <p className="prz-nota">{t('prz.marginNote', null, 'Il margine è il prezzo senza IVA meno il costo del prodotto, con l’aliquota di ciascun prodotto letta da Shopify: non comprende pubblicità, spedizione e commissioni.')} {t('prz.forecastNote', null, 'Le previsioni di clic e conversioni sono stime di Google, non dati misurati.')}</p>
               </>
             )
           })()}

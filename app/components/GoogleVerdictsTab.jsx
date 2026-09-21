@@ -232,7 +232,7 @@ export default function GoogleVerdictsTab() {
                 )}
               </summary>
               <ul>
-                <li>{t('gpv.ruleBill', { x: s?.iva ?? 22 }, `Il conto di ogni riga: venduto da Google, meno l'IVA al ${s?.iva ?? 22}%, meno la merce, meno la pubblicità. Quel che resta è il guadagno.`)}</li>
+                <li>{t('gpv.ruleBill', null, 'Il conto di ogni riga: venduto da Google, meno l’IVA del prodotto (la sua aliquota, letta da Shopify), meno la merce, meno la pubblicità. Quel che resta è il guadagno.')}</li>
                 <li>{t('gpv.rulePieces', null, 'La merce si conta solo sui pezzi venduti da Google (venduto ÷ prezzo medio di vendita), non su tutti quelli usciti dal negozio.')}</li>
                 {s?.rapportoPrezzoSpesa > 0 && <li>{t('gpv.minSpend', { x: money(50), y: money(50 / s.rapportoPrezzoSpesa) }, `Si giudica quando la spesa supera un quarto del prezzo di vendita del prodotto: ${money(50)} di prezzo significa soglia a ${money(50 / s.rapportoPrezzoSpesa)}.`)}</li>}
                 <li>{t('gpv.scaleRules', { n: s?.scortaMinima ?? 10, r: s?.roasMinimo ?? 4 }, `Per scalare servono almeno ${s?.scortaMinima ?? 10} pezzi in giacenza, scorte che coprano un altro periodo come questo, e ROAS almeno ${s?.roasMinimo ?? 4}. Altrimenti il prodotto passa in stand-by.`)}</li>
@@ -578,7 +578,13 @@ function ContoProdotto({ r, onClose, onPrecedente, onSuccessiva, posizione, t, m
 
   const euro = (v) => soldi(v, 2)
   const c = contoDi(r)
-  const p = r.prec ? contoDi({ ...r.prec, iva: r.prec.convValue != null ? r.prec.convValue - r.prec.convValue / (1 + (soglie?.iva ?? 22) / 100) : null }) : null
+  // L'aliquota di QUESTO prodotto, dal server (lib/fiscal/aliquote.js): l'IVA del
+  // periodo precedente si rifa' qui, e con l'aliquota unica delle soglie (22)
+  // l'olio al 4% avrebbe avuto il conto di oggi giusto e quello di ieri sbagliato
+  // — il confronto fra i due avrebbe mostrato un peggioramento inesistente.
+  const aIva = Number.isFinite(+r.aliquotaIva) ? +r.aliquotaIva : (soglie?.iva ?? null)
+  const aIvaTesto = aIva == null ? '—' : String(aIva).replace('.', ',')
+  const p = r.prec ? contoDi({ ...r.prec, iva: r.prec.convValue != null && aIva != null ? r.prec.convValue - r.prec.convValue / (1 + aIva / 100) : null }) : null
   const motivo = r.motivo
     ? t('gpv.motivo' + r.motivo.charAt(0).toUpperCase() + r.motivo.slice(1), { x: money(r.sogliaSpesa ?? soglie?.sogliaRipiego ?? 25), n: soglie?.scortaMinima ?? 10, r: soglie?.roasMinimo ?? 4 }, r.motivo)
     : ''
@@ -617,7 +623,7 @@ function ContoProdotto({ r, onClose, onPrecedente, onSuccessiva, posizione, t, m
               </div>
             )}
             {voce('', null, t('gpv.billSold', null, 'Venduto da Google'), null, euro(c.venduto), p ? euro(p.venduto) : null)}
-            {voce('−', COLORE.iva, t('gpv.billVat', { x: soglie?.iva ?? 22 }, `IVA ${soglie?.iva ?? 22}%`), null, euro(c.iva), p ? euro(p.iva) : null)}
+            {voce('−', COLORE.iva, t('gpv.billVat', { x: aIvaTesto }, `IVA ${aIvaTesto}%`), null, euro(c.iva), p ? euro(p.iva) : null)}
             {voce('−', COLORE.merce, t('gpv.cGoods', null, 'Merce'),
               c.merce == null ? t('gpv.noCost', null, 'costo mancante') : t('gpv.billPieces', { n: num1(r.pezzi), c: euro(r.costoUnitario) }, `${num1(r.pezzi)} pezzi × ${euro(r.costoUnitario)}`),
               c.merce == null ? '?' : euro(c.merce), p ? (p.merce == null ? '?' : euro(p.merce)) : null)}

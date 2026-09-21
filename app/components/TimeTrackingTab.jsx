@@ -311,7 +311,9 @@ export default function TimeTrackingTab({ standalone = false }) {
   const projColor = (id) => projects.find(p => p.id === id)?.color || 'var(--text3)'
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 18, maxWidth: standalone ? 'none' : 1000, width: '100%' }}>
+    // A tutto schermo anche dentro l'app (Marino, 21 set 2026): prima si fermava a 1000 px e solo
+    // «Apri come app» si allargava.
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18, width: '100%' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{ display: 'flex', gap: 8, marginRight: 4 }}>
           <button onClick={winClose} title={t('lt.winClose', null, 'Close')} style={{ width: 13, height: 13, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'var(--border3)' }} />

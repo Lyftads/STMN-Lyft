@@ -18,12 +18,11 @@ import { preloadClienti } from '../../lib/clienti/preload'
 import HelpDrawer from './HelpDrawer'
 import { articleForTab } from '../../lib/help/content'
 import DownloadReportButton from './DownloadReportButton'
-import AlertsBell, { useAlerts } from './AlertsBell'
+import { useAlerts } from './AlertsBell'
 import ProfiloPopup from './ProfiloPopup'
 import Avatar from './Avatar'
 import NotificationsBell from './NotificationsBell'
 import LogoMark from './LogoMark'
-import LanguageSwitcher from './ui/LanguageSwitcher'
 import Icon from './ui/Icon'
 import CapsulaViva from './CapsulaViva'
 import PreparingDataBanner from './PreparingDataBanner'
@@ -656,14 +655,10 @@ export default function AppShell({
                 <BottoneIcona icona="info" titolo={t('help.guideFor', null, 'Guida di questa sezione')} onClick={() => setHelpOpen(true)} />
               )}
               <BottoneIcona icona="search" titolo={`${t('rr.title', null, 'Ricerca rapida')} · ⌘K`} onClick={() => window.dispatchEvent(new Event('lyft:ricerca-rapida'))} />
-              {/* Il SaaS parla cinque lingue e i clienti la cambiano dalla testata:
-                  nel fork (un cliente, una lingua) la voce era finita nel profilo. */}
-              <LanguageSwitcher compact />
+              {/* Lingua e centro avvisi stanno nel pop-up del profilo (clic sul nome in basso a
+                  sinistra), come su AV: Marino, 21 set 2026, "in alto va levata la scelta della
+                  lingua e l'alert center perche' li abbiamo messi dentro il profilo". */}
               <NotificationsBell onNavigate={goTo} />
-              {/* La campanella degli avvisi: nel fork gli avvisi stanno solo nel
-                  pop-up del profilo, qui resta anche in testata perche' e' il
-                  canale con cui avvisiamo i clienti paganti. */}
-              <AlertsBell />
               {/* Tab che hanno il loro Aggiorna interno → nascondiamo
                   il bottone globale per non duplicarlo */}
               {onRefresh && !['weekly','monthly','quarter','year','metaDetail','metaKpi','googleDetail','googleKpi','googleVerdicts','googleBudgetAdvisor','forecast','scheduledReports','cro','kpiBrain','webScanner','seoAudit','pnl','corrispettivi','clienti','inventory','productPerformance','productCosts','googleProducts','metaLeadgen','ltvCohorts'].includes(tab) && (

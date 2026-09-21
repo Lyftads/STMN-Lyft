@@ -3,8 +3,9 @@ export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
 import { format, subDays } from 'date-fns'
-import { withTenantContext, getShopify, getMeta, getTenantInfo } from '../../../lib/tenant/credentials'
+import { withTenantContext, getShopify, getMeta, getTenantInfo, isFresco } from '../../../lib/tenant/credentials'
 import { getAdminSupabase } from '../../../lib/supabase/server'
+import { shopifyql } from '../../../lib/shopify/shopifyql'
 
 // fetch esterno con timeout: un socket Shopify/Meta che stalla non deve
 // bruciare i 60s della funzione (dashboard/report/agent a cascata).
@@ -369,90 +370,35 @@ function monthRanges() {
   return months
 }
 
-// ── ShopifyQL via GraphQL ─────────────────────────────────────
+// ── ShopifyQL: dalla porta unica (lib/shopify/shopifyql.js) ───
+// Prima qui c'era un ritento suo che riconosceva solo "throttled": al rifiuto vero
+// di Shopify ("Rate limited. Please retry later.", ~30 interrogazioni al MINUTO
+// per negozio) tornava [] e la Dashboard mostrava ZERI senza un errore — sul fork
+// corretto il 19 set 2026, qui arrivato il 21 insieme ai PDF. Ora: cache per
+// interrogazione, passo per negozio, ultimo dato buono, e se proprio non c'e'
+// niente l'errore si CONTA (erroriQL) cosi' la risposta non viene messa in cache e
+// porta `shopifyIncompleto`.
+let erroriQL = 0
+// Quante volte la porta unica ha servito l'ULTIMO DATO BUONO invece di quello
+// nuovo (Shopify rifiutava). Per l'app va bene: lo mostra e poi rinfresca. Per
+// il PDF no — stamperebbe un numero vecchio come se fosse di oggi: con
+// `fresco=1` questi casi rendono la risposta incompleta (vedi sotto).
+let vecchiQL = 0
+// Errori di Meta: prima diventavano un elenco vuoto, cioe' "spesa 0", senza
+// dirlo a nessuno. Ora si contano e la risposta porta `metaIncompleto`.
+let erroriMeta = 0
 async function shopifyQL(query) {
   if (!shopifyStoreUrl() || !shopifyToken()) return []
-
-  const gql = `
-    query ShopifyQLReport($query: String!) {
-      shopifyqlQuery(query: $query) {
-        tableData {
-          columns {
-            name
-            dataType
-            displayName
-          }
-          rows
-        }
-        parseErrors
-      }
-    }
-  `
-
-  // Retry con backoff sul throttling Shopify (GraphQL cost-based rate limit):
-  // su carico elevato Shopify risponde THROTTLED → senza retry i dati tornavano
-  // a 0 in modo intermittente (soprattutto sui range lunghi). Ora riproviamo.
-  const sleep = (ms) => new Promise(r => setTimeout(r, ms))
-  const MAX = 4
-
-  for (let attempt = 1; attempt <= MAX; attempt++) {
-    try {
-      const res = await tfetch(
-        `https://${shopifyStoreUrl()}/admin/api/2026-04/graphql.json`,
-        {
-          method: 'POST',
-          headers: shopifyGraphQLHeaders(),
-          body: JSON.stringify({ query: gql, variables: { query } }),
-        }
-      )
-
-      let json = null
-      try { json = await res.json() } catch {}
-      const errs = json?.errors || []
-      const throttleStatus = json?.extensions?.cost?.throttleStatus
-
-      const throttled =
-        res.status === 429 ||
-        errs.some(e => e?.extensions?.code === 'THROTTLED' || /throttl/i.test(e?.message || '')) ||
-        (throttleStatus && throttleStatus.currentlyAvailable === 0)
-
-      if (throttled && attempt < MAX) {
-        const restore = throttleStatus?.restoreRate || 100
-        const requested = json?.extensions?.cost?.requestedQueryCost || 200
-        const base = Math.min(5000, Math.max(700, Math.ceil((requested / restore) * 1000)))
-        await sleep(base * attempt) // backoff crescente + scaglionamento
-        continue
-      }
-
-      if (!res.ok || errs.length) {
-        console.log('Shopify GraphQL error:', JSON.stringify(errs.length ? errs : json, null, 2))
-        return []
-      }
-
-      const payload = json?.data?.shopifyqlQuery
-      if (payload?.parseErrors?.length) {
-        console.log('ShopifyQL parse error:', JSON.stringify(payload.parseErrors, null, 2))
-        return []
-      }
-
-      const columns = payload?.tableData?.columns || []
-      const rows = payload?.tableData?.rows || []
-      return rows.map(row => {
-        if (!Array.isArray(row)) return row
-        const obj = {}
-        columns.forEach((col, i) => {
-          const key = col.name || col.displayName || `col_${i}`
-          obj[key] = row[i]
-        })
-        return obj
-      })
-    } catch (e) {
-      console.log('ShopifyQL error:', e.message)
-      if (attempt < MAX) { await sleep(900 * attempt); continue }
-      return []
-    }
+  try {
+    const righe = await shopifyql(query.replace(/\s+/g, ' ').trim())
+    if (righe?.stale) vecchiQL++
+    return righe
   }
-  return []
+  catch (e) {
+    erroriQL++
+    console.log('ShopifyQL error:', e.message)
+    return []
+  }
 }
 
 // ── Fallback NC/RC via REST Orders ─────────────────────────────
@@ -1174,6 +1120,7 @@ async function fetchMetaWeekly() {
 
         if (data.error) {
           console.log('Meta weekly:', data.error.message)
+          erroriMeta++
           return []
         }
 
@@ -1264,6 +1211,7 @@ async function fetchMetaWeekly() {
       }))
   } catch (e) {
     console.log('Meta weekly error:', e.message)
+    erroriMeta++
     return []
   }
 }
@@ -1292,6 +1240,7 @@ async function fetchMeta() {
 
         if (data.error) {
           console.log('Meta:', data.error.message)
+          erroriMeta++
           return []
         }
 
@@ -1549,6 +1498,13 @@ export async function GET(req) {
       if (hit && hit.expiresAt > Date.now()) return NextResponse.json(hit.payload)
     }
 
+    const erroriPrima = erroriQL
+    const vecchiPrima = vecchiQL
+    const erroriMetaPrima = erroriMeta
+    // fresco=1: la chiede il PDF, che non ha un "dopo" in cui rinfrescare.
+    const fresco = searchParams.get('fresco') === '1' || isFresco()
+    // parti=serie: la chiede il PDF del menu Report, che legge solo serie e intervalli.
+    const soloSerie = searchParams.get('parti') === 'serie'
     const range = getPresetRange(preset)
     const previousRange = getPreviousRange(range, preset)
 
@@ -1614,12 +1570,17 @@ export async function GET(req) {
       fetchAOV(),
       fetchMeta(),
       fetchMetaWeekly(),
-      safeShopifyTopProducts(range),
-      safeShopifyMarketingSources(range),
-      safeShopifyDayBreakdown(range),
-      safeShopifyTopProducts(previousRange),
-      safeShopifyMarketingSources(previousRange),
-      safeShopifyDayBreakdown(previousRange),
+      // parti=serie: il PDF del menu Report vuole solo le serie e gli intervalli.
+      // Prodotti, sorgenti e ripartizione per giorno sono sei interrogazioni a
+      // Shopify che non legge — e Shopify ne accetta circa trenta al MINUTO per
+      // negozio: risparmiarle e' la differenza fra un PDF che esce e uno che
+      // viene rifiutato perche' e' il secondo di fila.
+      soloSerie ? [] : safeShopifyTopProducts(range),
+      soloSerie ? [] : safeShopifyMarketingSources(range),
+      soloSerie ? [] : safeShopifyDayBreakdown(range),
+      soloSerie ? [] : safeShopifyTopProducts(previousRange),
+      soloSerie ? [] : safeShopifyMarketingSources(previousRange),
+      soloSerie ? [] : safeShopifyDayBreakdown(previousRange),
       safeShopifyRange(range),
       safeShopifyRange(previousRange),
       safeMetaRange(range),
@@ -1679,8 +1640,13 @@ export async function GET(req) {
 
     // Cache SOLO se il risultato è valido (non throttled-vuoto). shopifyWeekly
     // è la serie storica completa (~23 punti): se è quasi vuota → throttle → non cachiamo.
-    const looksValid = Array.isArray(shopifyWeekly) && shopifyWeekly.length >= 5
-    if (looksValid) metricsCache.set(cacheKey, { payload, expiresAt: Date.now() + METRICS_TTL_MS })
+    // Un'interrogazione fallita durante QUESTO calcolo = numeri parziali: non si conservano.
+    // (Due richieste insieme possono segnarsi a vicenda: al peggio una cache mancata.)
+    const incompleto = erroriQL > erroriPrima || (fresco && vecchiQL > vecchiPrima)
+    if (incompleto) payload.shopifyIncompleto = true
+    if (erroriMeta > erroriMetaPrima) payload.metaIncompleto = true
+    const looksValid = !incompleto && Array.isArray(shopifyWeekly) && shopifyWeekly.length >= 5
+    if (looksValid && !soloSerie) metricsCache.set(cacheKey, { payload, expiresAt: Date.now() + METRICS_TTL_MS })
 
     return NextResponse.json(payload)
   } catch (err) {

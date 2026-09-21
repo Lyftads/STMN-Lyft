@@ -61,6 +61,10 @@ export async function POST(req) {
     const fwd = {}
     if (cookie) fwd.cookie = cookie
     if (cron) fwd['x-internal-cron'] = cron
+    // …e il workspace per cui gira il cron: /api/report lo usa (solo insieme al segreto) per
+    // leggere le credenziali di QUEL cliente e lo passa alle sue fonti (intestazioniInterne).
+    const ws = req.headers.get('x-lyft-workspace')
+    if (cron && ws) fwd['x-lyft-workspace'] = ws
 
     // Genera un PDF per ogni sezione (sequenziale: ognuna è pesante).
     const attachments = []

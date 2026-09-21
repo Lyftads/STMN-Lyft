@@ -65,8 +65,11 @@ export async function GET(req) {
         if (!isDue(sched, dayOfWeek, dayOfMonth)) continue
         if (sched.last_sent_at && String(sched.last_sent_at).slice(0, 10) === todayStr) continue
         try {
+          // Il workspace di chi ha programmato il report: le credenziali si leggono dal DB come fa
+          // l'app, non dalle variabili d'ambiente (senza, il cron cadeva su envOnlyCreds — vedi
+          // withTenantContext — e il PDF non era quello che il cliente vede nel software).
           const res = await fetch(`${origin}/api/scheduled-reports/send-custom`, {
-            method: 'POST', headers: cronHeaders, body: JSON.stringify({ scheduleId: sched.id, locale: 'it' }),
+            method: 'POST', headers: { ...cronHeaders, 'x-lyft-workspace': sched.user_id }, body: JSON.stringify({ scheduleId: sched.id, locale: 'it' }),
           })
           const j = await res.json()
           results.schedules.push({ id: sched.id, name: sched.name, ok: !!j.ok, attachments: j.attachments, error: j.error })

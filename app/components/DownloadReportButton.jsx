@@ -12,7 +12,11 @@ import { useI18n } from '../../lib/i18n/I18nProvider'
 //  - tab: etichetta (es. "Weekly", "Meta Detail", "KPI Brain")
 //  - preset / custom: timeframe (preset string oppure {since,until,label})
 //  - campaigns: opzionale [{id,name}] → mostra un selettore campagna (Meta Detail)
-export default function DownloadReportButton({ tab, preset, custom, campaigns = null, style }) {
+//  - tipo: 'weekly' | 'monthly' | 'quarter' | 'year' per le tab del menu Report
+//    (il `tab` arriva tradotto, questo no)
+//  - ltv: { freq, life, margin } effettivi della tabella, cosi' LTV e LTV:CAC
+//    nel PDF sono quelli che si vedono a schermo
+export default function DownloadReportButton({ tab, preset, custom, campaigns = null, tipo = null, ltv = null, style }) {
   const { t } = useI18n()
   const [loading, setLoading] = useState(false)
   const [campaignId, setCampaignId] = useState('')
@@ -25,6 +29,10 @@ export default function DownloadReportButton({ tab, preset, custom, campaigns = 
       const qs = new URLSearchParams({ tab, label, since, until, prevSince, prevUntil })
       if (preset && !custom) qs.set('preset', preset)
       if (campaignId) qs.set('campaignId', campaignId)
+      if (tipo) qs.set('tipo', tipo)
+      if (ltv && ltv.freq > 0 && ltv.life > 0 && ltv.margin > 0) {
+        qs.set('ltvFreq', String(ltv.freq)); qs.set('ltvLife', String(ltv.life)); qs.set('ltvMargin', String(ltv.margin))
+      }
       qs.set('locale', getClientLocale())
       const res = await fetch(`/api/report?${qs.toString()}`)
       const ct = res.headers.get('content-type') || ''
@@ -33,6 +41,15 @@ export default function DownloadReportButton({ tab, preset, custom, campaigns = 
       // e nessuna spiegazione (Marino, 20 set: "si e' aperta una pagina web e non mi ha scaricato
       // il PDF"). Ora si dice che cosa e' successo, e non si apre niente.
       if (!res.ok) {
+        // 503 "dati_non_freschi": una fonte ha risposto con dati vecchi o non ha risposto. Il report
+        // non esce apposta, per non stampare numeri di ieri come se fossero di oggi: lo si dice.
+        if (res.status === 503) {
+          const j = await res.json().catch(() => null)
+          if (j?.error === 'dati_non_freschi') {
+            avvisa(t('report.notFresh', { f: (j.fonti || []).join(', ') }, `The report was not created: ${(j.fonti || []).join(', ')} did not return up-to-date data, and printing old numbers would be worse. Try again in a minute.`), 'errore', { durataMs: 11000 })
+            return
+          }
+        }
         avvisa(res.status === 504 || res.status === 408
           ? t('report.tooSlow', null, 'The report was not generated: the server took too long. Try again in a moment.')
           : t('report.failedStatus', { s: res.status }, `The report was not generated (error ${res.status}). Try again in a moment.`), 'errore', { durataMs: 9000 })

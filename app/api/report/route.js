@@ -1,9 +1,13 @@
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60
+// Era 60. I PDF del menu Report chiedono i dati FRESCHI (la serie storica rifatta, e se Shopify ha
+// appena rifiutato si aspetta che riapra, fino a 70 s), poi il racconto, poi la stampa; il Completo
+// interroga 15 fonti. Sul fork, con 60, la funzione moriva a 60,3 s con un 504 e il browser apriva
+// il testo dell'errore in una scheda.
+export const maxDuration = 180
 
 import { NextResponse } from 'next/server'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
-import { withTenantContext, getMeta, getTenantInfo } from '../../../lib/tenant/credentials'
+import { withTenantContext, getMeta, getTenantInfo, intestazioniInterne } from '../../../lib/tenant/credentials'
 
 // Nome azienda del workspace corrente (mai hardcodare il brand: ogni tenant
 // deve vedere il SUO nome su PDF e analisi AI).
@@ -12,6 +16,8 @@ import { callBrain } from '../../../lib/agent/gateway'
 import { NARRATIVE_QUALITY } from '../../../lib/agent/narrativeQuality'
 import { reportT, localeTag, normLocale } from '../../../lib/reportI18n'
 import { reportLogoBar } from '../../../lib/reports/logo'
+import { settimaneDi, settimanePrima, googlePerSettimana, baseSettimana, baseMese, baseDaIntervallo, somma, derivate, vociDelTab } from '../../../lib/report/voci'
+import { oggiNegozio } from '../../../lib/periodi'
 
 const GRAPH_VERSION = 'v19.0'
 const OPENAI_KEY = process.env.OPENAI_API_KEY
@@ -31,10 +37,14 @@ function setReportLocale(locale) {
 }
 
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0 }
-const money = (n) => `€${num(n).toLocaleString(_loc, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-const money2 = (n) => (n == null ? '—' : `€${num(n).toLocaleString(_loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
-const intf = (n) => num(n).toLocaleString(_loc)
+// I numeri del PDF si scrivono nella lingua del cliente, col separatore delle migliaia SEMPRE:
+// l'italiano (e lo spagnolo) di suo non mette il punto sotto le diecimila, e il PDF scriveva
+// "€4057" accanto al "€4.057" della tabella dell'app (21 set 2026, come sul fork dal 20).
+const money = (n) => `€${num(n).toLocaleString(_loc, { minimumFractionDigits: 0, maximumFractionDigits: 0, useGrouping: 'always' })}`
+const money2 = (n) => (n == null ? '—' : `€${num(n).toLocaleString(_loc, { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: 'always' })}`)
+const intf = (n) => num(n).toLocaleString(_loc, { useGrouping: 'always' })
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+const dec = (v, d = 2) => num(v).toLocaleString(_loc, { minimumFractionDigits: d, maximumFractionDigits: d, useGrouping: 'always' })
 
 // Icone SVG (stroke, stile feather) per le intestazioni di sezione — sostituiscono
 // le emoji per un aspetto più professionale nel PDF.
@@ -71,13 +81,13 @@ function deltaTag(cur, prev, { lowerBetter = false } = {}) {
   if (d == null || Math.abs(d) < 0.1) return '<span class="delta neutral">—</span>'
   const up = d > 0
   const good = lowerBetter ? !up : up
-  return `<span class="delta ${good ? 'up' : 'down'}">${up ? '▲' : '▼'} ${Math.abs(d).toFixed(1)}%</span>`
+  return `<span class="delta ${good ? 'up' : 'down'}">${up ? '▲' : '▼'} ${dec(Math.abs(d), 1)}%</span>`
 }
 
 // ── Shopify periodo (revenue/ordini/NC/RC) via /api/shopify-countries ──
 async function shopifyPeriod(origin, since, until, cookie = '') {
   try {
-    const r = await fetch(`${origin}/api/shopify-countries?since=${since}&until=${until}`, { cache: 'no-store', headers: { cookie }, signal: AbortSignal.timeout(40000) })
+    const r = await fetch(`${origin}/api/shopify-countries?since=${since}&until=${until}`, { cache: 'no-store', headers: { cookie, ...intestazioniInterne(), 'x-lyft-fresco': '1' }, signal: AbortSignal.timeout(40000) })
     const j = await r.json()
     if (j.error || !j.total) return null
     const c = j.countries || []
@@ -91,7 +101,7 @@ async function shopifyPeriod(origin, since, until, cookie = '') {
 }
 async function shopifyDaily(origin, since, until, cookie = '') {
   try {
-    const r = await fetch(`${origin}/api/shopify-countries?since=${since}&until=${until}&breakdown=daily`, { cache: 'no-store', headers: { cookie }, signal: AbortSignal.timeout(40000) })
+    const r = await fetch(`${origin}/api/shopify-countries?since=${since}&until=${until}&breakdown=daily`, { cache: 'no-store', headers: { cookie, ...intestazioniInterne(), 'x-lyft-fresco': '1' }, signal: AbortSignal.timeout(40000) })
     const j = await r.json()
     return Array.isArray(j.daily) ? j.daily : []
   } catch { return [] }
@@ -101,7 +111,7 @@ async function shopifyDaily(origin, since, until, cookie = '') {
 // lagga sull'ultima settimana). Usato per il report Weekly.
 async function shopifyFromWeekly(origin, since, until, cookie = '') {
   try {
-    const r = await fetch(`${origin}/api/metrics?preset=last_90d`, { cache: 'no-store', headers: { cookie }, signal: AbortSignal.timeout(40000) })
+    const r = await fetch(`${origin}/api/metrics?preset=last_90d`, { cache: 'no-store', headers: { cookie, ...intestazioniInterne(), 'x-lyft-fresco': '1' }, signal: AbortSignal.timeout(40000) })
     const m = await r.json()
     const wk = (m?.shopifyWeekly || []).filter(w => w.date >= since && w.date <= until)
     if (!wk.length) return null
@@ -299,7 +309,7 @@ function kpiCard(label, value, prev, opts = {}) {
   return `<div class="kpi"><div class="kpi-l">${esc(_tr(label))}</div><div class="kpi-v">${value}</div><div class="kpi-d">${prev !== undefined ? deltaTag(opts.cur, opts.prev, opts) : ''}<span class="kpi-prev">${prev !== undefined ? `${_tr('prec.')} ${prev}` : ''}</span></div></div>`
 }
 
-function buildHtml({ tab, label, range, narrative, kpis, daily, hierarchy, topCampaigns, shop, topProducts, inventoryRows, productRows }) {
+function buildHtml({ tab, label, range, narrative, kpis, vociTabella = null, daily, hierarchy, topCampaigns, shop, topProducts, inventoryRows, productRows }) {
   const isGoogle = /google/i.test(tab)
   const today = new Date().toLocaleDateString(_loc, { day: '2-digit', month: 'long', year: 'numeric' })
   const kpiHtml = kpis.map(k => kpiCard(k.label, k.value, k.prevValue, { cur: k.cur, prev: k.prev, lowerBetter: k.lowerBetter })).join('')
@@ -397,6 +407,12 @@ function buildHtml({ tab, label, range, narrative, kpis, daily, hierarchy, topCa
     .kpi-d { font-size: 10px; color: #888; display: flex; gap: 6px; align-items: center; }
     .delta { font-weight: 800; }
     .delta.up { color: #16a34a; } .delta.down { color: #dc2626; } .delta.neutral { color: #999; }
+    table.voci { font-size: 11.5px; margin-top: 4px; }
+    table.voci th.n, table.voci td.n { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    table.voci td { padding: 5px 9px; }
+    table.voci tr.forte td { font-weight: 700; }
+    table.voci tr.sotto td:first-child { padding-left: 22px; color: #555; }
+    table.voci tr.stacco td { border-bottom: 1.5px solid #d1d5db; }
     .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
     ul { margin: 6px 0; padding-left: 18px; } li { font-size: 12px; line-height: 1.6; margin-bottom: 4px; }
     .chart { border: 1px solid #eee; border-radius: 8px; padding: 10px; margin-top: 6px; }
@@ -422,7 +438,7 @@ function buildHtml({ tab, label, range, narrative, kpis, daily, hierarchy, topCa
     ${narrative?.summary ? `<div class="summary">${esc(narrative.summary)}</div>` : ''}
 
     <h2>${_tr('KPI del periodo')}</h2>
-    <div class="kpis">${kpiHtml}</div>
+    ${vociTabella || `<div class="kpis">${kpiHtml}</div>`}
 
     ${daily?.length ? `<h2>${isGoogle ? _tr('Andamento valore conversioni (giornaliero)') : _tr('Andamento revenue (giornaliero)')}</h2><div class="chart">${barChart(daily, 'revenue')}</div>` : ''}
 
@@ -681,12 +697,241 @@ async function renderPdf(html) {
   } catch (e) { return { error: e?.message || 'render error' } } finally { if (browser) await browser.disconnect().catch(() => {}) }
 }
 
+// ── Report del menu Report (Weekly, Monthly, Quarter, Year) ──────────────────
+// La chiave stabile e' `tipo`, che manda il pulsante. `tab` arriva TRADOTTO
+// ("Monthly", "Mensual", "Monatlich"…): resta solo come ripiego per chi chiama
+// senza `tipo`, come i report programmati.
+function tipoDelMenuReport(tipo, tab) {
+  const t = String(tipo || '').toLowerCase()
+  if (['weekly', 'monthly', 'quarter', 'year'].includes(t)) return t
+  const x = String(tab || '').trim()
+  if (/^(weekly|wöchentlich|semanal|hebdomadaire)$/i.test(x)) return 'weekly'
+  if (/^(monthly|monatlich|mensual|mensuel|mensile)$/i.test(x)) return 'monthly'
+  if (/^(quarter|quartal|trimestral|trimestriel|trimestrale)$/i.test(x)) return 'quarter'
+  if (/^(year|jahr|anual|annuel|annuale)$/i.test(x)) return 'year'
+  return null
+}
+
+const piuGiorniIso = (ds, g) => { const d = new Date(`${ds}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + g); return d.toISOString().slice(0, 10) }
+const fineMese = (m) => { const [y, mm] = m.split('-').map(Number); return `${m}-${String(new Date(Date.UTC(y, mm, 0)).getUTCDate()).padStart(2, '0')}` }
+const mesePrima = (m, k = 1) => { const [y, mm] = m.split('-').map(Number); const d = new Date(Date.UTC(y, mm - 1 - k, 1)); return d.toISOString().slice(0, 7) }
+const trimestrePrima = (q) => { const [y, n] = q.split('-Q').map(Number); return n > 1 ? `${y}-Q${n - 1}` : `${y - 1}-Q4` }
+const mesiDelTrimestre = (q) => { const [y, n] = q.split('-Q').map(Number); return [0, 1, 2].map(i => `${y}-${String((n - 1) * 3 + 1 + i).padStart(2, '0')}`) }
+const mesiDellAnno = (y) => Array.from({ length: 12 }, (_, i) => `${y}-${String(i + 1).padStart(2, '0')}`)
+
+// Il valore scritto come lo scrive la tabella: zero euro e zero pezzi sono un
+// trattino, un rapporto senza denominatore anche.
+function fmtVoce(fmt, v) {
+  if (v == null || !Number.isFinite(Number(v))) return '—'
+  switch (fmt) {
+    case 'euro0': return num(v) === 0 ? '—' : money(v)
+    case 'euro2': return num(v) === 0 ? '—' : money2(v)
+    case 'int': return num(v) > 0 ? intf(v) : '—'
+    case 'volte': return `${dec(v, 2)}×`
+    case 'perc': return `${dec(v, 2)}%`
+    case 'rapporto': return `${dec(v, 2)}:1`
+    default: return String(v)
+  }
+}
+
+// LTV e rapporto LTV:CAC dipendono dagli stessi tre numeri della tabella:
+// ordini a vita (dalle coorti, /api/ltv-auto), durata e margine (dai costi
+// prodotto degli ultimi 30 giorni, /api/product-performance). Li rifa' il
+// server dalle STESSE fonti dell'app: quelli che manda il pulsante sono solo
+// la riserva, perche' il pulsante manda quello che la pagina ha in quel
+// momento — e appena aperta la pagina non li ha ancora (collaudo del 21 set:
+// cliccando subito il PDF usava i valori di partenza, LTV 244,56 € contro i
+// 42,77 € che la tabella mostrava pochi secondi dopo).
+async function cfgLtv(sp, jget) {
+  const DEF = { freq: 1.69, life: 1.57, margin: 100 }
+  const f = Number(sp.get('ltvFreq')), l = Number(sp.get('ltvLife')), m = Number(sp.get('ltvMargin'))
+  const oggi = new Date().toISOString().slice(0, 10), da30 = new Date(Date.now() - 30 * 86400e3).toISOString().slice(0, 10)
+  // Medie di 24 mesi e di 30 giorni: la cache va benissimo, e non consumano il passo di Shopify.
+  const [lt, pp] = await Promise.all([jget('/api/ltv-auto?months=24', 25000, false), jget(`/api/product-performance?since=${da30}&until=${oggi}`, 25000, false)])
+  const ordiniVita = lt.j?.enoughData ? num(lt.j.projectedAvgOrders) : 0
+  const t = pp.j?.totals
+  const margineCosti = t && t.grossMargin != null && num(t.costCoverage) > 0 ? Math.max(1, Math.min(100, Math.round(t.grossMargin * 100))) : null
+  // La durata e' della configurazione salvata nel browser: con le coorti si
+  // semplifica (freq × durata = ordini a vita), senza conta quella.
+  const life = l > 0 ? l : DEF.life
+  return {
+    freq: ordiniVita > 0 ? +(ordiniVita / life).toFixed(4) : (f > 0 ? f : DEF.freq),
+    life,
+    margin: margineCosti ?? (m > 0 ? m : DEF.margin),
+    fonte: { ordiniVita: ordiniVita > 0 ? 'coorti' : (f > 0 ? 'pulsante' : 'partenza'), margine: margineCosti != null ? 'costi prodotto' : (m > 0 ? 'pulsante' : 'partenza') },
+  }
+}
+
+async function reportDelMenu({ tipo, tab, label, range, searchParams, origin, cookie }) {
+  const jget = async (path, ms, fresco = true) => {
+    try {
+      const r = await fetch(`${origin}${path}`, { cache: 'no-store', headers: fresco ? { cookie, ...intestazioniInterne(), 'x-lyft-fresco': '1' } : { cookie, ...intestazioniInterne() }, signal: AbortSignal.timeout(ms) })
+      const j = await r.json().catch(() => null)
+      return { ok: r.ok, stato: r.status, j }
+    } catch (e) { return { ok: false, stato: 0, j: null, errore: e?.message } }
+  }
+  const oggiNeg = oggiNegozio()   // il giorno del negozio (lib/periodi.js), come la tabella
+  const preset = searchParams.get('preset') || ''
+
+  // Il periodo della tab, deciso come lo decide la tab (page.js): il preset
+  // globale month_/quarter_/year_ quando c'e', altrimenti quello in corso.
+  let m0 = null, q0 = null, y0 = null, presetMetrics = 'today'
+  if (tipo === 'monthly') { m0 = preset.startsWith('month_') ? preset.slice(6) : oggiNeg.slice(0, 7); presetMetrics = `month_${m0}` }
+  if (tipo === 'quarter') { q0 = preset.startsWith('quarter_') ? preset.slice(8) : `${oggiNeg.slice(0, 4)}-Q${Math.floor((Number(oggiNeg.slice(5, 7)) - 1) / 3) + 1}`; presetMetrics = `quarter_${q0}` }
+  if (tipo === 'year') { y0 = preset.startsWith('year_') ? preset.slice(5) : oggiNeg.slice(0, 4); presetMetrics = `year_${y0}` }
+
+  // FRESCHI: force=1 fa quello che l'app fa subito dopo aver mostrato la cache
+  // (rifa' la serie storica), fresco=1 fa dire a /api/metrics se ha dovuto
+  // servire l'ultimo dato buono al posto del nuovo, parti=serie gli risparmia
+  // le sei interrogazioni che il PDF non legge. /api/google non ha cache.
+  // Paesi e andamento per giorno non dipendono dalle voci: partono SUBITO, insieme ai dati
+  // principali, invece che dopo. Col limite di Shopify pieno ognuno puo' dover aspettare.
+  const dalPreset = (() => {
+    if (tipo === 'monthly') { const f = fineMese(m0); return { since: `${m0}-01`, until: f > oggiNeg ? oggiNeg : f } }
+    if (tipo === 'quarter') { const f = fineMese(mesiDelTrimestre(q0)[2]); return { since: `${mesiDelTrimestre(q0)[0]}-01`, until: f > oggiNeg ? oggiNeg : f } }
+    if (tipo === 'year') { const f = `${y0}-12-31`; return { since: `${y0}-01-01`, until: f > oggiNeg ? oggiNeg : f } }
+    return { since: range.since, until: range.until }
+  })()
+  const paesiPromessa = shopifyPeriod(origin, dalPreset.since, dalPreset.until, cookie)
+  const giorniPromessa = (tipo === 'weekly' || tipo === 'monthly') ? shopifyDaily(origin, dalPreset.since, dalPreset.until, cookie) : Promise.resolve([])
+
+  const [metrics, google, cfg] = await Promise.all([
+    jget(`/api/metrics?preset=${encodeURIComponent(presetMetrics)}&force=1&fresco=1&parti=serie`, 120000),
+    jget('/api/google', 40000),
+    cfgLtv(searchParams, jget),
+  ])
+  const M = metrics.j || {}, G = google.j || {}
+  const googleCollegato = !!(G.configured && Array.isArray(G.monthly))
+
+  // Un numero vecchio o mancante NON si stampa come se fosse di oggi: meglio un
+  // PDF che non esce, con il motivo, e che si riprova fra un minuto.
+  const fonti = []
+  if (!metrics.ok || !Array.isArray(M.shopifyWeekly) || M.shopifyWeekly.length < 5) fonti.push('Shopify')
+  else if (M.shopifyIncompleto) fonti.push('Shopify')
+  if (M.metaIncompleto) fonti.push('Meta')
+  if (!google.ok || G.error) fonti.push('Google Ads')
+  else if (googleCollegato && tipo === 'weekly' && !(Array.isArray(G.daily) && G.daily.length)) fonti.push('Google Ads')
+  if (fonti.length) {
+    console.log('[report menu] dati non freschi:', fonti.join(', '), metrics.stato, google.stato)
+    return NextResponse.json({ error: 'dati_non_freschi', fonti, motivo: `Mancano dati aggiornati da ${fonti.join(' e ')}: il report non e' stato creato per non stampare numeri vecchi. Riprova fra un minuto.` }, { status: 503 })
+  }
+
+  const googleMensile = {}
+  if (googleCollegato) for (const r of G.monthly) if (r?.month) googleMensile[r.month] = num(r.spend)
+  const srcMesi = { shopifyMonthly: M.shopifyMonthly, metaMonthly: M.metaMonthly, metaWeekly: M.metaWeekly, googleMensile }
+  const mese = (m) => baseMese(m, srcMesi)
+  const sr = M.shopifyRange, spr = M.shopifyPrevRange, mr = M.metaRange, mpr = M.metaPrevRange
+
+  let bCur, bPrev, periodo
+  if (tipo === 'weekly') {
+    const chiavi = settimaneDi(range.since, range.until), prima = settimanePrima(chiavi)
+    const src = { shopifyWeekly: M.shopifyWeekly, metaWeekly: M.metaWeekly, googleSett: googleCollegato ? googlePerSettimana(G.daily) : {} }
+    bCur = somma(chiavi.map(k => baseSettimana(k, src)))
+    bPrev = somma(prima.map(k => baseSettimana(k, src)))
+    periodo = { since: chiavi[0], until: range.until, prevSince: prima[0], prevUntil: piuGiorniIso(prima[prima.length - 1], 6) }
+  } else if (tipo === 'monthly') {
+    const m1 = mesePrima(m0)
+    bCur = mese(m0)
+    // Il mese in corso: la tabella ci sovrappone i numeri vivi dell'intervallo
+    // (overlayLive), campo per campo, tenendo il mensile se il vivo e' zero.
+    if (m0 === oggiNeg.slice(0, 7) && sr) {
+      const v = baseDaIntervallo(sr)
+      for (const c of ['fatturato', 'fatturNC', 'fatturRC', 'resi', 'ordini', 'nc', 'rc', 'sessioni']) bCur[c] = v[c] || bCur[c] || 0
+      bCur.metaSpend = num(mr?.spend) || bCur.metaSpend || 0
+    }
+    bPrev = mese(m1)
+    const fine = fineMese(m0)
+    periodo = { since: `${m0}-01`, until: fine > oggiNeg ? oggiNeg : fine, prevSince: `${m1}-01`, prevUntil: fineMese(m1) }
+  } else if (tipo === 'quarter') {
+    // aggregateQuarter: i mesi sommati, e per il trimestre scelto e quello
+    // prima i numeri vivi dell'intervallo al posto di Shopify e di Meta.
+    const trimestre = (q, vivo, vivoMeta) => {
+      const b = somma(mesiDelTrimestre(q).map(mese))
+      if (vivo) { const v = baseDaIntervallo(vivo); for (const c of ['fatturato', 'fatturNC', 'fatturRC', 'resi', 'ordini', 'nc', 'rc', 'sessioni', 'koongo']) b[c] = v[c] }
+      if (vivoMeta) b.metaSpend = num(vivoMeta.spend)
+      return b
+    }
+    const q1 = trimestrePrima(q0)
+    bCur = trimestre(q0, sr, mr); bPrev = trimestre(q1, spr, mpr)
+    const [a0] = mesiDelTrimestre(q0), [a1] = mesiDelTrimestre(q1)
+    const f0 = fineMese(mesiDelTrimestre(q0)[2])
+    periodo = { since: `${a0}-01`, until: f0 > oggiNeg ? oggiNeg : f0, prevSince: `${a1}-01`, prevUntil: fineMese(mesiDelTrimestre(q1)[2]) }
+  } else {
+    // aggregateYear: Shopify = il piu' alto fra il vivo e la somma dei mesi
+    // (il vivo su un anno a volte torna a zero), Meta dal vivo, Google e
+    // Koongo dalla somma dei mesi.
+    const anno = (y, vivo, vivoMeta) => {
+      const b = somma(mesiDellAnno(y).map(mese))
+      if (vivo) { const v = baseDaIntervallo(vivo); for (const c of ['fatturato', 'fatturNC', 'fatturRC', 'resi', 'ordini', 'nc', 'rc', 'sessioni']) b[c] = Math.max(v[c], b[c]) }
+      if (vivoMeta) b.metaSpend = num(vivoMeta.spend)
+      return b
+    }
+    const y1 = String(Number(y0) - 1)
+    bCur = anno(y0, sr, mr); bPrev = anno(y1, spr, mpr)
+    const f0 = `${y0}-12-31`
+    periodo = { since: `${y0}-01-01`, until: f0 > oggiNeg ? oggiNeg : f0, prevSince: `${y1}-01-01`, prevUntil: `${y1}-12-31` }
+  }
+
+  const cur = derivate(bCur, cfg), prev = derivate(bPrev, cfg)
+  const voci = vociDelTab(tipo, cur, prev).map(v => ({ ...v, cur: cur[v.key], prev: prev[v.key] }))
+
+  // Due voci che il PDF aveva gia' e la tabella no: si tengono, accanto alla
+  // voce a cui appartengono. Il ROAS di Meta vuole il fatturato attribuito da
+  // Meta, che nelle serie non c'e': una lettura sua, per il solo Weekly.
+  const conKoongo = voci.some(v => v.key === 'koongo')
+  if (conKoongo) {
+    const i = voci.findIndex(v => v.key === 'koongo')
+    voci.splice(i + 1, 0, { key: 'fatturatoTotale', label: 'Fatturato totale', fmt: 'euro0', sub: true, cur: cur.fatturato + cur.koongo, prev: prev.fatturato + prev.koongo })
+  }
+  if (tipo === 'weekly') {
+    const [mc, mp] = await Promise.all([metaPeriod(periodo.since, periodo.until), metaPeriod(periodo.prevSince, periodo.prevUntil)])
+    if (mc && mp) {
+      const i = voci.findIndex(v => v.key === 'metaSpend')
+      voci.splice(i + 1, 0, { key: 'roasMeta', label: 'ROAS Meta', fmt: 'volte', sub: true, cur: mc.spend > 0 ? mc.revenue / mc.spend : null, prev: mp.spend > 0 ? mp.revenue / mp.spend : null })
+    }
+  }
+
+  if (searchParams.get('debug') === '1') {
+    return NextResponse.json({ tipo, periodo, cfg, preset, presetMetrics, voci: voci.map(v => ({ key: v.key, label: v.label, cur: v.cur, prev: v.prev, curTesto: fmtVoce(v.fmt, v.cur), prevTesto: fmtVoce(v.fmt, v.prev) })) })
+  }
+
+  const rng = { ...range, ...periodo }
+  const kpisPerTesto = voci.map(v => ({ label: v.label, valore: fmtVoce(v.fmt, v.cur), precedente: fmtVoce(v.fmt, v.prev) }))
+  const [narrative, shopData, giorni] = await Promise.all([
+    aiNarrative({ tab, label, range: rng, kpis: kpisPerTesto, hierarchy: null }, searchParams.get('locale')),
+    paesiPromessa,
+    giorniPromessa,
+  ])
+  // Quarter e Year: un grafico a barre per mese dalla stessa serie mensile.
+  const barre = (tipo === 'weekly' || tipo === 'monthly')
+    ? (giorni || []).map(d => ({ date: d.date, revenue: num(d.revenue) }))
+    : (tipo === 'quarter' ? mesiDelTrimestre(q0) : mesiDellAnno(y0)).filter(m => m <= oggiNeg.slice(0, 7)).map(m => ({ date: m, revenue: mese(m).fatturato }))
+
+  const html = buildHtml({ tab, label, range: rng, narrative, kpis: [], vociTabella: tabellaVoci(voci, rng), daily: barre, hierarchy: null, topCampaigns: null, shop: shopData, topProducts: null, inventoryRows: null, productRows: null })
+  if (searchParams.get('format') === 'html') return new NextResponse(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } })
+  const { buf: pdf, error: pdfErr } = await renderPdf(html)
+  if (!pdf) return new NextResponse(html, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'X-PDF-Error': (pdfErr || 'unknown').slice(0, 120) } })
+  return new NextResponse(pdf, { headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="LyftAI_${String(tab).replace(/\s+/g, '_')}_${periodo.since}_${periodo.until}.pdf"`, 'Cache-Control': 'no-store' } })
+}
+
+// Le voci come nella tabella dell'app: una riga per voce, il periodo, quello
+// prima e la variazione. Le sotto-voci rientrate, le principali in grassetto.
+function tabellaVoci(voci, rng) {
+  const g = (ds) => { const [y, m, d] = String(ds).split('-'); return `${d}/${m}/${y.slice(2)}` }
+  const righe = voci.map(v => {
+    const delta = (v.cur != null && v.prev != null && Number.isFinite(Number(v.cur)) && Number.isFinite(Number(v.prev)))
+      ? deltaTag(Number(v.cur), Number(v.prev), { lowerBetter: !!v.meglioBasso }) : '<span class="delta neutral">—</span>'
+    return `<tr class="${v.strong ? 'forte' : ''}${v.sub ? ' sotto' : ''}${v.gapAfter ? ' stacco' : ''}"><td>${esc(_tr(v.label))}</td><td class="n">${esc(fmtVoce(v.fmt, v.cur))}</td><td class="n">${esc(fmtVoce(v.fmt, v.prev))}</td><td class="n">${delta}</td></tr>`
+  }).join('')
+  return `<table class="voci"><thead><tr><th></th><th class="n">${g(rng.since)} → ${g(rng.until)}</th><th class="n">${g(rng.prevSince)} → ${g(rng.prevUntil)}</th><th class="n">Δ</th></tr></thead><tbody>${righe}</tbody></table>`
+}
+
 // Google Ads per finestra: riusa /api/google-detail (stessa fonte della tab),
 // così il report Google ha KPI, campagne e andamento giornaliero reali.
 async function googleDetail(origin, since, until, cookie) {
   try {
     const url = `${origin}/api/google-detail?level=campaigns&preset=custom&since=${since}&until=${until}`
-    const r = await fetch(url, { cache: 'no-store', headers: { cookie }, signal: AbortSignal.timeout(50000) })
+    const r = await fetch(url, { cache: 'no-store', headers: { cookie, ...intestazioniInterne(), 'x-lyft-fresco': '1' }, signal: AbortSignal.timeout(50000) })
     const j = await r.json()
     return { summary: j?.summary || {}, rows: Array.isArray(j?.rows) ? j.rows : [], dailySeries: Array.isArray(j?.dailySeries) ? j.dailySeries : [] }
   } catch { return { summary: {}, rows: [], dailySeries: [] } }
@@ -697,6 +942,9 @@ export async function GET(req) {
   const { searchParams, origin } = new URL(req.url)
   setReportLocale(searchParams.get('locale')) // lingua del cliente per TUTTO il PDF
   const cookie = req.headers.get('cookie') || '' // inoltra la sessione alle fetch interne (cache hit + tenant corretto)
+  // …e, se questa e' una richiesta del cron (report programmati), la sua autenticazione: la aggiunge
+  // intestazioniInterne() a ogni fetch interna. Prima si inoltrava solo il cookie, che il cron non ha:
+  // le route rispondevano 401 e il PDF spedito per email aveva fatturato, ordini e MER a zero.
   const tab = searchParams.get('tab') || 'Report'
   const label = searchParams.get('label') || 'Periodo'
   const since = searchParams.get('since'), until = searchParams.get('until')
@@ -709,28 +957,33 @@ export async function GET(req) {
   // ── REPORT COMPLETO: aggrega KPI Brain, Inventario, Performance, Klaviyo,
   //    Meta KPI/Detail, Google KPI/Detail, Problemi (Lighthouse) in un solo PDF.
   if (/completo|full|tutto|dashboard generale/i.test(tab)) {
-    // Timeout BREVE per ogni fetch (16s): il PDF aggrega 10 fonti; se una è lenta/
-    // fredda la si salta (sezione vuota) invece di far scadere l'intera funzione
-    // (FUNCTION_INVOCATION_TIMEOUT). Con le cache calde rispondono tutte in ms.
-    const J = (path, ms = 16000) => fetch(`${origin}${path}`, { cache: 'no-store', headers: { cookie }, signal: AbortSignal.timeout(ms) }).then(r => r.json()).catch(() => null)
+    // Un tetto per ogni fetch: il PDF aggrega 15 fonti; se una è lenta la si salta
+    // (sezione vuota) invece di far scadere l'intera funzione. Le fonti che dipendono
+    // dal PERIODO si chiedono fresche (x-lyft-fresco: niente snapshot vecchi, vedi
+    // lib/tenant/credentials.js → isFresco): possono doversi ricalcolare, quindi 28 s
+    // invece di 16 — partono tutte insieme. Quelle che non dipendono dal periodo
+    // (Lighthouse, magazzino di adesso, immagini, performance prodotti con la sua
+    // cache di 30 minuti) restano sulla cache: ricalcolarle costerebbe decine di
+    // secondi per lo stesso numero.
+    const J = (path, ms = 28000, fresco = true) => fetch(`${origin}${path}`, { cache: 'no-store', headers: fresco ? { cookie, ...intestazioniInterne(), 'x-lyft-fresco': '1' } : { cookie, ...intestazioniInterne() }, signal: AbortSignal.timeout(ms) }).then(r => r.json()).catch(() => null)
     const customQ = `preset=custom&since=${since}&until=${until}`
     const days = Math.max(1, Math.round((new Date(until) - new Date(since)) / 86400000) + 1)
     const [metricsR, invR, ppR, klavR, metaKpiR, googleKpiR, metaDetR, googleDetR, lhMetaR, lhGoogleR, countriesR, klavBdR, metaCreatR, prodImgsR, croR] = await Promise.all([
       presetParam ? J(`/api/metrics?preset=${encodeURIComponent(presetParam)}`) : null,
-      J('/api/inventory'),
-      J(`/api/product-performance?since=${since}&until=${until}`),
+      J('/api/inventory', 16000, false),
+      J(`/api/product-performance?since=${since}&until=${until}`, 28000, false),
       J(`/api/klaviyo?days=${days}`),
       J(`/api/meta-kpi?${customQ}`),
       J(`/api/google-kpi?${customQ}`),
       J(`/api/meta-detail?level=campaigns&${customQ}`),
       J(`/api/google-detail?level=campaigns&${customQ}`),
-      J(`/api/lighthouse?${customQ}`),
-      J(`/api/google-lighthouse?${customQ}`),
+      J(`/api/lighthouse?${customQ}`, 16000, false),
+      J(`/api/google-lighthouse?${customQ}`, 16000, false),
       J(`/api/shopify-countries?since=${since}&until=${until}`),
       J(`/api/klaviyo?days=${days}&part=breakdown`, 24000),
       // Creatività Meta: chiamate Graph dirette (non fetch interna), cap a 26s così il PDF esce comunque
       Promise.race([topMetaCreatives(since, until, 10).catch(() => null), new Promise(res => setTimeout(() => res(null), 26000))]),
-      J('/api/product-images'),
+      J('/api/product-images', 16000, false),
       J(`/api/cro?since=${since}&until=${until}`),
     ])
     const prodImgMap = (prodImgsR && typeof prodImgsR === 'object' && !prodImgsR.error) ? prodImgsR : {}
@@ -900,6 +1153,13 @@ export async function GET(req) {
     return new NextResponse(pdf, { headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="LyftAI_Completo_${since}_${until}.pdf"`, 'Cache-Control': 'no-store' } })
   }
 
+  // ── REPORT DEL MENU REPORT: Weekly, Monthly, Quarter, Year ──────────────────
+  //  Le stesse voci, le stesse fonti e le stesse formule della tabella della tab
+  //  (lib/report/voci.js), chieste FRESCHE. Vedi l'intestazione di quel file per
+  //  il perche': 21 set, spesa Google 2.687 € nel PDF contro 3.025 € in tabella.
+  const tipoReport = tipoDelMenuReport(searchParams.get('tipo'), tab)
+  if (tipoReport) return reportDelMenu({ tipo: tipoReport, tab, label, range, searchParams, origin, cookie })
+
   const isMeta = /meta/i.test(tab)
   const isGoogle = /google/i.test(tab)
   const isInventory = /inventar/i.test(tab)
@@ -912,7 +1172,7 @@ export async function GET(req) {
   if (isInventory) {
     // Report Inventario: stato magazzino (snapshot) + prodotti a rischio stockout
     let inv = null
-    try { inv = await fetch(`${origin}/api/inventory`, { cache: 'no-store', headers: { cookie }, signal: AbortSignal.timeout(50000) }).then(r => r.json()) } catch {}
+    try { inv = await fetch(`${origin}/api/inventory`, { cache: 'no-store', headers: { cookie, ...intestazioniInterne(), 'x-lyft-fresco': '1' }, signal: AbortSignal.timeout(50000) }).then(r => r.json()) } catch {}
     const k = inv?.kpis || {}
     kpis = [
       { label: 'Valore magazzino', value: money(k.inventoryValueCogs) },
@@ -931,7 +1191,7 @@ export async function GET(req) {
   } else if (isProductPerf) {
     // Report Performance Prodotti: P&L per prodotto nel periodo selezionato
     let pp = null
-    try { pp = await fetch(`${origin}/api/product-performance?since=${since}&until=${until}`, { cache: 'no-store', headers: { cookie }, signal: AbortSignal.timeout(55000) }).then(r => r.json()) } catch {}
+    try { pp = await fetch(`${origin}/api/product-performance?since=${since}&until=${until}`, { cache: 'no-store', headers: { cookie, ...intestazioniInterne(), 'x-lyft-fresco': '1' }, signal: AbortSignal.timeout(55000) }).then(r => r.json()) } catch {}
     const tot = pp?.totals || {}
     kpis = [
       { label: 'Fatturato netto', value: money(tot.netRevenue) },
@@ -992,7 +1252,7 @@ export async function GET(req) {
     let m = null, countriesData = null
     try {
       const [mr0, cd] = await Promise.all([
-        fetch(`${origin}/api/metrics?preset=${encodeURIComponent(preset)}`, { cache: 'no-store', headers: { cookie }, signal: AbortSignal.timeout(50000) }).then(r => r.json()).catch(() => null),
+        fetch(`${origin}/api/metrics?preset=${encodeURIComponent(preset)}`, { cache: 'no-store', headers: { cookie, ...intestazioniInterne(), 'x-lyft-fresco': '1' }, signal: AbortSignal.timeout(50000) }).then(r => r.json()).catch(() => null),
         shopifyPeriod(origin, since, until, cookie).catch(() => null),
       ])
       m = mr0; countriesData = cd

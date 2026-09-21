@@ -1761,10 +1761,15 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, googleWeekly, onUpd
     const sw = shopifyMap[key] || {}
     const gw = googleMap[key] || {}
 
-    const fat = sw.fatturato > 0 ? asNum(sw.fatturato) : asNum(d.fatturato)
+    // Una settimana con piu' resi che vendite ha il fatturato NEGATIVO: e' un dato, non un buco
+    // (vedi la mappa dei mesi). Il valore a mano entra solo se l'automatico e' zero.
+    const fat = asNum(sw.fatturato) !== 0 ? asNum(sw.fatturato) : asNum(d.fatturato)
     const koongo = asNum(sw.koongoFatturato)   // marketplace, accanto e mai dentro
-    const fatNC = sw.fatturNC > 0 ? asNum(sw.fatturNC) : asNum(d.fatturNC)
-    const fatRC = sw.fatturRC > 0 ? asNum(sw.fatturRC) : asNum(d.fatturRC || Math.max(fat - fatNC, 0))
+    const fatNC = asNum(sw.fatturNC) !== 0 ? asNum(sw.fatturNC) : asNum(d.fatturNC)
+    const fatRC = asNum(sw.fatturRC) !== 0 ? asNum(sw.fatturRC) : asNum(d.fatturRC || Math.max(fat - fatNC, 0))
+    // I resi della settimana c'erano gia' nella serie (shopifyWeekly.resi) ma la tabella non li
+    // mostrava: Marino, 21 set 2026, "si, aggiungili". Stessa voce di Monthly/Quarter/Year.
+    const resi = asNum(sw.resi)
 
     const meta = mw.spend > 0 ? asNum(mw.spend) : asNum(d.meta)
     const google = gw.spend > 0 ? asNum(gw.spend) : asNum(d.google)
@@ -1803,6 +1808,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, googleWeekly, onUpd
       koongo,
       fatNC,
       fatRC,
+      resi,
       meta,
       google,
       adv,
@@ -2108,6 +2114,8 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, googleWeekly, onUpd
         <span className="rep-cmp" style={{fontSize:11.5,color:'var(--text3)'}}>{tfLabel}</span>
         <div className="rep-pdf" style={{display:'contents'}}><DownloadReportButton
           tab="Weekly"
+          tipo="weekly"
+          ltv={cfg}
           preset={weeklyTF === 'custom' ? undefined : weeklyTF}
           custom={weeklyTF === 'custom' && weeklyCustom.since && weeklyCustom.until ? (() => {
             // I due menu danno il LUNEDI' di ogni settimana, e la tabella qui sotto mostra le settimane
@@ -2171,8 +2179,7 @@ function WeeklyTab({ weeks, data, metaWeekly, shopifyWeekly, googleWeekly, onUpd
           })}
           righe={righeReport({ t, mostraKoongo: mostraKoongoW, googleAuto: { configured: (googleWeekly || []).length > 0 },
             chiavi: { fatturato: 'fat', fatturNC: 'fatNC', fatturRC: 'fatRC', ordini: 'ord',
-                      sessioni: 'ses', totalSpend: 'adv', metaSpend: 'meta', googleSpend: 'google',
-                      resi: null } })} />
+                      sessioni: 'ses', totalSpend: 'adv', metaSpend: 'meta', googleSpend: 'google' } })} />
       </FxChartCard>
 
 
@@ -2882,9 +2889,13 @@ export default function App() {
     .map(row => {
       const manual = months[row.month] || EMPTY
 
-      const fatturato = row.fatturato > 0 ? row.fatturato : asNum(manual.fatturato)
-      const fatturNC = row.fatturNC > 0 ? row.fatturNC : 0
-      const fatturRC = row.fatturRC > 0 ? row.fatturRC : Math.max(fatturato - fatturNC, 0)
+      // Un mese NEGATIVO e' un dato vero, non un dato mancante: sono resi di ordini dei mesi prima
+      // (giugno 2025: −994 €, il rimborso di un ordine di maggio). Con "> 0" veniva azzerato e
+      // l'anno 2025 risultava 994 € piu' alto del totale di Shopify (21 set 2026). Si ripiega sul
+      // valore a mano solo quando il dato automatico manca davvero, cioe' e' zero.
+      const fatturato = row.fatturato !== 0 ? row.fatturato : asNum(manual.fatturato)
+      const fatturNC = row.fatturNC || 0
+      const fatturRC = row.fatturRC !== 0 ? row.fatturRC : Math.max(fatturato - fatturNC, 0)
 
       const resi = asNum(row.resi)
       const resiNC = asNum(row.resiNC)
@@ -3325,7 +3336,7 @@ export default function App() {
           const sr = live?.shopifyRange
           if (!sr) return m
           // Assicuro un row anche se data non aveva il mese
-          return {
+          const o = {
             ...m,
             fatturato: Number(sr.revenue) || m.fatturato || 0,
             fatturNC:  Number(sr.fatturNC) || m.fatturNC || 0,
@@ -3339,6 +3350,19 @@ export default function App() {
             sessioni:  Number(sr.sessions) || m.sessioni || 0,
             metaSpend: Number(live?.metaRange?.spend) || m.metaSpend || 0,
           }
+          // Le voci DERIVATE si rifanno sui numeri appena sovrapposti. Prima restavano quelle della
+          // serie mensile: nella colonna del mese in corso ADV, Nuovi Clienti e CAC non tornavano fra
+          // loro (21 set 2026: CAC 59,11 € in tabella, 59,12 € rifatto da ADV ÷ Nuovi della stessa
+          // colonna). Stesse formule della mappa dei mesi qui sopra.
+          o.totalSpend = o.metaSpend + (Number(o.googleSpend) || 0)
+          o.aov = safeDiv(o.fatturato, o.ordini); o.aovNC = safeDiv(o.fatturNC, o.nc); o.aovRC = safeDiv(o.fatturRC, o.rc)
+          o.cac = safeDiv(o.totalSpend, o.nc); o.cpo = safeDiv(o.totalSpend, o.ordini)
+          o.mer = safeDiv(o.fatturato, o.totalSpend); o.aMer = safeDiv(o.fatturNC, o.totalSpend)
+          o.retention = o.nc + o.rc > 0 ? o.rc / (o.nc + o.rc) * 100 : null
+          o.cro = o.sessioni > 0 && o.ordini > 0 ? o.ordini / o.sessioni * 100 : null
+          o.ltv = o.aov ? o.aov * cfg.freq * cfg.life * cfg.margin / 100 : null
+          o.ratio = o.ltv && o.cac ? o.ltv / o.cac : null
+          return o
         }
 
         // Se il mese non esiste in data (filtrato out perché vuoto), lo ricreo
@@ -3482,7 +3506,7 @@ export default function App() {
               monthsCount={18}
             />
             <AzioneBarra icona="refresh" titolo={t('shell.refresh', null, 'Aggiorna')} onClick={() => fetchLive(true)} disabled={loading} gira={loading} />
-            <div className="rep-pdf" style={{display:'contents'}}><DownloadReportButton tab={t('tab.monthly', null, 'Monthly')} preset={preset} /></div>
+            <div className="rep-pdf" style={{display:'contents'}}><DownloadReportButton tab={t('tab.monthly', null, 'Monthly')} tipo="monthly" ltv={cfg} preset={preset} /></div>
             <span className="rep-cmp" style={{fontSize:11.5,color:'var(--text3)'}}>{tfLabel}</span>
           </div>
 
@@ -3907,7 +3931,7 @@ export default function App() {
                 mode="quarter"
               />
               <AzioneBarra icona="refresh" titolo={t('shell.refresh', null, 'Aggiorna')} onClick={() => fetchLive(true)} disabled={loading} gira={loading} />
-              <div className="rep-pdf" style={{display:'contents'}}><DownloadReportButton tab={t('tab.quarter', null, 'Quarter')} preset={preset} /></div>
+              <div className="rep-pdf" style={{display:'contents'}}><DownloadReportButton tab={t('tab.quarter', null, 'Quarter')} tipo="quarter" ltv={cfg} preset={preset} /></div>
               <span className="rep-cmp" style={{fontSize:11.5,color:'var(--text3)'}}>{quarterLabel(q0)} vs {quarterLabel(q1)}</span>
             </div>
 
@@ -4309,7 +4333,7 @@ export default function App() {
                 mode="year"
               />
               <AzioneBarra icona="refresh" titolo={t('shell.refresh', null, 'Aggiorna')} onClick={() => fetchLive(true)} disabled={loading} gira={loading} />
-              <div className="rep-pdf" style={{display:'contents'}}><DownloadReportButton tab={t('tab.year', null, 'Year')} preset={preset} /></div>
+              <div className="rep-pdf" style={{display:'contents'}}><DownloadReportButton tab={t('tab.year', null, 'Year')} tipo="year" ltv={cfg} preset={preset} /></div>
               <span className="rep-cmp" style={{fontSize:11.5,color:'var(--text3)'}}>{yearLabel(y0)} vs {yearLabel(y1)}</span>
             </div>
 

@@ -74,6 +74,21 @@ function installPatch() {
     } catch {}
     return _orig(input, init)
   }
+  // I LINK diretti alle API (es. «Esporta XLSX» dei Corrispettivi) non passano da fetch: senza
+  // questo, nella demo aprivano la route vera — pagina d'errore per un visitatore, e i dati del
+  // proprio negozio per chi e' collegato. Nella demo si fermano e si dice perche'.
+  document.addEventListener('click', (e) => {
+    const a = e.target?.closest?.('a[href]')
+    if (!a) return
+    let u = null
+    try { u = new URL(a.getAttribute('href'), window.location.origin) } catch { return }
+    if (u.origin !== window.location.origin || !u.pathname.startsWith('/api/')) return
+    e.preventDefault(); e.stopPropagation()
+    const risposta = demoData(u.pathname, u.searchParams, 'GET')
+    const lingua = (document.documentElement.lang || 'it').slice(0, 2)
+    const ripiego = { it: 'Non disponibile nella demo.', en: 'Not available in the demo.', es: 'No disponible en la demo.', fr: 'Non disponible dans la démo.', de: 'In der Demo nicht verfügbar.' }[lingua] || 'Non disponibile nella demo.'
+    window.alert(risposta?.error || ripiego)
+  }, true)
 }
 
 // Installa SUBITO (durante il modulo/primo render) così le fetch dei componenti

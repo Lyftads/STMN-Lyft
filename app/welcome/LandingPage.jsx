@@ -21,9 +21,11 @@ import { useEffect, useRef, useState } from 'react'
 import Icon from '../components/ui/Icon'
 import LogoMark from '../components/LogoMark'
 import AgencyPricing from '../components/AgencyPricing'
+import { impostaTema } from '../components/AutoTheme'
 import { I18nProvider, useI18n } from '../../lib/i18n/I18nProvider'
 import { browserToLocale } from '../../lib/i18n/geoLocale'
 import { TESTI, LINGUE } from './testi'
+import { LOGHI } from './loghi'
 import s from './landing.module.css'
 
 // Il globo (three.js, ~1,8 MB non compressi) arriva in un pezzo a parte e dopo il testo: la pagina
@@ -37,14 +39,40 @@ const PERCORSO = { it: '/welcome', en: '/en', es: '/es', fr: '/fr', de: '/de' }
 // Le piattaforme da cui arrivano i numeri: nomi di marchi, non si traducono.
 const FONTI = ['Shopify', 'Meta', 'Google Ads', 'Google Analytics 4', 'Search Console', 'Klaviyo', 'Mailchimp', 'Omnisend']
 
-// Un'immagine del prodotto. Sono foto della demo a 1920×1200, una serie per lingua.
-function Foto({ lang, id, alt, prima = false }) {
+// Un'immagine del prodotto, nei due temi: foto della demo a 1920×1200, una serie per lingua e
+// per tema (<id>.webp di giorno, <id>-scuro.webp di notte). Si vede quella del tema scelto; sono
+// tutte pigre, e quella nascosta non si scarica.
+function Immagini({ lang, id, alt, className }) {
   return (
-    <div className={s.cornice}>
-      <img
-        src={`/landing/${lang}/${id}.webp`} alt={alt} width={1920} height={1200}
-        loading={prima ? 'eager' : 'lazy'} decoding="async" fetchPriority={prima ? 'high' : 'auto'}
-      />
+    <>
+      <img src={`/landing/${lang}/${id}.webp`} alt={alt} width={1920} height={1200} loading="lazy" decoding="async" className={`${s.soloChiaro} ${className || ''}`} />
+      <img src={`/landing/${lang}/${id}-scuro.webp`} alt={alt} width={1920} height={1200} loading="lazy" decoding="async" className={`${s.soloScuro} ${className || ''}`} />
+    </>
+  )
+}
+function Foto({ lang, id, alt }) {
+  return <div className={s.cornice}><Immagini lang={lang} id={id} alt={alt} /></div>
+}
+
+// L'interruttore giorno / notte (Marino, 21 set 2026). E' la stessa scelta dell'app: impostaTema
+// scrive 'lyft-theme' e cambia data-theme su <html>, con la dissolvenza dell'app.
+function Tema({ t }) {
+  const [scuro, setScuro] = useState(false)
+  useEffect(() => {
+    const leggi = () => setScuro(document.documentElement.dataset.theme === 'dark')
+    leggi()
+    const mo = new MutationObserver(leggi)
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+    return () => mo.disconnect()
+  }, [])
+  return (
+    <div className={s.tema} role="group" aria-label={t.nav.tema}>
+      <button type="button" aria-pressed={!scuro} aria-label={t.nav.giorno} title={t.nav.giorno} onClick={() => impostaTema('light')}>
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5" /></svg>
+      </button>
+      <button type="button" aria-pressed={scuro} aria-label={t.nav.notte} title={t.nav.notte} onClick={() => impostaTema('dark')}>
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M20.8 14.3A9 9 0 0 1 9.7 3.2 9 9 0 1 0 20.8 14.3Z" /></svg>
+      </button>
     </div>
   )
 }
@@ -78,7 +106,8 @@ function Barra({ t, lang, scegli }) {
           {voci.map(([h, l]) => <a key={h} href={h} className={s.voce}>{l}</a>)}
         </nav>
         <div className={s.destra}>
-          <select className={s.lingua} value={lang} onChange={e => scegli(e.target.value)} aria-label={t.nav.lingua}>
+          <Tema t={t} />
+          <select className={`${s.lingua} ${s.linguaBarra}`} value={lang} onChange={e => scegli(e.target.value)} aria-label={t.nav.lingua}>
             {LINGUE.map(l => <option key={l} value={l}>{NOMI_LINGUA[l]}</option>)}
           </select>
           <Link href="/login" className={`${s.voce} ${s.nascondiPiccolo}`}>{t.nav.accedi}</Link>
@@ -91,13 +120,45 @@ function Barra({ t, lang, scegli }) {
         </div>
       </div>
       {aperto && (
-        <nav id="menu-landing" className={s.menuAperto} onClick={() => setAperto(false)}>
+        <nav id="menu-landing" className={s.menuAperto} onClick={e => { if (e.target.tagName !== 'SELECT') setAperto(false) }}>
+          {/* Sui telefoni piccoli la lingua sta qui: nella barra non c'e' posto per tutto. */}
+          <select className={`${s.lingua} ${s.linguaMenu}`} value={lang} onChange={e => { scegli(e.target.value); setAperto(false) }} aria-label={t.nav.lingua}>
+            {LINGUE.map(l => <option key={l} value={l}>{NOMI_LINGUA[l]}</option>)}
+          </select>
           {voci.map(([h, l]) => <a key={h} href={h}>{l}</a>)}
           <Link href="/login">{t.nav.accedi}</Link>
           <Link href="/register">{t.nav.prova}</Link>
         </nav>
       )}
     </header>
+  )
+}
+
+// Il titolo a macchina da scrivere (Marino, 21 set 2026): «Quanto» resta, il resto si scrive e si
+// cancella a turno — vendi, spendi, ti resta. La pagina nasce con la prima frase INTERA (chi la
+// indicizza e chi non ha JavaScript la legge tutta); il titolo vero per i lettori di schermo e'
+// quello nascosto accanto, e questa parte e' aria-hidden. Tutte le frasi stanno invisibili nella
+// stessa cella: il titolo occupa gia' l'altezza della piu' lunga e sotto non salta niente.
+function Macchina({ prima, oggetti }) {
+  const [n, setN] = useState(0)
+  const [lettere, setLettere] = useState(oggetti[0].length)
+  const [cancella, setCancella] = useState(false)
+  useEffect(() => { setN(0); setLettere(oggetti[0].length); setCancella(false) }, [oggetti])
+  useEffect(() => {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+    const frase = oggetti[n]
+    let t
+    if (!cancella && lettere < frase.length) t = setTimeout(() => setLettere(l => l + 1), 55)
+    else if (!cancella) t = setTimeout(() => setCancella(true), 2600)
+    else if (lettere > 0) t = setTimeout(() => setLettere(l => l - 1), 24)
+    else t = setTimeout(() => { setCancella(false); setN(x => (x + 1) % oggetti.length) }, 300)
+    return () => clearTimeout(t)
+  }, [n, lettere, cancella, oggetti])
+  return (
+    <span className={s.macchina} aria-hidden="true">
+      {oggetti.map(o => <span key={o} className={s.macchinaMisura}>{prima}{o}</span>)}
+      <span className={s.macchinaViva}>{prima}{oggetti[n].slice(0, lettere)}<span className={s.cursore} /></span>
+    </span>
   )
 }
 
@@ -108,7 +169,7 @@ function Apertura({ t, lang }) {
       <div className={`${s.largo} ${s.aperturaGriglia}`}>
         <div className={s.aperturaTesto}>
           <p className={s.etichetta}>{a.etichetta}</p>
-          <h1 className={s.h1}>{a.titolo}</h1>
+          <h1 className={s.h1}><span className={s.soloLettori}>{a.titolo}</span><Macchina prima={a.titoloPrima} oggetti={a.oggetti} /></h1>
           <p className={s.sotto}>{a.sotto}</p>
           <div className={s.azioni}>
             <Link href="/register" className={s.btn}>{a.prova}</Link>
@@ -118,39 +179,66 @@ function Apertura({ t, lang }) {
             {a.promesse.map(p => <span key={p}><Icon name="check" size={14} /> {p}</span>)}
           </div>
         </div>
-        {/* Sotto al testo e spostato a destra: il mondo che gira, con le sessioni e gli ordini. */}
+        {/* A destra, grande e alla stessa altezza della scritta: il mondo che gira, con le sessioni e gli ordini. */}
         <div className={s.aperturaGlobo}><Globo testi={a.globo} lingua={INTL[lang]} /></div>
       </div>
-      <div className={s.vetrina}>
-        <div className={`${s.cornice} ${s.corniceAperta}`} style={{ boxShadow: 'none' }}>
-          <img src={`/landing/${lang}/dashboard.webp`} alt={a.alt} width={1920} height={1200} loading="eager" decoding="async" fetchPriority="high" />
-        </div>
+    </section>
+  )
+}
+
+// La Dashboard vera, subito sotto l'apertura: si apre mentre arriva.
+function Vetrina({ t, lang }) {
+  return (
+    <section className={s.vetrina}>
+      <div className={`${s.cornice} ${s.siApre}`}>
+        <Immagini lang={lang} id="dashboard" alt={t.apertura.alt} />
       </div>
     </section>
   )
 }
 
 function Fonti({ t }) {
+  // Il nastro che scorre (come i marchi su shopify.com): la fila e' scritta due volte e si sposta
+  // di mezza lunghezza, cosi' il giro non ha stacchi. Si ferma sotto il puntatore; con "riduci
+  // movimento" resta ferma e la copia sparisce.
   return (
     <section className={s.fonti} aria-label={t.fonti.etichetta}>
-      <div className={s.largo}>
-        <p className={`${s.etichetta} ${s.centro}`}>{t.fonti.etichetta}</p>
-        <div className={s.fontiRiga}>
-          {FONTI.map(f => <span key={f} className={s.fonte}>{f}</span>)}
+      <p className={`${s.etichetta} ${s.centro}`}>{t.fonti.etichetta}</p>
+      <div className={s.nastro}>
+        <div className={s.nastroScorre}>
+          {[...FONTI, ...FONTI].map((f, i) => (
+            <span key={i} className={`${s.fonte} ${i >= FONTI.length ? s.copia : ''}`} aria-hidden={i >= FONTI.length || undefined}>
+              <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="currentColor" fillRule="evenodd"><path d={LOGHI[f]} /></svg>{f}
+            </span>
+          ))}
         </div>
       </div>
     </section>
   )
 }
 
+// Il prodotto raccontato scorrendo (come «Crea rapidamente» e le schede di shopify.com): il testo
+// scorre a sinistra, lo schermo resta fermo a destra e cambia immagine quando il passo arriva a meta'
+// schermo; sotto, l'avanzamento 01-05. Sul telefono niente schermo fermo: ogni passo ha la sua
+// immagine sotto il testo, come prima.
 function Blocchi({ t, lang }) {
+  const [attivo, setAttivo] = useState(0)
+  const passi = useRef([])
+  useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined') return
+    const io = new IntersectionObserver(voci => {
+      for (const v of voci) if (v.isIntersecting) setAttivo(Number(v.target.dataset.i))
+    }, { rootMargin: '-45% 0px -45% 0px' })
+    passi.current.forEach(el => el && io.observe(el))
+    return () => io.disconnect()
+  }, [t])
   return (
     <section id="prodotto" className={s.sezione}>
-      <div className={s.largo} style={{ display: 'grid', gap: 128 }}>
-        {t.blocchi.map((b, i) => (
-          <div key={b.id} data-compare className={`${s.blocco} ${i % 2 ? s.bloccoRovescio : ''}`}>
-            <div className={s.bloccoTesto}>
-              <p className={s.etichetta}>{b.etichetta}</p>
+      <div className={`${s.largo} ${s.racconto}`}>
+        <div>
+          {t.blocchi.map((b, i) => (
+            <div key={b.id} ref={el => { passi.current[i] = el }} data-i={i} className={`${s.passo} ${i === attivo ? s.passoAttivo : ''}`}>
+              <p className={s.etichetta}><span className={s.numero}>{String(i + 1).padStart(2, '0')}</span>{b.etichetta}</p>
               <h2 className={s.h2}>{b.titolo}</h2>
               <p className={s.testo}>{b.testo}</p>
               <ul className={s.punti}>
@@ -158,12 +246,75 @@ function Blocchi({ t, lang }) {
                   <li key={forte}><Icon name="check" size={16} className={s.segno} /><span><strong>{forte}</strong> {resto}</span></li>
                 ))}
               </ul>
+              <div className={s.fotoPasso}><Foto lang={lang} id={b.id} alt={b.alt} /></div>
             </div>
-            <Foto lang={lang} id={b.id} alt={b.alt} />
+          ))}
+        </div>
+        <div className={s.schermo}>
+          <div className={s.schermoFermo}>
+            <div className={s.cornice}>
+              <div className={s.schermoFoto}>
+                {t.blocchi.map((b, i) => (
+                  <Immagini key={b.id} lang={lang} id={b.id} alt={b.alt} className={i === attivo ? s.fotoAttiva : ''} />
+                ))}
+              </div>
+            </div>
+            <div className={s.avanzamento} aria-hidden="true">
+              {t.blocchi.map((b, i) => (
+                <span key={b.id} className={i === attivo ? s.tappaAttiva : i < attivo ? s.tappaFatta : ''}><i />{String(i + 1).padStart(2, '0')}</span>
+              ))}
+            </div>
           </div>
-        ))}
+        </div>
       </div>
     </section>
+  )
+}
+
+// La chat che si scrive da sola (come «Il tuo brand è entrato in chat» di shopify.com): la
+// domanda, "sta scrivendo…", la risposta parola per parola, poi la domanda dopo. Parte solo quando
+// si vede. Con "riduci movimento" resta ferma sulla prima risposta, intera.
+function ChatDemo({ t }) {
+  const c = t.ai.chat
+  const radice = useRef(null)
+  const [n, setN] = useState(0)          // quale scambio
+  const [fase, setFase] = useState('fatto') // domanda | scrive | risponde | fatto
+  const [parole, setParole] = useState(9999)
+  const [visibile, setVisibile] = useState(false)
+  useEffect(() => {
+    const el = radice.current
+    if (!el || typeof IntersectionObserver === 'undefined') return
+    const io = new IntersectionObserver(([v]) => setVisibile(v.isIntersecting), { threshold: 0.35 })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+  useEffect(() => {
+    if (!visibile) return
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+    let vivo = true
+    const timer = []
+    const dopo = (ms, fn) => timer.push(setTimeout(() => vivo && fn(), ms))
+    const risposta = c.scambi[n].r.split(' ')
+    setFase('domanda'); setParole(0)
+    dopo(700, () => setFase('scrive'))
+    dopo(1900, () => {
+      setFase('risponde')
+      risposta.forEach((_, i) => dopo(i * 45, () => setParole(i + 1)))
+      dopo(risposta.length * 45 + 4200, () => setN(x => (x + 1) % c.scambi.length))
+    })
+    return () => { vivo = false; timer.forEach(clearTimeout) }
+  }, [n, visibile, c])
+  const sc = c.scambi[n]
+  const testo = sc.r.split(' ').slice(0, parole).join(' ')
+  return (
+    <div ref={radice} className={s.chat} aria-live="off">
+      <div className={s.chatTesta}><span className={s.chatPunto} />{t.ai.etichetta} · {c.negozio}</div>
+      <div className={s.chatCorpo}>
+        <p key={'d' + n} className={s.chatDomanda}>{sc.d}</p>
+        {fase === 'scrive' && <p className={s.chatScrive}>{c.scrive}</p>}
+        {(fase === 'risponde' || fase === 'fatto') && <p key={'r' + n} className={s.chatRisposta}>{fase === 'fatto' ? sc.r : testo}</p>}
+      </div>
+    </div>
   )
 }
 
@@ -171,20 +322,21 @@ function Cervello({ t }) {
   const a = t.ai
   return (
     <section className={`${s.sezione} ${s.sezioneGrigia}`}>
-      <div className={s.largo}>
-        <div className={s.testaSezione} data-compare>
+      <div className={`${s.largo} ${s.divisa}`}>
+        <div data-compare>
           <p className={s.etichetta}>{a.etichetta}</p>
           <h2 className={s.h2}>{a.titolo}</h2>
           <p className={s.sotto}>{a.sotto}</p>
+          <ul className={`${s.voceElenco} ${s.cascata}`} data-compare>
+            {a.voci.map((v, i) => (
+              <li key={v.titolo} style={{ '--i': i }}>
+                <Icon name={['chat', 'bulb', 'users'][i]} size={18} />
+                <div><h3 className={s.h3}>{v.titolo}</h3><p className={s.testo} style={{ fontSize: 'var(--t-5)', marginTop: 4 }}>{v.testo}</p></div>
+              </li>
+            ))}
+          </ul>
         </div>
-        <div className={s.duo} data-compare>
-          {a.voci.map((v, i) => (
-            <div key={v.titolo} className={s.area}>
-              <div className={s.areaTesta}><Icon name={['chat', 'bulb', 'users'][i]} size={18} /><h3 className={s.h3}>{v.titolo}</h3></div>
-              <p className={s.testo} style={{ fontSize: 'var(--t-5)' }}>{v.testo}</p>
-            </div>
-          ))}
-        </div>
+        <div data-compare><ChatDemo t={t} /></div>
       </div>
     </section>
   )
@@ -200,9 +352,9 @@ function Tutto({ t }) {
           <h2 className={s.h2}>{a.titolo}</h2>
           <p className={s.sotto}>{a.sotto}</p>
         </div>
-        <div className={s.griglia} data-compare>
-          {a.aree.map(ar => (
-            <div key={ar.titolo} className={s.area}>
+        <div className={`${s.griglia} ${s.cascata}`} data-compare>
+          {a.aree.map((ar, i) => (
+            <div key={ar.titolo} className={s.area} style={{ '--i': i }}>
               <div className={s.areaTesta}><Icon name={ar.icona} size={18} /><h3 className={s.h3}>{ar.titolo}</h3></div>
               <ul>{ar.voci.map(v => <li key={v}>{v}</li>)}</ul>
             </div>
@@ -226,15 +378,15 @@ function Agenzie({ t, vai }) {
           <h2 className={s.h2}>{a.titolo}</h2>
           <p className={s.sotto}>{a.sotto}</p>
         </div>
-        <div className={s.duo} data-compare>
+        <div className={`${s.duo} ${s.cascata}`} data-compare>
           {a.voci.map((v, i) => (
-            <div key={v.titolo} className={s.area}>
+            <div key={v.titolo} className={s.area} style={{ '--i': i }}>
               <div className={s.areaTesta}><Icon name={['lock', 'globe', 'users'][i]} size={18} /><h3 className={s.h3}>{v.titolo}</h3></div>
               <p className={s.testo} style={{ fontSize: 'var(--t-5)' }}>{v.testo}</p>
             </div>
           ))}
         </div>
-        <div className={s.azioni}>
+        <div className={`${s.azioni} ${s.azioniSinistra}`}>
           <a href="#prezzi" className={s.btnVuoto} onClick={() => vai('agenzie')}>{a.cta}</a>
         </div>
       </div>
@@ -247,7 +399,7 @@ function Prezzi({ t, lang, pubblico, setPubblico }) {
   const [cadenza, setCadenza] = useState('annuale')
   const annuale = cadenza === 'annuale'
   // Come nel prodotto: «€149», col simbolo davanti, in ogni lingua.
-  const euro = n => '€' + new Intl.NumberFormat(INTL[lang], { maximumFractionDigits: 0 }).format(n)
+  const euro = n => '€' + new Intl.NumberFormat(INTL[lang], { maximumFractionDigits: 0, useGrouping: 'always' }).format(n)
   return (
     <section id="prezzi" className={s.sezione}>
       <div className={s.largo}>
@@ -308,8 +460,8 @@ function Domande({ t }) {
   const d = t.domande
   return (
     <section id="domande" className={`${s.sezione} ${s.sezioneGrigia}`}>
-      <div className={s.stretto}>
-        <div className={s.testaSezione}>
+      <div className={`${s.largo} ${s.divisa}`}>
+        <div className={`${s.testaSezione} ${s.testaFerma}`}>
           <p className={s.etichetta}>{d.etichetta}</p>
           <h2 className={s.h2}>{d.titolo}</h2>
         </div>
@@ -353,8 +505,8 @@ function Contatti({ t, lang }) {
 
   return (
     <section id="contatti" className={s.sezione}>
-      <div className={s.stretto}>
-        <div className={s.testaSezione}>
+      <div className={`${s.largo} ${s.divisa}`}>
+        <div className={`${s.testaSezione} ${s.testaFerma}`}>
           <p className={s.etichetta}>{c.etichetta}</p>
           <h2 className={s.h2}>{c.titolo}</h2>
           <p className={s.sotto}>{c.sotto}</p>
@@ -510,6 +662,7 @@ export default function LandingPage({ initialLang = null }) {
       <main>
         <Apertura t={t} lang={lang} />
         <Fonti t={t} />
+        <Vetrina t={t} lang={lang} />
         <Blocchi t={t} lang={lang} />
         <Cervello t={t} />
         <Tutto t={t} />

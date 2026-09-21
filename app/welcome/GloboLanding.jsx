@@ -104,7 +104,8 @@ export default function GloboLanding({ testi, lingua }) {
       c.enableZoom = false; c.enablePan = false; c.enableRotate = false
       c.autoRotate = !calmo; c.autoRotateSpeed = 0.35
     } catch {}
-    try { g.pointOfView({ lat: 34, lng: 14, altitude: 1.9 }, 0) } catch {}
+    // Piu' vicino di prima (1,9): Marino lo trovava piccolo. L'Italia resta al centro della vista.
+    try { g.pointOfView({ lat: 36, lng: 12, altitude: 1.6 }, 0) } catch {}
   }
 
   const sfera = useMemo(() => {

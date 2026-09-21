@@ -6,9 +6,11 @@
    diventato sobrio: grigi neutri, un solo bottone nero, il colore solo dove e' un dato.
 
    REGOLE (le stesse del prodotto):
-   - SEMPRE CHIARA. La palette e' la sua, scritta qui e non presa da data-theme: la pagina deve
-     essere la stessa per chi arriva per la prima volta e per un cliente che nell'app ha scelto
-     il tema scuro.
+   - GIORNO E NOTTE, con l'interruttore nella barra (Marino, 21 set 2026: «il toggle giorno
+     notte che cambia i colori anche sulla landing»). La scelta e' la stessa dell'app
+     (localStorage 'lyft-theme', data-theme su <html>): chi l'ha scelta di notte nel prodotto
+     trova la landing di notte. La palette e' scritta qui, nei due temi, con gli stessi grigi
+     neutri del prodotto.
    - SEI misure di testo in tutta la pagina. Il prodotto ne ha sei (10 · 11,5 · 13 · 15 · 20 ·
      22); una pagina pubblica ne ha bisogno di piu' grandi per il titolo, ma resta SEI:
      56 (solo il titolo principale) · 36 (titoli di sezione) · 21 · 17 · 14 · 12.
@@ -26,7 +28,10 @@
   --testo: #202020;
   --testo2: #5a5a5a;
   --testo3: #777777;
-  --nero: #1d1d1d;
+  --nero: #1d1d1d;          /* il bottone principale */
+  --nero-hover: #000000;
+  --btn-testo: #ffffff;     /* il testo sopra il bottone principale */
+  --barra: rgba(255, 255, 255, .82);
   --ombra: 0 1px 2px rgba(29, 29, 29, .04), 0 8px 32px rgba(29, 29, 29, .07);
   --ease: cubic-bezier(.2, .8, .2, 1);
 
@@ -58,17 +63,46 @@
   overflow-x: clip;
   color-scheme: light;
 }
+:global(:root[data-theme='dark']) .pagina {
+  --fondo: #0c0c0c;
+  --fondo2: #161616;
+  --scheda: #1c1c1c;
+  --bordo: rgba(255, 255, 255, .10);
+  --bordo2: rgba(255, 255, 255, .18);
+  --testo: #f5f5f5;
+  --testo2: #c9c9c9;
+  --testo3: #969696;
+  --nero: #f5f5f5;
+  --nero-hover: #ffffff;
+  --btn-testo: #141414;
+  --barra: rgba(12, 12, 12, .78);
+  --ombra: 0 1px 2px rgba(0, 0, 0, .4), 0 12px 40px rgba(0, 0, 0, .45);
+  --text: #f5f5f5; --text2: #d1d1d1; --text3: #989898;
+  --border: rgba(255, 255, 255, .09); --border2: rgba(255, 255, 255, .15); --border3: rgba(255, 255, 255, .24);
+  --glass: #1c1c1c; --glass2: #2c2c2c; --card: #1c1c1c;
+  --btn-primario: #f5f5f5; --btn-primario-testo: #1d1d1d;
+  --positivo: #30d158; --positivo-bg: rgba(48, 209, 88, .14);
+  --negativo: #ff453a; --negativo-bg: rgba(255, 69, 58, .14);
+  color-scheme: dark;
+}
+/* Le foto del prodotto esistono nei due temi: si vede quella del tema scelto. Le immagini pigre
+   nascoste non vengono scaricate, quindi ognuno carica solo le sue. */
+.pagina .soloScuro { display: none; }
+:global(:root[data-theme='dark']) .pagina .soloChiaro { display: none; }
+:global(:root[data-theme='dark']) .pagina .soloScuro { display: block; }
 .pagina *, .pagina *::before, .pagina *::after { box-sizing: border-box; }
 .pagina a { color: inherit; }
 .pagina img { display: block; max-width: 100%; height: auto; }
 
-.largo { width: 100%; max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+/* Largo davvero (Marino: «da desktop tutto troppo centrato, riempi lo schermo»): fino a 1600 px,
+   con margini che crescono con lo schermo invece di una colonna fissa da 1180. */
+.largo { width: 100%; max-width: 1600px; margin: 0 auto; padding: 0 clamp(24px, 4vw, 64px); }
 .stretto { width: 100%; max-width: 820px; margin: 0 auto; padding: 0 24px; }
 
 /* ── La barra in alto ─────────────────────────────────────────────────── */
 .barra {
   position: sticky; top: 0; z-index: 50;
-  background: rgba(255, 255, 255, .82);
+  background: var(--barra);
   backdrop-filter: saturate(1.8) blur(20px);
   -webkit-backdrop-filter: saturate(1.8) blur(20px);
   border-bottom: 1px solid var(--bordo);
@@ -87,16 +121,24 @@
 }
 .lingua:focus-visible { outline: 2px solid var(--nero); outline-offset: 2px; }
 .menuBtn { display: none; }
+.linguaMenu { display: none; }
+
+/* L'interruttore giorno / notte: due tasti come nell'app, quello acceso in pieno. */
+.tema { display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; border: 1px solid var(--bordo); background: var(--scheda); }
+.tema button { width: 30px; height: 28px; border: 0; border-radius: 999px; background: transparent; color: var(--testo3); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: background-color .15s var(--ease), color .15s var(--ease); }
+.tema button:hover { color: var(--testo); }
+.tema button[aria-pressed='true'] { background: var(--nero); color: var(--btn-testo); }
+.tema button:focus-visible { outline: 2px solid var(--nero); outline-offset: 2px; }
 
 /* ── Bottoni: uno principale, nero; l'altro e' un link ─────────────────── */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   height: 44px; padding: 0 22px; border-radius: 999px; border: 1px solid var(--nero);
-  background: var(--nero); color: #fff !important; text-decoration: none;
+  background: var(--nero); color: var(--btn-testo) !important; text-decoration: none;
   font: inherit; font-size: var(--t-5); font-weight: 600; cursor: pointer; white-space: nowrap;
   transition: background-color .15s var(--ease), transform .08s var(--ease);
 }
-.btn:hover { background: #000; }
+.btn:hover { background: var(--nero-hover); }
 .btn:active { transform: scale(.98); }
 .btn:focus-visible, .btnVuoto:focus-visible, .link:focus-visible { outline: 2px solid var(--nero); outline-offset: 3px; }
 .btnPiccolo { height: 34px; padding: 0 16px; }
@@ -123,26 +165,42 @@
 
 /* ── Sezioni ──────────────────────────────────────────────────────────── */
 .sezione { padding: 112px 0; }
-.sezioneGrigia { background: var(--fondo2); }
-.testaSezione { max-width: 760px; margin: 0 auto 56px; text-align: center; }
+/* Le sezioni grigie sono riquadri arrotondati staccati dai bordi, come su shopify.com. */
+.sezioneGrigia { background: var(--fondo2); border-radius: 32px; margin: 0 16px; }
+/* I titoli delle sezioni a sinistra, come su shopify.com: la pagina si legge da sinistra, non dal centro. */
+.testaSezione { max-width: 760px; margin: 0 0 56px; text-align: left; }
+/* Due colonne: il titolo a sinistra (fermo mentre scorre la destra), il contenuto a destra. */
+.divisa { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: clamp(40px, 6vw, 96px); align-items: start; }
+.divisa .testaSezione { margin-bottom: 0; }
+.testaFerma { position: sticky; top: 100px; }
+.azioniSinistra { justify-content: flex-start; }
+.voceElenco { list-style: none; padding: 0; margin: 36px 0 0; display: grid; gap: 22px; }
+.voceElenco li { display: grid; grid-template-columns: 22px 1fr; gap: 14px; color: var(--testo); }
+.voceElenco li svg { margin-top: 2px; }
 
 /* ── Apertura ─────────────────────────────────────────────────────────── */
-.apertura { padding: 96px 0 0; text-align: center; overflow: hidden; }
-.apertura .h1 { max-width: 900px; margin: 0 auto; }
-.apertura .sotto { max-width: 680px; margin-left: auto; margin-right: auto; }
+.apertura { overflow: hidden; }
 .azioni { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 32px; }
 .promesse { display: flex; justify-content: center; gap: 22px; flex-wrap: wrap; margin-top: 18px; font-size: var(--t-5); color: var(--testo3); }
 .promesse span { display: inline-flex; align-items: center; gap: 6px; }
-.vetrina { margin: 64px auto 0; max-width: 1180px; padding: 0 24px; }
+.vetrina { width: 100%; max-width: 1600px; margin: 0 auto; padding: 72px clamp(24px, 4vw, 64px) 0; }
 
 /* Testo a sinistra, il globo a destra e piu' in basso (Marino: «sotto a quello che hai scritto,
    spostato verso destra»). */
-.aperturaGriglia { display: grid; grid-template-columns: minmax(0, 11fr) minmax(0, 9fr); gap: 40px; align-items: start; text-align: left; }
-.aperturaTesto { padding-top: 24px; }
+.aperturaGriglia { min-height: calc(100svh - 60px); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 24px; align-items: center; padding-block: 32px; text-align: left; }
+.aperturaTesto { padding-top: 0; }
 .aperturaTesto .h1 { max-width: none; margin: 0; }
+/* Il titolo a macchina da scrivere: le frasi stanno tutte nella stessa cella (invisibili) e danno
+   l'altezza; sopra, quella che si scrive, col cursore che lampeggia. */
+.macchina { display: grid; }
+.macchina > * { grid-area: 1 / 1; }
+.macchinaMisura { visibility: hidden; }
+.cursore { display: inline-block; width: .06em; height: .9em; margin-left: .05em; vertical-align: -.08em; background: currentColor; animation: lampeggia 1s steps(1) infinite; }
+@keyframes lampeggia { 50% { opacity: 0; } }
+.soloLettori { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .aperturaTesto .sotto { margin-left: 0; margin-right: 0; max-width: 560px; }
 .aperturaTesto .azioni, .aperturaTesto .promesse { justify-content: flex-start; }
-.aperturaGlobo { margin-top: 64px; }
+.aperturaGlobo { position: relative; }
 .globoAttesa { width: 100%; aspect-ratio: 1 / 1; }
 
 /* Il globo e i suoi numeri: le stesse schede del prodotto, appoggiate sul mondo. */
@@ -169,18 +227,36 @@
   border: 1px solid var(--bordo); box-shadow: var(--ombra);
 }
 .cornice img { width: 100%; }
-.corniceAperta { border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom: 0; }
 
 /* ── Da dove vengono i numeri ─────────────────────────────────────────── */
 .fonti { padding: 44px 0; border-bottom: 1px solid var(--bordo); }
-.fontiRiga { display: flex; align-items: center; justify-content: center; gap: 40px; flex-wrap: wrap; }
-.fonte { display: inline-flex; align-items: center; gap: 9px; font-size: var(--t-4); font-weight: 600; color: var(--testo3); letter-spacing: -.01em; }
-.fonte svg { filter: grayscale(1); opacity: .75; }
+.fonte { display: inline-flex; align-items: center; gap: 10px; font-size: var(--t-4); font-weight: 600; color: var(--testo3); letter-spacing: -.01em; white-space: nowrap; margin-right: 56px; }
+.fonte svg { flex-shrink: 0; opacity: .85; }
 
-/* ── Un blocco: testo da una parte, immagine dall'altra ──────────────── */
-.blocco { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 64px; align-items: center; }
-.bloccoRovescio .bloccoTesto { order: 2; }
-.bloccoTesto .h2 { margin-bottom: 18px; }
+/* Il nastro che scorre: la fila e' scritta due volte, si sposta di meta' e ricomincia senza stacchi. */
+.nastro { overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }
+.nastroScorre { display: flex; width: max-content; animation: scorri 38s linear infinite; }
+.nastro:hover .nastroScorre { animation-play-state: paused; }
+@keyframes scorri { to { transform: translateX(-50%); } }
+
+/* ── Il prodotto, passo per passo ─────────────────────────────────────── */
+/* Il racconto a scorrimento: passi a sinistra, lo schermo fermo a destra che cambia immagine. */
+.racconto { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 72px; }
+.passo { min-height: 82vh; display: flex; flex-direction: column; justify-content: center; opacity: .3; transition: opacity .45s var(--ease); }
+.passoAttivo { opacity: 1; }
+.passo .h2 { margin-bottom: 18px; }
+.numero { display: inline-block; min-width: 30px; color: var(--testo); font-variant-numeric: tabular-nums; }
+.fotoPasso { display: none; }
+.schermo { position: relative; }
+.schermoFermo { position: sticky; top: max(84px, calc(50vh - 240px)); }
+.schermoFoto { position: relative; aspect-ratio: 16 / 10; }
+.pagina .schermoFoto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transform: scale(1.015); transition: opacity .5s var(--ease), transform .7s var(--ease); }
+.pagina .schermoFoto img.fotoAttiva { opacity: 1; transform: none; }
+.avanzamento { display: flex; gap: 10px; margin-top: 18px; }
+.avanzamento span { flex: 1; display: grid; gap: 8px; font-size: var(--t-6); font-weight: 600; letter-spacing: .06em; color: var(--testo3); font-variant-numeric: tabular-nums; transition: color .3s var(--ease); }
+.avanzamento i { display: block; height: 2px; border-radius: 2px; background: var(--bordo2); transition: background-color .3s var(--ease); }
+.avanzamento .tappaAttiva, .avanzamento .tappaFatta { color: var(--testo); }
+.avanzamento .tappaAttiva i, .avanzamento .tappaFatta i { background: var(--testo); }
 .punti { list-style: none; padding: 0; margin: 26px 0 0; display: grid; gap: 14px; }
 .punti li { display: grid; grid-template-columns: 18px 1fr; gap: 12px; font-size: var(--t-5); line-height: 1.5; color: var(--testo2); }
 .punti li strong { color: var(--testo); font-weight: 600; }
@@ -206,13 +282,13 @@
 .scelta button[aria-pressed='true'] { background: var(--scheda); color: var(--testo); box-shadow: 0 1px 3px rgba(29,29,29,.12); }
 .scelta button:focus-visible { outline: 2px solid var(--nero); outline-offset: 2px; }
 .sconto { font-size: var(--t-6); font-weight: 600; color: var(--testo3); }
-.comandi { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
-.avviso { max-width: 640px; margin: 0 auto 36px; text-align: center; font-size: var(--t-5); color: var(--testo2); }
+.comandi { display: flex; justify-content: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+.avviso { max-width: 640px; margin: 0 0 36px; text-align: left; font-size: var(--t-5); color: var(--testo2); }
 .piani { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
 .piano { background: var(--scheda); border: 1px solid var(--bordo); border-radius: 16px; padding: 28px 24px; display: flex; flex-direction: column; }
 .pianoForte { border-color: var(--nero); box-shadow: var(--ombra); }
 .pianoNome { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.pianoBadge { white-space: nowrap; font-size: var(--t-6); font-weight: 600; padding: 3px 10px; border-radius: 999px; background: var(--nero); color: #fff; letter-spacing: .02em; }
+.pianoBadge { white-space: nowrap; font-size: var(--t-6); font-weight: 600; padding: 3px 10px; border-radius: 999px; background: var(--nero); color: var(--btn-testo); letter-spacing: .02em; }
 .prezzo { display: flex; align-items: baseline; gap: 4px; margin-top: 18px; }
 .prezzoCifra { font-size: var(--t-2); font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
 .prezzoPrima { font-size: var(--t-5); color: var(--testo3); margin-top: 4px; min-height: 42px; }
@@ -248,7 +324,7 @@
 .campo textarea { min-height: 120px; resize: vertical; }
 .campo input:focus, .campo select:focus, .campo textarea:focus { outline: none; border-color: var(--nero); box-shadow: 0 0 0 3px rgba(29,29,29,.08); }
 .moduloPiede { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
-.errore { color: #b42318; font-size: var(--t-5); margin: 0; }
+.errore { color: var(--negativo); font-size: var(--t-5); margin: 0; }
 .fatto { text-align: center; padding: 48px 24px; border: 1px solid var(--bordo); border-radius: 16px; background: var(--scheda); }
 
 /* ── Chiusura e piede ─────────────────────────────────────────────────── */
@@ -264,8 +340,36 @@
 /* ── Comparsa: breve, e mai per chi ha chiesto meno movimento ──────────── */
 .compare { opacity: 0; transform: translateY(14px); transition: opacity .6s var(--ease), transform .6s var(--ease); }
 .compare.visto { opacity: 1; transform: none; }
+/* In cascata: il contenitore resta fermo, le schede arrivano una dopo l'altra. */
+.cascata.compare { opacity: 1; transform: none; }
+.cascata.compare > * { opacity: 0; transform: translateY(16px); transition: opacity .55s var(--ease), transform .55s var(--ease); transition-delay: calc(var(--i, 0) * 80ms); }
+.cascata.compare.visto > * { opacity: 1; transform: none; }
+
+/* La schermata sotto l'apertura si apre mentre arriva (solo dove il browser sa legarla allo scorrimento). */
+@keyframes siApre { from { transform: scale(.9); opacity: .55; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .siApre { transform-origin: 50% 0; animation: siApre linear both; animation-timeline: view(); animation-range: entry 0% cover 30%; }
+  }
+}
+
+/* ── La chat che si scrive ────────────────────────────────────────────── */
+.chat { max-width: 720px; margin: 0 auto; background: var(--scheda); border: 1px solid var(--bordo); border-radius: 20px; box-shadow: var(--ombra); overflow: hidden; text-align: left; }
+.chatTesta { display: flex; align-items: center; gap: 8px; padding: 14px 20px; border-bottom: 1px solid var(--bordo); font-size: var(--t-5); font-weight: 600; color: var(--testo2); }
+.chatPunto { width: 8px; height: 8px; border-radius: 50%; background: #34c759; }
+.chatCorpo { padding: 22px 20px 26px; display: grid; gap: 14px; min-height: 260px; align-content: start; }
+.chatDomanda { justify-self: end; max-width: 80%; margin: 0; padding: 10px 16px; border-radius: 18px 18px 4px 18px; background: var(--nero); color: var(--btn-testo); font-size: var(--t-5); line-height: 1.45; animation: globoEntra .4s var(--ease); }
+.chatRisposta { justify-self: start; max-width: 88%; margin: 0; padding: 12px 16px; border-radius: 18px 18px 18px 4px; background: var(--fondo2); color: var(--testo); font-size: var(--t-5); line-height: 1.55; }
+.chatScrive { justify-self: start; margin: 0; font-size: var(--t-6); color: var(--testo3); animation: pulsa 1s ease-in-out infinite alternate; }
+@keyframes pulsa { from { opacity: .35; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
   .compare { opacity: 1; transform: none; transition: none; }
+  .nastroScorre { animation: none; flex-wrap: wrap; justify-content: center; width: auto; row-gap: 14px; }
+  .nastro { -webkit-mask-image: none; mask-image: none; }
+  .copia { display: none; }
+  .passo, .pagina .schermoFoto img, .avanzamento span, .avanzamento i { transition: none; }
+  .chatScrive { animation: none; }
+  .cursore { animation: none; opacity: 0; }
   .globoUltimo { animation: none; }
   .btn, .btnVuoto, .voce, .domanda summary svg { transition: none; }
 }
@@ -274,7 +378,7 @@
 @media (max-width: 1080px) {
   .griglia { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .piani { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .blocco { gap: 40px; }
+  .racconto { gap: 48px; }
 }
 @media (max-width: 860px) {
   .pagina { --t-1: 40px; --t-2: 28px; --t-3: 19px; --t-4: 16px; }
@@ -283,26 +387,33 @@
     display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px;
     border: 1px solid var(--bordo); border-radius: 999px; background: var(--scheda); color: var(--testo); cursor: pointer;
   }
-  .menuAperto { position: absolute; left: 0; right: 0; top: 60px; background: #fff; border-bottom: 1px solid var(--bordo); padding: 8px 24px 20px; display: grid; gap: 2px; }
+  .menuAperto { position: absolute; left: 0; right: 0; top: 60px; background: var(--fondo); border-bottom: 1px solid var(--bordo); padding: 8px 24px 20px; display: grid; gap: 2px; }
   .menuAperto a { padding: 12px 0; font-size: var(--t-4); text-decoration: none; color: var(--testo); border-bottom: 1px solid var(--bordo); }
   .nascondiPiccolo { display: none !important; }
   .sezione { padding: 80px 0; }
-  .apertura { padding-top: 48px; }
   /* minmax(0, 1fr) e non 1fr: con 1fr la colonna si allargava alla misura iniziale del globo
      (520 px) e sul telefono tutto sbordava a destra. */
-  .aperturaGriglia { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .aperturaGriglia { min-height: 0; grid-template-columns: minmax(0, 1fr); gap: 0; padding-block: 48px 0; }
+  .divisa { grid-template-columns: minmax(0, 1fr); gap: 40px; }
+  .testaFerma { position: static; }
   .aperturaTesto { padding-top: 0; }
-  .aperturaGlobo { margin: 24px auto 0; width: 100%; max-width: 460px; }
-  .vetrina { margin-top: 44px; }
-  .blocco { grid-template-columns: 1fr; }
-  .bloccoRovescio .bloccoTesto { order: 0; }
+  .aperturaGlobo { margin: 16px auto 0; width: 100%; max-width: 520px; }
+  .vetrina { padding-top: 48px; }
+  .racconto { display: block; }
+  .schermo { display: none; }
+  .passo { min-height: 0; opacity: 1; margin-bottom: 88px; }
+  .passo:last-child { margin-bottom: 0; }
+  .fotoPasso { display: block; margin-top: 28px; }
+  .sezioneGrigia { margin: 0 8px; border-radius: 24px; }
+  .chatCorpo { min-height: 340px; }
   .duo { grid-template-columns: 1fr; }
   .piedeGriglia { grid-template-columns: 1fr 1fr; }
   .chiusura { padding: 88px 0; }
 }
 @media (max-width: 560px) {
+  .linguaBarra { display: none; }
+  .linguaMenu { display: block; justify-self: start; margin: 8px 0 4px; }
   .griglia, .piani, .modulo { grid-template-columns: 1fr; }
-  .fontiRiga { gap: 18px 26px; }
   .azioni .btn, .azioni .btnVuoto { width: 100%; }
   .piedeGriglia { grid-template-columns: 1fr; }
 }

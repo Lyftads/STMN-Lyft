@@ -12,11 +12,13 @@
 const it = {
   nav: {
     prodotto: 'Prodotto', agenzie: 'Agenzie', prezzi: 'Prezzi', domande: 'Domande',
-    accedi: 'Accedi', prova: 'Prova gratis', menu: 'Menu', lingua: 'Lingua',
+    accedi: 'Accedi', prova: 'Prova gratis', menu: 'Menu', lingua: 'Lingua', tema: 'Tema', giorno: 'Tema giorno', notte: 'Tema notte',
   },
   apertura: {
     etichetta: 'Per i negozi Shopify',
     titolo: 'Quanto vendi, quanto spendi, quanto ti resta.',
+    // Il titolo a macchina da scrivere: «Quanto» resta, il resto si scrive e si cancella a turno.
+    titoloPrima: 'Quanto ', oggetti: ['vendi, ora per ora.', 'spendi su Meta e Google.', 'ti resta su ogni prodotto.', 'ti resta da ogni cliente.'],
     sotto: 'LyftAI mette insieme Shopify, Meta, Google e le tue email in un conto solo, aggiornato mentre vendi. E ti dice cosa fare dopo.',
     prova: 'Prova gratis per 14 giorni',
     demo: 'Guarda la demo',
@@ -96,6 +98,14 @@ const it = {
       { titolo: 'Il briefing del mattino', testo: 'Cosa è successo ieri e cosa guardare oggi, prima ancora di aprire le tabelle.' },
       { titolo: 'Una squadra per ogni area', testo: 'Agenti dedicati a pubblicità, SEO, sito e numeri, che lavorano tutti sugli stessi dati.' },
     ],
+    chat: {
+      negozio: 'negozio demo', scrive: 'sta scrivendo…',
+      scambi: [
+        { d: 'Perché è calato il margine questa settimana?', r: 'È sceso di 2,4 punti, per due motivi: su Meta la campagna «Prospecting – Video» porta clienti nuovi a €41 l’uno, contro €29 del mese scorso; e le Scarpe Running AirFlow sono andate soprattutto in sconto. Sposterei €40 al giorno sul retargeting del catalogo, che oggi rende 4,1×.' },
+        { d: 'Quali prodotti conviene spingere su Google?', r: 'Borsone Duffel 40L, Felpa Hoodie Essential e Guanti Training Grip: insieme fanno il 22% del margine ma prendono solo il 6% della spesa Google. Sono i primi tre da mettere in una campagna dedicata.' },
+        { d: 'Come sta andando oggi?', r: 'Alle 11 sei a €2.140, il 12% sopra ieri alla stessa ora. MER 3,6×. Gli ordini arrivano soprattutto da Milano e Roma; nessuna anomalia su Meta e Google.' },
+      ],
+    },
   },
   tutto: {
     etichetta: 'Tutto incluso',
@@ -199,11 +209,13 @@ const it = {
 const en = {
   nav: {
     prodotto: 'Product', agenzie: 'Agencies', prezzi: 'Pricing', domande: 'FAQ',
-    accedi: 'Log in', prova: 'Try it free', menu: 'Menu', lingua: 'Language',
+    accedi: 'Log in', prova: 'Try it free', menu: 'Menu', lingua: 'Language', tema: 'Theme', giorno: 'Light mode', notte: 'Dark mode',
   },
   apertura: {
     etichetta: 'For Shopify stores',
     titolo: 'What you sell, what you spend, what you keep.',
+    // Il titolo a macchina da scrivere: «What you» resta, il resto si scrive e si cancella a turno.
+    titoloPrima: 'What you ', oggetti: ['sell, hour by hour.', 'spend on Meta and Google.', 'keep on every product.', 'keep from every customer.'],
     sotto: 'LyftAI brings Shopify, Meta, Google and your email into one set of numbers, updated as you sell. And it tells you what to do next.',
     prova: 'Try it free for 14 days',
     demo: 'Watch the demo',
@@ -283,6 +295,14 @@ const en = {
       { titolo: 'The morning briefing', testo: 'What happened yesterday and what to look at today, before you even open the tables.' },
       { titolo: 'A team for every area', testo: 'Agents for advertising, SEO, the website and the numbers, all working on the same data.' },
     ],
+    chat: {
+      negozio: 'demo store', scrive: 'typing…',
+      scambi: [
+        { d: 'Why did the margin drop this week?', r: 'It fell 2.4 points, for two reasons: on Meta, the “Prospecting – Video” campaign is bringing in new customers at €41 each, against €29 last month; and the Scarpe Running AirFlow sold mostly on discount. I’d move €40 a day to catalogue retargeting, which is returning 4.1× right now.' },
+        { d: 'Which products should we push on Google?', r: 'Borsone Duffel 40L, Felpa Hoodie Essential and Guanti Training Grip: together they make 22% of the margin but take only 6% of Google spend. They’re the first three to put in a dedicated campaign.' },
+        { d: 'How are we doing today?', r: 'At 11 a.m. you’re at €2,140, 12% above yesterday at the same time. MER 3.6×. Orders are coming mostly from Milan and Rome; nothing unusual on Meta or Google.' },
+      ],
+    },
   },
   tutto: {
     etichetta: 'All included',
@@ -383,11 +403,13 @@ const en = {
 const es = {
   nav: {
     prodotto: 'Producto', agenzie: 'Agencias', prezzi: 'Precios', domande: 'Preguntas',
-    accedi: 'Entrar', prova: 'Prueba gratis', menu: 'Menú', lingua: 'Idioma',
+    accedi: 'Entrar', prova: 'Prueba gratis', menu: 'Menú', lingua: 'Idioma', tema: 'Tema', giorno: 'Modo claro', notte: 'Modo oscuro',
   },
   apertura: {
     etichetta: 'Para tiendas Shopify',
     titolo: 'Cuánto vendes, cuánto gastas, cuánto te queda.',
+    // Il titolo a macchina da scrivere: «Cuánto» resta, il resto si scrive e si cancella a turno.
+    titoloPrima: 'Cuánto ', oggetti: ['vendes, hora a hora.', 'gastas en Meta y Google.', 'te queda de cada producto.', 'te queda de cada cliente.'],
     sotto: 'LyftAI junta Shopify, Meta, Google y tu email en un solo lugar, con las cuentas al día mientras vendes. Y te dice qué hacer después.',
     prova: 'Prueba 14 días gratis',
     demo: 'Ver la demo',
@@ -467,6 +489,14 @@ const es = {
       { titolo: 'El resumen de la mañana', testo: 'Qué pasó ayer y qué mirar hoy, antes incluso de abrir las tablas.' },
       { titolo: 'Un equipo para cada área', testo: 'Agentes dedicados a publicidad, SEO, web y números, que trabajan todos sobre los mismos datos.' },
     ],
+    chat: {
+      negozio: 'tienda demo', scrive: 'escribiendo…',
+      scambi: [
+        { d: '¿Por qué ha bajado el margen esta semana?', r: 'Ha bajado 2,4 puntos, por dos motivos: en Meta, la campaña «Prospecting – Video» trae clientes nuevos a €41 cada uno, frente a €29 el mes pasado; y las Scarpe Running AirFlow se han vendido sobre todo con descuento. Pasaría €40 al día al retargeting del catálogo, que ahora rinde 4,1×.' },
+        { d: '¿Qué productos conviene impulsar en Google?', r: 'Borsone Duffel 40L, Felpa Hoodie Essential y Guanti Training Grip: juntos suman el 22 % del margen, pero se llevan solo el 6 % del gasto en Google. Son los tres primeros para una campaña propia.' },
+        { d: '¿Cómo vamos hoy?', r: 'A las 11 llevas €2.140, un 12 % más que ayer a la misma hora. MER 3,6×. Los pedidos llegan sobre todo de Milán y Roma; nada raro en Meta ni en Google.' },
+      ],
+    },
   },
   tutto: {
     etichetta: 'Todo incluido',
@@ -567,11 +597,13 @@ const es = {
 const fr = {
   nav: {
     prodotto: 'Produit', agenzie: 'Agences', prezzi: 'Tarifs', domande: 'Questions',
-    accedi: 'Connexion', prova: 'Essai gratuit', menu: 'Menu', lingua: 'Langue',
+    accedi: 'Connexion', prova: 'Essai gratuit', menu: 'Menu', lingua: 'Langue', tema: 'Thème', giorno: 'Mode clair', notte: 'Mode sombre',
   },
   apertura: {
     etichetta: 'Pour les boutiques Shopify',
     titolo: 'Ce que vous vendez, ce que vous dépensez, ce qu’il vous reste.',
+    // Il titolo a macchina da scrivere: «Ce que vous» resta, il resto si scrive e si cancella a turno.
+    titoloPrima: 'Ce que vous ', oggetti: ['vendez, heure par heure.', 'dépensez sur Meta et Google.', 'gardez sur chaque produit.', 'gardez sur chaque client.'],
     sotto: 'LyftAI réunit Shopify, Meta, Google et vos emails au même endroit, avec des comptes à jour pendant que vous vendez. Et vous dit quoi faire ensuite.',
     prova: 'Essai gratuit de 14 jours',
     demo: 'Voir la démo',
@@ -651,6 +683,14 @@ const fr = {
       { titolo: 'Le briefing du matin', testo: 'Ce qui s’est passé hier et ce qu’il faut regarder aujourd’hui, avant même d’ouvrir les tableaux.' },
       { titolo: 'Une équipe pour chaque domaine', testo: 'Des agents dédiés à la publicité, au SEO, au site et aux chiffres, qui travaillent tous sur les mêmes données.' },
     ],
+    chat: {
+      negozio: 'boutique démo', scrive: 'en train d’écrire…',
+      scambi: [
+        { d: 'Pourquoi la marge a-t-elle baissé cette semaine ?', r: 'Elle a perdu 2,4 points, pour deux raisons : sur Meta, la campagne « Prospecting – Video » amène de nouveaux clients à €41 chacun, contre €29 le mois dernier ; et les Scarpe Running AirFlow se sont surtout vendues en promotion. Je déplacerais €40 par jour vers le retargeting du catalogue, qui rapporte 4,1× en ce moment.' },
+        { d: 'Quels produits pousser sur Google ?', r: 'Borsone Duffel 40L, Felpa Hoodie Essential et Guanti Training Grip : ensemble, ils font 22 % de la marge mais ne prennent que 6 % des dépenses Google. Ce sont les trois premiers à mettre dans une campagne dédiée.' },
+        { d: 'Où en est-on aujourd’hui ?', r: 'À 11 h, vous êtes à €2 140, 12 % de plus qu’hier à la même heure. MER 3,6×. Les commandes viennent surtout de Milan et de Rome ; rien d’anormal sur Meta ni sur Google.' },
+      ],
+    },
   },
   tutto: {
     etichetta: 'Tout inclus',
@@ -751,11 +791,13 @@ const fr = {
 const de = {
   nav: {
     prodotto: 'Produkt', agenzie: 'Agenturen', prezzi: 'Preise', domande: 'Fragen',
-    accedi: 'Anmelden', prova: 'Kostenlos testen', menu: 'Menü', lingua: 'Sprache',
+    accedi: 'Anmelden', prova: 'Kostenlos testen', menu: 'Menü', lingua: 'Sprache', tema: 'Design', giorno: 'Heller Modus', notte: 'Dunkler Modus',
   },
   apertura: {
     etichetta: 'Für Shopify-Shops',
     titolo: 'Was du verkaufst, was du ausgibst, was dir bleibt.',
+    // Il titolo a macchina da scrivere: «Was du» resta, il resto si scrive e si cancella a turno.
+    titoloPrima: 'Was du ', oggetti: ['verkaufst, Stunde für Stunde.', 'für Meta und Google ausgibst.', 'an jedem Produkt verdienst.', 'an jedem Kunden verdienst.'],
     sotto: 'LyftAI bringt Shopify, Meta, Google und deine E-Mails an einem Ort zusammen, laufend aktuell, während du verkaufst. Und sagt dir, was als Nächstes zu tun ist.',
     prova: '14 Tage kostenlos testen',
     demo: 'Demo ansehen',
@@ -835,6 +877,14 @@ const de = {
       { titolo: 'Das Morgen-Briefing', testo: 'Was gestern passiert ist und worauf du heute achten solltest, noch bevor du die Tabellen öffnest.' },
       { titolo: 'Ein Team für jeden Bereich', testo: 'Agenten für Werbung, SEO, Website und Zahlen, die alle mit denselben Daten arbeiten.' },
     ],
+    chat: {
+      negozio: 'Demo-Shop', scrive: 'schreibt…',
+      scambi: [
+        { d: 'Warum ist die Marge diese Woche gesunken?', r: 'Sie ist um 2,4 Punkte gefallen, aus zwei Gründen: Auf Meta bringt die Kampagne „Prospecting – Video“ Neukunden für €41 pro Kopf, im Vormonat waren es €29; und die Scarpe Running AirFlow wurden vor allem rabattiert verkauft. Ich würde €40 pro Tag ins Katalog-Retargeting verschieben, das gerade 4,1× bringt.' },
+        { d: 'Welche Produkte sollten wir auf Google pushen?', r: 'Borsone Duffel 40L, Felpa Hoodie Essential und Guanti Training Grip: Zusammen machen sie 22 % der Marge aus, bekommen aber nur 6 % des Google-Budgets. Sie gehören als Erste in eine eigene Kampagne.' },
+        { d: 'Wie läuft es heute?', r: 'Um 11 Uhr stehst du bei €2.140, 12 % über gestern zur selben Uhrzeit. MER 3,6×. Die Bestellungen kommen vor allem aus Mailand und Rom; nichts Auffälliges bei Meta und Google.' },
+      ],
+    },
   },
   tutto: {
     etichetta: 'Alles inklusive',

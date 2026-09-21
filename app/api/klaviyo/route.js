@@ -46,21 +46,26 @@ async function klaviyoGet(path, retries = 3) {
 // NB: NIENTE page[size] custom — su alcuni account/connessioni l'endpoint
 // campagne lo rifiuta con 400 e la lista risultava VUOTA. Si segue il
 // page[cursor] dei link `next` generati da Klaviyo, con più pagine.
-async function klaviyoGetPages(path, maxPages = 15, budgetMs = 20000) {
-  const out = { data: [], included: [] }
+async function klaviyoGetPages(path, maxPages = 60, budgetMs = 45000) {
+  const out = { data: [], included: [], parziale: false }
   const t0 = Date.now()
   let next = path, guard = 0
-  // budget cumulativo: 15 pagine × 12s superavano il maxDuration della route
+  // budget cumulativo: dentro il maxDuration della route. Prima 15 pagine / 20 s (circa 150
+  // campagne): oltre, la lista si fermava senza dirlo. Ora se si esce con una pagina ancora da
+  // leggere il risultato e' `parziale`, e chi lo usa lo dichiara e non lo mette in cache.
   while (next && guard < maxPages && (Date.now() - t0) < budgetMs) {
     guard++
     const page = await klaviyoGet(next)
-    if (!page?.data) break
+    if (!page?.data) { out.parziale = true; break }
     out.data.push(...page.data)
     if (Array.isArray(page.included)) out.included.push(...page.included)
     next = page.links?.next || null
   }
-  return out.data.length ? out : null
+  if (next) out.parziale = true
+  return out.data.length ? out : (out.parziale ? { data: [], included: [], parziale: true } : null)
 }
+// Un elenco che porta con se' il fatto di essere incompleto (la proprieta' non finisce nel JSON).
+const conParziale = (arr, data) => { if (data?.parziale) arr.parziale = true; return arr }
 
 async function klaviyoPost(path, body, retries = 3) {
   for (let i = 0; i < retries; i++) {
@@ -97,20 +102,20 @@ async function getAccount() {
 }
 
 async function getLists() {
-  const data = await klaviyoGetPages('/lists', 5)
-  return (data?.data || []).map(i => ({
+  const data = await klaviyoGetPages('/lists', 20)
+  return conParziale((data?.data || []).map(i => ({
     id: i.id,
     name: i.attributes?.name,
-  }))
+  })), data)
 }
 
 async function getSegments() {
-  const data = await klaviyoGetPages('/segments', 5)
-  return (data?.data || []).map(i => ({
+  const data = await klaviyoGetPages('/segments', 20)
+  return conParziale((data?.data || []).map(i => ({
     id: i.id,
     name: i.attributes?.name,
     isActive: i.attributes?.is_active,
-  }))
+  })), data)
 }
 
 async function getCampaigns(status) {
@@ -122,7 +127,7 @@ async function getCampaigns(status) {
   // subject è l'identificatore utile mostrato in tabella. Se l'include non è
   // supportato/permesso, fallback alla chiamata semplice (nessuna regressione).
   let data = await klaviyoGetPages(`/campaigns?filter=${enc}&include=campaign-messages`)
-  if (!data?.data) data = await klaviyoGetPages(`/campaigns?filter=${enc}`)
+  if (!data?.data?.length) data = await klaviyoGetPages(`/campaigns?filter=${enc}`)
 
   // messageId → subject dai record inclusi. Il path del subject cambia tra le
   // revision dell'API Klaviyo: provo tutte le forme note.
@@ -140,7 +145,7 @@ async function getCampaigns(status) {
     if (subj && String(subj).trim()) subjById[inc.id] = String(subj).trim()
   }
 
-  return (data?.data || []).map(i => {
+  return conParziale((data?.data || []).map(i => {
     const msgIds = (i.relationships?.['campaign-messages']?.data || []).map(m => m.id)
     const subject = msgIds.map(id => subjById[id]).find(Boolean) || null
     return {
@@ -151,29 +156,29 @@ async function getCampaigns(status) {
       status: i.attributes?.status,
       sendTime: i.attributes?.send_time,
     }
-  })
+  }), data)
 }
 
 async function getFlows() {
   const data = await klaviyoGetPages('/flows')
-  return (data?.data || []).map(i => ({
+  return conParziale((data?.data || []).map(i => ({
     id: i.id,
     name: i.attributes?.name,
     status: i.attributes?.status,
     triggerType: i.attributes?.trigger_type,
-  }))
+  })), data)
 }
 
 async function getMetrics() {
   // Paginato: le metriche standard (Received/Opened/Clicked Email, Placed
   // Order) possono stare OLTRE la prima pagina → KPI a zero in silenzio.
   const data = await klaviyoGetPages('/metrics')
-  return (data?.data || []).map(i => ({
+  return conParziale((data?.data || []).map(i => ({
     id: i.id,
     name: i.attributes?.name,
     integrationKey: i.attributes?.integration?.key || '',
     integrationName: i.attributes?.integration?.name || '',
-  }))
+  })), data)
 }
 
 // `by` raggruppa il risultato su una dimensione Klaviyo; `pickDim` sceglie
@@ -405,8 +410,13 @@ export async function GET(request) {
         getMetrics(),
       ])
       const kpis = await getEmailKPIs(days, metrics)
+      // Elenchi rimasti a meta' (Klaviyo lento o troppe pagine): si mostrano con l'avviso e non si
+      // conservano. Le metriche contano doppio: senza "Placed Order" i ricavi email sarebbero zero.
+      const parziali = Object.entries({ liste: lists, segmenti: segments, campagneInviate: sent, bozze: draft, programmate: scheduled, flussi: flows, metriche: metrics })
+        .filter(([, v]) => v?.parziale).map(([k]) => k)
 
       return {
+        ...(parziali.length ? { __noCache: true, parziali } : {}),
         account, lists, segments,
         campaigns: { sent, draft, scheduled },
         flows, metrics, kpis,

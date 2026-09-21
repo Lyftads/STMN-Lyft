@@ -182,6 +182,8 @@ export default function ClientiTab({ onNavigate }) {
         ))}
       </div>
 
+      {data?.truncated && <div style={{ fontSize: 12.5, color: 'var(--text2)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 12px', marginBottom: 14 }}>{t('common.partialData', null, 'Dati parziali: la piattaforma non ha restituito tutto il periodo. I numeri qui sotto sono incompleti; riprova fra qualche minuto.')}</div>}
+
       {view === 'overview' && (
         <>
           {/* KPI row */}

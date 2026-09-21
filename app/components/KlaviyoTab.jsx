@@ -194,6 +194,8 @@ export default function KlaviyoTab() {
         <PeriodoInBarra value={tf} onChange={setTf} disabled={loading} />
       </div>
 
+      {data?.parziali?.length > 0 && <div style={{ fontSize: 12.5, color: 'var(--text2)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 12px', marginBottom: 14 }}>{t('common.partialData', null, 'Dati parziali: la piattaforma non ha restituito tutto il periodo. I numeri qui sotto sono incompleti; riprova fra qualche minuto.')}</div>}
+
       {/* Panoramica Email */}
       <Section title={tr('klaviyo.overview', null, 'Panoramica Email')} subtitle={`Klaviyo · ${days === 0 ? tr('klaviyo.todayLower', null, 'oggi') : tr('klaviyo.lastDays', { n: days }, `ultimi ${days} giorni`)}`} >
         <div className="reveal" style={{

@@ -92,6 +92,7 @@ export default function CreativeFatiguePanel() {
     <div style={{ marginTop: 24 }}>
       <FxCard delay={1.8}>
         <p style={{ margin: '0 0 16px', color: 'var(--text3)', fontSize: 13 }}>{t('cf.subtitle')}</p>
+        {data?.parziale && <div style={{ fontSize: 12.5, color: 'var(--text2)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 12px', marginBottom: 14 }}>{t('common.partialData', null, 'Dati parziali: la piattaforma non ha restituito tutto il periodo. I numeri qui sotto sono incompleti; riprova fra qualche minuto.')}</div>}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 16 }}>
           <PlatformBadges sources={['meta']} size={18} />
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: 'rgba(34,197,94,0.14)', color: '#22c55e', fontSize: 13, fontWeight: 640, letterSpacing: '0.06em' }}>

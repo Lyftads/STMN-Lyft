@@ -56,11 +56,13 @@ async function fetchAggregates() {
   }`
   let cursor = null, pages = 0
   const MAX = 320, deadline = Date.now() + 120000
-  while (pages < MAX && Date.now() < deadline) {
+  for (;;) {
+    // Fermarsi a meta' ricostruirebbe lo storico con una parte dei clienti: si dice, non si scrive.
+    if (pages >= MAX || Date.now() > deadline) throw new Error('Elenco clienti incompleto (Shopify lento o limite raggiunto): riprova fra qualche minuto')
     pages++
     const d = await gql(q, { cursor })
     const conn = d?.customers
-    if (!conn) break
+    if (!conn) throw new Error('Elenco clienti incompleto: riprova fra qualche minuto')
     for (const e of (conn.edges || [])) map.set(e.node.id, aggFromNode(e.node))
     if (!conn.pageInfo?.hasNextPage) break
     cursor = conn.pageInfo.endCursor

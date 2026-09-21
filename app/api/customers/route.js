@@ -149,7 +149,9 @@ export async function GET(req) {
         const wsId = await getEffectiveTenantId().catch(() => null)
         const admin = getAdminSupabase()
         const week = isoWeekMonday(now)
-        if (admin && wsId) {
+        // Un elenco clienti troncato (ripiego a pagine interrotto) non diventa la fotografia della
+        // settimana: resterebbe nello storico come un calo di clienti che non c'e' stato.
+        if (admin && wsId && !truncated) {
           const segCounts = {}
           for (const k of SEGMENTS) segCounts[k] = snap.segments[k].count
           try {
@@ -179,6 +181,8 @@ export async function GET(req) {
         }
 
         return {
+          // Troncato: si mostra (con l'avviso) ma non si conserva, cosi' la prossima apertura riprova.
+          ...(truncated ? { __noCache: true } : {}),
           ok: true, generatedAt: new Date(now).toISOString(), truncated, currency,
           kpis: {
             totalCustomers: snap.totalCustomers, firstTime: snap.firstTime, returning: snap.returning,

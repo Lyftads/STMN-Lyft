@@ -41,22 +41,30 @@ async function fetchBuyersPaged(store, tk) {
       pageInfo { hasNextPage endCursor }
     }
   }`
-  let cursor = null, pages = 0
+  const attendi = (ms) => new Promise(r => setTimeout(r, ms))
+  let cursor = null, pages = 0, parziale = false
   const MAX = 320, now = Date.now(), deadline = now + 130000
-  while (pages < MAX && Date.now() < deadline) {
+  for (;;) {
+    if (pages >= MAX || Date.now() > deadline) { parziale = true; break }
     pages++
-    const res = await fetch(`https://${store}/admin/api/2024-01/graphql.json`, {
-      method: 'POST', headers: { 'X-Shopify-Access-Token': tk, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: q, variables: { cursor } }), signal: AbortSignal.timeout(30000),
-    })
-    if (!res.ok) { if (pages === 1) throw new Error(`Shopify ${res.status}`); break }
-    const j = await res.json()
-    const conn = j?.data?.customers
-    if (!conn) break
+    // "throttled" arriva come 200 con `errors`: si aspetta e si riprova invece di fermarsi.
+    let conn = null
+    for (let tentativo = 1; tentativo <= 4 && !conn; tentativo++) {
+      const res = await fetch(`https://${store}/admin/api/2024-01/graphql.json`, {
+        method: 'POST', headers: { 'X-Shopify-Access-Token': tk, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: q, variables: { cursor } }), signal: AbortSignal.timeout(30000),
+      }).catch(() => null)
+      const j = res?.ok ? await res.json().catch(() => null) : null
+      conn = j?.data?.customers || null
+      if (!conn && pages === 1 && tentativo === 4) throw new Error(j?.errors?.[0]?.message || `Shopify ${res?.status || 'rete'}`)
+      if (!conn) await attendi(1500 * tentativo)
+    }
+    if (!conn) { parziale = true; break }
     for (const e of (conn.edges || [])) { const b = nodeToBuyer(e.node, now); if (b) out.push(b) }
     if (!conn.pageInfo?.hasNextPage) break
     cursor = conn.pageInfo.endCursor
   }
+  out.parziale = parziale
   return out
 }
 
@@ -95,6 +103,9 @@ export async function GET(req) {
   for (const t of tenants) {
     try {
       const buyers = await fetchBuyers(t.store, t.token)
+      // Elenco interrotto: meglio nessuna fotografia della settimana (la rifa' la tab Clienti
+      // quando la apre qualcuno) che una con meta' dei clienti, che nel grafico sembra un crollo.
+      if (buyers.parziale) { results.push({ workspace: t.workspaceId, store: t.store, saltato: 'elenco clienti incompleto' }); continue }
       const snap = buildSnapshot(buyers)
       await admin.from('customer_segment_snapshots').upsert({
         workspace_id: t.workspaceId, week,

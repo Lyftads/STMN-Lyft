@@ -58,8 +58,11 @@ async function fetchAdInsights(accountId, range) {
     + `&fields=${encodeURIComponent('ad_id,ad_name,campaign_name,adset_name,spend,impressions,reach,frequency,inline_link_click_ctr,actions')}`
     + `&filtering=${encodeURIComponent(JSON.stringify([{ field: 'impressions', operator: 'GREATER_THAN', value: 200 }]))}`
     + `&limit=300&access_token=${encodeURIComponent(metaToken())}`
+  // Prima: 12 pagine da 300 annunci, poi stop senza dirlo. Ora fino in fondo, con una sicura di
+  // tempo: se scatta, l'elenco e' `parziale` e la tab lo dichiara.
   let guard = 0
-  while (url && guard < 12) {
+  const t0 = Date.now()
+  while (url && guard < 100 && Date.now() - t0 < 30000) {
     guard++
     const res = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(20000) })
     const data = await res.json()
@@ -67,6 +70,7 @@ async function fetchAdInsights(accountId, range) {
     for (const r of (data.data || [])) out.push(r)
     url = data.paging?.next || null
   }
+  if (url) out.parziale = true
   return out
 }
 
@@ -158,7 +162,8 @@ export async function GET(req) {
   return swrSnapshot(req, { tab: 'creativeFatigue', compute: async () => {
   try {
     const raw = []
-    for (const acc of used) raw.push(...(await fetchAdInsights(acc, range)))
+    let parziale = false
+    for (const acc of used) { const righe = await fetchAdInsights(acc, range); if (righe.parziale) parziale = true; raw.push(...righe) }
 
     const ads = raw.map(r => {
       const spend = num(r.spend)
@@ -219,6 +224,7 @@ export async function GET(req) {
     const accountsList = await accountNames(allAccounts())
 
     return {
+      ...(parziale ? { __noCache: true, parziale: true } : {}),
       preset, range,
       accounts: accountsList,
       account: used.length === 1 ? used[0] : '',

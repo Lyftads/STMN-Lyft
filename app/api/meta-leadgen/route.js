@@ -229,9 +229,12 @@ async function buildLeadData({ accessToken, accountIds, range, withDaily }) {
     const dFields = encodeURIComponent('campaign_id,date_start,spend,actions')
     const dailyMap = new Map()
     for (const accId of accountIds) {
-      const url = `${GRAPH}/${accId}/insights?level=campaign&time_range=${timeRange}&time_increment=1&fields=${dFields}&limit=500&access_token=${accessToken}`
+      // Solo le campagne lead (prima: TUTTE le campagne × tutti i giorni, 20 pagine da 500 righe,
+      // e su un anno con molte campagne il trend si fermava a meta' senza dirlo).
+      const filtro = encodeURIComponent(JSON.stringify([{ field: 'campaign.id', operator: 'IN', value: [...ids] }]))
+      const url = `${GRAPH}/${accId}/insights?level=campaign&time_range=${timeRange}&time_increment=1&fields=${dFields}&filtering=${filtro}&limit=500&access_token=${accessToken}`
       try {
-        const rows = await fbGetAllPages(url, 20)
+        const rows = await fbGetAllPages(url, 200)
         for (const r of rows) {
           if (!ids.has(r.campaign_id)) continue
           const day = r.date_start

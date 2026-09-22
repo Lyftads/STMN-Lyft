@@ -166,7 +166,7 @@ async function googleAOre(ieri, oggi) {
 }
 
 export async function GET(req) {
-  return withTenantContext(req, async () => swrSnapshot(req, { tab: 'oggiVsIeri@2', ttlMs: 10 * 60_000, compute: async () => {
+  return withTenantContext(req, async () => swrSnapshot(req, { tab: 'oggiVsIeri@3', ttlMs: 10 * 60_000, giornaliero: true, compute: async () => {
     const fuso = await fusoNegozio()
     const { oggi, ora, minuti } = adesso(fuso)
     const ieri = ieriDi(oggi)

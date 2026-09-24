@@ -4,7 +4,7 @@ export const maxDuration = 300
 import { NextResponse } from 'next/server'
 import { getAdminSupabase } from '../../../../lib/supabase/server'
 import { getTenantCreds, getCurrentUserId } from '../../../../lib/tenant/credentials'
-import { CHECKS } from '../../../../lib/health/checks'
+import { CHECKS, controlla } from '../../../../lib/health/checks'
 import { buildHealthEmail, resolveRecipient } from '../../../../lib/health/healthEmail'
 import { sendEmail } from '../../../../lib/team/notify'
 
@@ -14,6 +14,13 @@ import { sendEmail } from '../../../../lib/team/notify'
 //  Per ogni integrazione COLLEGATA fa una chiamata minima di verifica. Al
 //  primo fallimento di un episodio avvisa il cliente via email, nella sua
 //  lingua e col nome azienda della registrazione.
+//
+//  SI AVVISA SOLO PER LE CREDENZIALI (Marino, 24 set 2026: «spesso arrivano
+//  notifiche del genere ma non sono vere»). Un limite di frequenza o un
+//  provider giu' non sono uno scollegamento: lib/health/checks.js li marca
+//  'passeggero', qui finiscono a stato 'warn' — registrati, visibili, ma
+//  senza email. Solo 'credenziali' (401/403, invalid_grant, token Meta
+//  scaduto) diventa lo stato 'error' che fa partire l'avviso.
 //
 //  Anti-spam: una sola email per EPISODIO di guasto. `failing_since` marca
 //  l inizio dell episodio, `notified_at` l avviso gia' mandato; quando il
@@ -62,7 +69,7 @@ export async function GET(req) {
   const prev = new Map()
   {
     const { data, error: readErr } = await admin.from('integration_health')
-      .select('workspace_id, provider, status, failing_since, notified_at')
+      .select('workspace_id, provider, status, failing_since, notified_at, notified_to')
     if (readErr) {
       return NextResponse.json({
         ok: false,
@@ -74,7 +81,7 @@ export async function GET(req) {
 
   const now = new Date().toISOString()
   const rows = []
-  const summary = { workspaces: 0, checked: 0, ok: 0, down: 0, emails: 0, skippedNoEmail: 0 }
+  const summary = { workspaces: 0, checked: 0, ok: 0, down: 0, passeggeri: 0, emails: 0, skippedNoEmail: 0 }
   const notified = []
 
   for (const c of (companies || [])) {
@@ -85,19 +92,33 @@ export async function GET(req) {
 
     for (const { provider, run } of CHECKS) {
       let out
-      try { out = await run(creds) } catch (e) { out = { configured: true, ok: false, error: String(e?.message || e).slice(0, 300) } }
+      try { out = await controlla(run, creds) } catch (e) { out = { configured: true, ok: false, error: String(e?.message || e).slice(0, 300), tipo: 'passeggero' } }
       if (!out?.configured) continue      // non collegata → non e' un guasto
       summary.checked++
 
       const key = `${c.user_id}|${provider}`
       const before = prev.get(key)
-      const wasFailing = before?.status === 'error'
+      // Un episodio gia' aperto resta aperto anche se in mezzo c'e' stato un
+      // intoppo passeggero ('warn' si porta dietro failing_since): altrimenti
+      // il guasto sembrerebbe nuovo e la stessa email partirebbe due volte.
+      const wasFailing = before?.status === 'error' || (before?.status === 'warn' && !!before?.failing_since)
 
       if (out.ok) {
         summary.ok++
         // Recupero: azzera l episodio così un guasto futuro riavvisa.
         rows.push({ workspace_id: c.user_id, provider, status: 'ok', error: null,
                     checked_at: now, failing_since: null, notified_at: null, notified_to: null })
+        continue
+      }
+
+      // Intoppo passeggero: si registra perche' resti visibile, ma non si
+      // avvisa nessuno e non si apre un episodio di guasto.
+      if (out.tipo !== 'credenziali') {
+        summary.passeggeri++
+        rows.push({ workspace_id: c.user_id, provider, status: 'warn',
+                    error: out.error || null, checked_at: now,
+                    failing_since: before?.failing_since || null,
+                    notified_at: before?.notified_at || null, notified_to: before?.notified_to || null })
         continue
       }
 

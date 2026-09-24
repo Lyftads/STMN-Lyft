@@ -15,7 +15,9 @@
 create table if not exists public.integration_health (
   workspace_id   uuid not null references auth.users(id) on delete cascade,
   provider       text not null,               -- meta | google | shopify | klaviyo
-  status         text not null,               -- ok | error
+  status         text not null,               -- ok | warn | error
+                                              -- warn = intoppo passeggero (limite di
+                                              -- frequenza, provider giu'): si registra, non si avvisa
   error          text,                        -- messaggio del provider (troncato)
   checked_at     timestamptz not null default now(),
   failing_since  timestamptz,                 -- null quando status = ok

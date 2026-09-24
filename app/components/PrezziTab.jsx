@@ -347,7 +347,7 @@ export default function PrezziTab() {
                   <div className="prov-scheda" style={{ marginTop: 14 }}>
                     <div className="gpv-voce gpv-voce-testa"><span style={{ flex: 1 }}>{t('prz.bandBrandSite', null, 'Casa madre')}</span><span className="gpv-voce-prima">{t('prz.cGap', null, 'Scarto')}</span><span className="gpv-voce-ora">{t('prz.cPrice', null, 'Prezzo')}</span></div>
                     {r.offerte.map((o, k) => (
-                      <div key={k} className="gpv-voce" data-spiega={t('prz.pBrandSite', null, 'Prezzo letto dal catalogo pubblico del sito. «Stesso colore» = stesso modello e stesso colore; «altro colore» = stesso modello, colore diverso.')}>
+                      <div key={k} className="gpv-voce" data-spiega={t('prz.pBrandSite', null, 'Prezzo letto dal catalogo pubblico del sito. «Stesso colore» = stesso modello e stesso colore: solo questo entra nel confronto di prezzo. «Altro colore» = stesso modello, colore diverso (spesso un’altra stagione in saldo): si vede, ma non conta nello scarto.')}>
                         <div style={{ flex: 1, minWidth: 0 }}><div className="gpv-voce-nome"><a href={o.url} target="_blank" rel="noopener noreferrer nofollow" className="prz-link">{o.dominio.replace(/^www\./, '')}<Icon name="external" size={11} /></a></div><div className="reg-sotto">{colore(o.livello)}{o.disponibile === false ? ` · ${t('prz.soldOut', null, 'esaurito')}` : ''}{o.pieno > o.prezzo ? ` · ${t('prz.fullPrice', null, 'Prezzo pieno')} ${soldi(o.pieno, 2)}` : ''}</div></div>
                         <span className="gpv-voce-prima">{pct(+(((r.prezzo - o.prezzo) / o.prezzo) * 100).toFixed(1))}</span>
                         <span className="gpv-voce-ora">{soldi(o.prezzo, 2)}</span>

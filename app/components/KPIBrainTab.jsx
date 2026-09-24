@@ -2,6 +2,7 @@
 
 import AzioneBarra from './ui/AzioneBarra'
 import Pannello from './ui/Pannello'
+import useTema from './ui/useTema'
 import { Kpi, famigliaDi, coloreFamiglia } from './ui/Mattoni'
 import { soldi } from '../../lib/client/soldi'
 import { miniatura } from '../../lib/client/miniatura'
@@ -1383,7 +1384,7 @@ function SegmentBlock({ title, accent, ordersCurr, ordersPrev, revCurr, revPrev,
       borderRadius: 12,
       background: accent.bg,
       border: `1px solid ${accent.border}`,
-      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
+      boxShadow: accent.ombra ?? 'inset 0 1px 0 rgba(255,255,255,0.04)',
     }}>
       <div style={{
         fontSize: 10, fontWeight: 640,
@@ -1397,10 +1398,13 @@ function SegmentBlock({ title, accent, ordersCurr, ordersPrev, revCurr, revPrev,
           <div key={idx} className="country-segment-value" style={{
             padding: '7px 8px',
             borderRadius: 8,
-            background: 'rgba(0,0,0,0.30)',
+            // Di notte la casella e' uno scavo nel riquadro; di giorno un foglio
+            // sopra il riquadro. Il nero al 30% su fondo bianco faceva un grigio
+            // fangoso (Marino, 24 set 2026).
+            background: accent.casella || 'rgba(0,0,0,0.30)',
             border: '1px solid var(--border)',
-            borderTopColor: 'rgba(255,255,255,0.08)',
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)',
+            borderTopColor: accent.casella ? 'var(--border)' : 'rgba(255,255,255,0.08)',
+            boxShadow: accent.casella ? 'none' : 'inset 0 1px 0 rgba(255,255,255,0.03)',
             minWidth: 0,
           }}>
             <div style={{
@@ -1431,6 +1435,7 @@ function SegmentBlock({ title, accent, ordersCurr, ordersPrev, revCurr, revPrev,
 // ── CountryDetailModal: popup con pie + area chart + breakdown ─────
 function CountryDetailModal({ data, onClose, money, int0, countryFlag, fmtDeltaPct, fmtDeltaEur, deltaColor, tfLabel }) {
   const { t } = useI18n()
+  const chiaro = useTema() === 'light'
   const [daily, setDaily] = useState([])
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
@@ -1455,6 +1460,20 @@ function CountryDetailModal({ data, onClose, money, int0, countryFlag, fmtDeltaP
 
   if (!mounted || !data) return null
   const { row, prev } = data
+  // La tavolozza del pop-up. Di notte resta quella di sempre; di giorno i colori
+  // nati per il fondo scuro non reggono (Marino, 24 set 2026: «da tema white
+  // l'ottimizzazione non e' perfetta con i colori»): il celeste chiaro e il lilla
+  // delle scritte sparivano sul bianco, le intestazioni erano azzurro acceso e le
+  // caselle dei numeri grigio fango. Di giorno il colore resta SOLO dove indica un
+  // dato — le due serie del grafico — e usa i toni gia' scelti per il tema chiaro
+  // (--cyan e --purple di white-system.css, leggibili sul bianco); tutto il resto
+  // passa ai token neutri, come vuole la regola «niente tinte decorative».
+  const tav = chiaro
+    ? { nuovi: '#007780', ritorno: '#7442b2', totale: '#0054aa', etichetta: 'var(--text3)',
+        assi: 'var(--border2)', mirino: 'rgba(29,29,29,0.22)', bordoFetta: 'var(--surface2)' }
+    : { nuovi: 'var(--country-new, #67e8f9)', ritorno: 'var(--country-returning, #d8b4fe)',
+        totale: '#0ea5e9', etichetta: 'var(--country-accent, #0ea5e9)',
+        assi: 'rgba(255,255,255,0.08)', mirino: 'rgba(14,165,233,0.4)', bordoFetta: 'rgba(255,255,255,0.12)' }
   const safeCode = (row.country_code || 'XX').toLowerCase()
   const pieData = [
     { name: 'Nuovi clienti', value: row.ncRevenue || 0, color: '#06b6d4' },
@@ -1478,8 +1497,8 @@ function CountryDetailModal({ data, onClose, money, int0, countryFlag, fmtDeltaP
               boxShadow:'inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 12px rgba(0,0,0,0.25)',
               position:'relative', overflow:'hidden',
             }}>
-              <div style={{position:'absolute', top:0, left:'8%', right:'8%', height:1, background:'linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent)', animation:'cr-shine 5s ease-in-out infinite'}} />
-              <div style={{fontSize:10, fontWeight:640, color:'var(--country-accent, #0ea5e9)', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:12}}>{t('kpi.revenueComposition', null, 'Composizione fatturato')}</div>
+              {!chiaro && <div style={{position:'absolute', top:0, left:'8%', right:'8%', height:1, background:'linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent)', animation:'cr-shine 5s ease-in-out infinite'}} />}
+              <div style={{fontSize:10, fontWeight:640, color:tav.etichetta, letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:12}}>{t('kpi.revenueComposition', null, 'Composizione fatturato')}</div>
               {hasPie ? (
                 <>
                   <ResponsiveContainer width="100%" height={220}>
@@ -1507,26 +1526,26 @@ function CountryDetailModal({ data, onClose, money, int0, countryFlag, fmtDeltaP
                         isAnimationActive
                         animationDuration={1200}
                         animationEasing="ease-out"
-                        stroke="rgba(255,255,255,0.12)"
+                        stroke={tav.bordoFetta}
                         strokeWidth={1.5}
                       >
-                        <Cell fill={`url(#pieNC-${safeCode})`} filter={`url(#pieGlow-${safeCode})`}/>
-                        <Cell fill={`url(#pieRC-${safeCode})`} filter={`url(#pieGlow-${safeCode})`}/>
+                        <Cell fill={chiaro ? tav.nuovi : `url(#pieNC-${safeCode})`} filter={chiaro ? undefined : `url(#pieGlow-${safeCode})`}/>
+                        <Cell fill={chiaro ? tav.ritorno : `url(#pieRC-${safeCode})`} filter={chiaro ? undefined : `url(#pieGlow-${safeCode})`}/>
                       </Pie>
                       <Tooltip
                         contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '8px 12px', fontSize: 13, color: 'var(--text)', boxShadow: '0 8px 24px rgba(0,0,0,.14)' }}
                         formatter={v => money(v)}
-                        cursor={{fill:'rgba(255,255,255,0.04)'}}
+                        cursor={{fill: chiaro ? 'rgba(29,29,29,0.04)' : 'rgba(255,255,255,0.04)'}}
                       />
                     </PieChart>
                   </ResponsiveContainer>
                   <div style={{display:'flex', justifyContent:'space-around', marginTop:6, fontSize:11.5}}>
-                    <div style={{display:'flex', alignItems:'center', gap:6, color:'var(--country-new, #67e8f9)', fontWeight:640}}>
-                      <div style={{width:11, height:11, borderRadius:6, background:'var(--country-new, #67e8f9)', boxShadow:'none'}} />
+                    <div style={{display:'flex', alignItems:'center', gap:6, color:tav.nuovi, fontWeight:640}}>
+                      <div style={{width:11, height:11, borderRadius:6, background:tav.nuovi, boxShadow:'none'}} />
                       {t('kpi.new', null, 'Nuovi')} {money(row.ncRevenue)}
                     </div>
-                    <div style={{display:'flex', alignItems:'center', gap:6, color:'var(--country-returning, #d8b4fe)', fontWeight:640}}>
-                      <div style={{width:11, height:11, borderRadius:6, background:'var(--country-returning, #d8b4fe)', boxShadow:'none'}} />
+                    <div style={{display:'flex', alignItems:'center', gap:6, color:tav.ritorno, fontWeight:640}}>
+                      <div style={{width:11, height:11, borderRadius:6, background:tav.ritorno, boxShadow:'none'}} />
                       {t('kpi.returning', null, 'Ritorno')} {money(row.rcRevenue)}
                     </div>
                   </div>
@@ -1545,11 +1564,11 @@ function CountryDetailModal({ data, onClose, money, int0, countryFlag, fmtDeltaP
               boxShadow:'inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 12px rgba(0,0,0,0.25)',
               position:'relative', overflow:'hidden',
             }}>
-              <div style={{position:'absolute', top:0, left:'8%', right:'8%', height:1, background:'linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent)', animation:'cr-shine 5s ease-in-out infinite', animationDelay:'.5s'}} />
-              <div style={{fontSize:10, fontWeight:640, color:'var(--country-accent, #0ea5e9)', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:12}}>{t('kpi.dailyRevenueTrend', null, 'Trend giornaliero fatturato')}</div>
+              {!chiaro && <div style={{position:'absolute', top:0, left:'8%', right:'8%', height:1, background:'linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent)', animation:'cr-shine 5s ease-in-out infinite', animationDelay:'.5s'}} />}
+              <div style={{fontSize:10, fontWeight:640, color:tav.etichetta, letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:12}}>{t('kpi.dailyRevenueTrend', null, 'Trend giornaliero fatturato')}</div>
               {loading ? (
                 <div style={{display:'flex', alignItems:'center', justifyContent:'center', height:240, gap:12, color:'var(--text3)'}}>
-                  <div style={{width:24, height:24, border:'3px solid var(--border2)', borderTopColor:'#0ea5e9', borderRadius:999, animation:'spin 1s linear infinite'}} />
+                  <div style={{width:24, height:24, border:'3px solid var(--border2)', borderTopColor:tav.totale, borderRadius:999, animation:'spin 1s linear infinite'}} />
                   <div style={{fontSize:11.5, fontWeight:600, letterSpacing:'0.08em', textTransform:'uppercase'}}>{t('kpi.loadingShort', null, 'Caricamento')}</div>
                 </div>
               ) : daily.length === 0 ? (
@@ -1559,29 +1578,29 @@ function CountryDetailModal({ data, onClose, money, int0, countryFlag, fmtDeltaP
                   <AreaChart data={daily} margin={{top:8,right:8,left:-8,bottom:0}}>
                     <defs>
                       <linearGradient id={`areaTotal-${safeCode}`} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.55}/>
-                        <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0}/>
+                        <stop offset="0%" stopColor={tav.totale} stopOpacity={0.55}/>
+                        <stop offset="100%" stopColor={tav.totale} stopOpacity={0}/>
                       </linearGradient>
                       <linearGradient id={`areaNC-${safeCode}`} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.45}/>
-                        <stop offset="100%" stopColor="#06b6d4" stopOpacity={0}/>
+                        <stop offset="0%" stopColor={chiaro ? tav.nuovi : '#06b6d4'} stopOpacity={chiaro ? 0.16 : 0.45}/>
+                        <stop offset="100%" stopColor={chiaro ? tav.nuovi : '#06b6d4'} stopOpacity={0}/>
                       </linearGradient>
                       <linearGradient id={`areaRC-${safeCode}`} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#a855f7" stopOpacity={0.40}/>
-                        <stop offset="100%" stopColor="#a855f7" stopOpacity={0}/>
+                        <stop offset="0%" stopColor={chiaro ? tav.ritorno : '#a855f7'} stopOpacity={chiaro ? 0.14 : 0.40}/>
+                        <stop offset="100%" stopColor={chiaro ? tav.ritorno : '#a855f7'} stopOpacity={0}/>
                       </linearGradient>
                     </defs>
-                    <XAxis dataKey="date" stroke="var(--text3)" fontSize={10} tickLine={false} axisLine={{stroke:'rgba(255,255,255,0.08)'}} tickFormatter={d => d.slice(5)} />
+                    <XAxis dataKey="date" stroke="var(--text3)" fontSize={10} tickLine={false} axisLine={{stroke:tav.assi}} tickFormatter={d => d.slice(5)} />
                     <YAxis stroke="var(--text3)" fontSize={10} tickLine={false} axisLine={false} tickFormatter={v => `€${Math.round(v)}`} />
                     <Tooltip
                       contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '8px 12px', fontSize: 13, color: 'var(--text)', boxShadow: '0 8px 24px rgba(0,0,0,.14)' }}
                       labelStyle={{ color: 'var(--text3)', fontSize: 11.5, marginBottom: 4 }}
                       formatter={(v, n) => [money(v), n === 'revenue' ? t('kpi.total', null, 'Totale') : n === 'ncRevenue' ? t('kpi.new', null, 'Nuovi') : t('kpi.returning', null, 'Ritorno')]}
-                      cursor={{stroke:'rgba(14,165,233,0.4)', strokeWidth:1, strokeDasharray:'3 3'}}
+                      cursor={{stroke:tav.mirino, strokeWidth:1, strokeDasharray:'3 3'}}
                     />
-                    <Area type="monotone" dataKey="ncRevenue" stackId="seg" stroke="#22d3ee" strokeWidth={1.5} fill={`url(#areaNC-${safeCode})`} isAnimationActive animationDuration={1400} animationEasing="ease-out"/>
-                    <Area type="monotone" dataKey="rcRevenue" stackId="seg" stroke="#c084fc" strokeWidth={1.5} fill={`url(#areaRC-${safeCode})`} isAnimationActive animationDuration={1400} animationEasing="ease-out"/>
-                    <Area type="monotone" dataKey="revenue" stroke="#0ea5e9" strokeWidth={2.5} fill="none" isAnimationActive animationDuration={1600} animationEasing="ease-out" dot={{r:3, fill:'#0ea5e9', stroke:'var(--text)', strokeWidth:1}}/>
+                    <Area type="monotone" dataKey="ncRevenue" stackId="seg" stroke={chiaro ? tav.nuovi : '#22d3ee'} strokeWidth={1.5} fill={`url(#areaNC-${safeCode})`} isAnimationActive animationDuration={1400} animationEasing="ease-out"/>
+                    <Area type="monotone" dataKey="rcRevenue" stackId="seg" stroke={chiaro ? tav.ritorno : '#c084fc'} strokeWidth={1.5} fill={`url(#areaRC-${safeCode})`} isAnimationActive animationDuration={1400} animationEasing="ease-out"/>
+                    <Area type="monotone" dataKey="revenue" stroke={tav.totale} strokeWidth={2.5} fill="none" isAnimationActive animationDuration={1600} animationEasing="ease-out" dot={{r:3, fill:tav.totale, stroke:chiaro ? 'var(--surface2)' : 'var(--text)', strokeWidth:1}}/>
                   </AreaChart>
                 </ResponsiveContainer>
               )}
@@ -1592,7 +1611,9 @@ function CountryDetailModal({ data, onClose, money, int0, countryFlag, fmtDeltaP
           <div className="m-stack" style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:14}}>
             <SegmentBlock
               title={t('kpi.segNew', null, 'Nuovi clienti')}
-              accent={{ text:'var(--country-new, #67e8f9)', bg:'rgba(6,182,212,0.10)', border:'rgba(6,182,212,0.30)' }}
+              accent={chiaro
+                ? { text:tav.nuovi, bg:'var(--surface2)', border:'var(--border)', casella:'var(--surface)', ombra:'none' }
+                : { text:'var(--country-new, #67e8f9)', bg:'rgba(6,182,212,0.10)', border:'rgba(6,182,212,0.30)' }}
               ordersCurr={row.ncOrders} ordersPrev={prev.ncOrders}
               revCurr={row.ncRevenue} revPrev={prev.ncRevenue}
               money={money} int0={int0}
@@ -1600,7 +1621,9 @@ function CountryDetailModal({ data, onClose, money, int0, countryFlag, fmtDeltaP
             />
             <SegmentBlock
               title={t('kpi.segReturning', null, 'Clienti di ritorno')}
-              accent={{ text:'var(--country-returning, #d8b4fe)', bg:'rgba(168,85,247,0.10)', border:'rgba(168,85,247,0.30)' }}
+              accent={chiaro
+                ? { text:tav.ritorno, bg:'var(--surface2)', border:'var(--border)', casella:'var(--surface)', ombra:'none' }
+                : { text:'var(--country-returning, #d8b4fe)', bg:'rgba(168,85,247,0.10)', border:'rgba(168,85,247,0.30)' }}
               ordersCurr={row.rcOrders} ordersPrev={prev.rcOrders}
               revCurr={row.rcRevenue} revPrev={prev.rcRevenue}
               money={money} int0={int0}

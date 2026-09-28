@@ -72,7 +72,6 @@ const TasksTab = Pigra('TasksTab', () => import('./components/TasksTab'))
 const CalendarTab = Pigra('CalendarTab', () => import('./components/CalendarTab'))
 const TimeOffTab = Pigra('TimeOffTab', () => import('./components/TimeOffTab'))
 const TeamManageTab = Pigra('TeamManageTab', () => import('./components/TeamManageTab'))
-const CreativeLibraryTab = Pigra('CreativeLibraryTab', () => import('./components/CreativeLibraryTab'))
 const ChatTab = Pigra('ChatTab', () => import('./components/ChatTab'))
 const CreativeFatiguePanel = Pigra('CreativeFatiguePanel', () => import('./components/CreativeFatiguePanel'))
 const MetaKpiTab = Pigra('MetaKpiTab', () => import('./components/MetaKpiTab'))
@@ -4668,10 +4667,6 @@ export default function App() {
 
 {tab === 'timeOff' && (
   <TimeOffTab />
-)}
-
-{tab === 'creativeLibrary' && (
-  <CreativeLibraryTab />
 )}
 
 {tab === 'teamManage' && (

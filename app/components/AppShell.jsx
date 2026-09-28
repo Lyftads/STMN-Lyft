@@ -224,7 +224,6 @@ export default function AppShell({
         // (postazioni, ruoli, ore fatturabili): il fork a cliente unico le aveva tolte.
         { id: 'timeTracking', label: 'Lyftimer', icon: <Icon name="clock" /> },
         { id: 'chat', label: 'LyftTalk', icon: <Icon name="chat" /> },
-        { id: 'creativeLibrary', label: 'Creatività', icon: <Icon name="image" /> },
         { id: 'team', label: 'Squadra AI', icon: <Icon name="users" /> },
       ],
     },

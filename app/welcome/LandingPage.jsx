@@ -531,6 +531,7 @@ function Viaggio({ t }) {
   return (
     <section ref={sez} className={s.viaggio}>
       <div className={s.viaggioFermo}>
+        <div className={s.viaggioParola} aria-hidden="true">{v.parola}</div>
         {/* Gli atti: video scrubbati (desktop) con la foto come poster e ripiego (telefono). */}
         {VIAGGIO_ATTI.map((a, i) => (
           <div key={a.id} className={`${s.atto} ${s['atto_' + a.id]}`} aria-hidden="true">
@@ -541,7 +542,6 @@ function Viaggio({ t }) {
         ))}
         {/* L'aereo vero attraversa il cielo col fascio arancio degli ordini del globo. */}
         <div className={s.aereoProp} aria-hidden="true">
-          <i className={s.aereoFascio} />
           <img src="/landing/scena/aereo.webp" alt="" loading="lazy" decoding="async" />
         </div>
         {/* Il pacco vero, trascinato sul nastro del magazzino. */}

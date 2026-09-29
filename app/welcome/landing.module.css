@@ -1733,3 +1733,56 @@
 @media (max-width: 860px) {
   .hudScheda, .hud .stazioneScheda { translate: -50% calc((1 - var(--fin)) * 14px - var(--out) * 8px); }
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+   FILM v4 — INTEGRATO (29 set: «troppo diverso dal sito... deve sembrare tutt'uno»).
+   Come United Carriers fotogramma per fotogramma: la pagina resta la PAGINA (fondo del sito,
+   parola gigante, titolo coi colori di sempre) e il mondo vero vive in una FASCIA-schermo nella
+   meta' bassa, attraversata dagli oggetti. Ultimo blocco: vince su tutto.
+   ════════════════════════════════════════════════════════════════════════ */
+.viaggioFermo { background: var(--fondo); }
+/* gli ambienti dentro la fascia, non a tutto schermo */
+.atto { top: auto; bottom: 0; height: 54vh; }
+.veloFilm { top: auto; bottom: 0; height: 54vh; opacity: .45; }
+.scrimFilm { display: none; }
+/* il bordo alto della fascia: una linea sottile, come lo stacco della loro banda nera */
+.viaggioFermo::after { content: ''; position: absolute; left: 0; right: 0; bottom: 54vh; height: 1px; background: var(--bordo); z-index: 4; pointer-events: none; }
+/* la parola gigante dietro, nella zona chiara */
+.viaggioFermo .viaggioParola {
+  display: block; position: absolute; left: 0; top: 9%; z-index: 0; white-space: nowrap; pointer-events: none;
+  font-family: var(--display); font-weight: 700; font-size: clamp(90px, 14vw, 240px); line-height: 1;
+  color: color-mix(in srgb, var(--testo) 7%, var(--fondo));
+  transform: translate3d(calc(24vw - var(--vp, 0) * 72vw), 0, 0);
+}
+/* titolo, sottotitolo e contatore tornano ai colori del sito */
+.testaFilm .etichetta { color: var(--testo3); text-shadow: none; }
+.testaFilm .h2 { color: var(--testo); text-shadow: none; }
+.testaFilm .sotto { color: var(--testo2); text-shadow: none; }
+.hud .viaggioContatore span { color: var(--testo3); text-shadow: none; }
+.hud .viaggioContatore strong { color: var(--testo); text-shadow: none; }
+/* l'aereo: dentro la fascia, ORIZZONTALE nel verso del camion, senza scia */
+.aereoFascio { display: none; }
+.aereoProp {
+  top: auto; bottom: 33vh; left: 0;
+  transform: translate3d(calc(-28vw + var(--volo) * 146vw), calc(sin(var(--volo) * 6rad) * 6px), 0) rotate(90deg);
+}
+.aereoProp img { width: clamp(150px, 15vw, 250px); filter: drop-shadow(-18px 26px 26px rgba(0, 0, 30, .4)); }
+/* il pacco sulla cinghia del nastro, dentro la fascia */
+.paccoProp { top: auto; bottom: calc(54vh * 0.525); width: clamp(56px, 5.4vw, 88px); }
+/* le schede e il dock vivono nella fascia */
+.hudScheda, .hud .stazioneScheda { bottom: 21vh; }
+@media (max-width: 860px) {
+  .atto, .veloFilm { height: 58vh; }
+  .viaggioFermo::after { bottom: 58vh; }
+  .viaggioFermo .viaggioParola { top: 34%; font-size: 19vw; }
+  .aereoProp { bottom: 36vh; transform: translate3d(calc(-44vw + var(--volo) * 184vw), 0, 0) rotate(90deg); }
+  .aereoProp img { width: 108px; }
+  .paccoProp { bottom: calc(58vh * 0.52); width: 56px; }
+  .hudScheda, .hud .stazioneScheda { top: auto; bottom: 30vh; }
+  .testaFilm { padding-top: 84px; }
+}
+/* Sul telefono il contatore vive dentro la fascia fotografica: torna bianco con l'ombra. */
+@media (max-width: 860px) {
+  .hud .viaggioContatore span { color: rgba(255, 255, 255, .85); text-shadow: 0 1px 10px rgba(0, 0, 0, .55); }
+  .hud .viaggioContatore strong { color: #ffffff; text-shadow: 0 2px 20px rgba(0, 0, 0, .5); }
+}

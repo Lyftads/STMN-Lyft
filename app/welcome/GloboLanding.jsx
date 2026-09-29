@@ -110,11 +110,17 @@ export default function GloboLanding({ testi, lingua }) {
     // Le luci dell'esempio: il sole arancio dell'alba da dietro, in alto a destra (accende il bordo
     // e i puntini vicino al bordo); il blu dell'atmosfera da sotto; un filo di luce ambiente.
     try {
-      const ambiente = new THREE.AmbientLight(0xffffff, 0.4)
-      const sole = new THREE.DirectionalLight(0xff5a1f, 4.5); sole.position.set(150, 190, 30)
-      const blu = new THREE.DirectionalLight(0x2b6cff, 2.2); blu.position.set(-40, -170, 120)
+      // (29 set sera: prima il sole stava davanti e il mondo veniva tutto arancio; Marino vuole le
+      // terre bianche come nell'esempio. Ora la luce piena e' bianca, il sole arancio sta DIETRO e
+      // tocca solo il bordo; l'arancio grande del bordo lo fa .globoSole in CSS.)
+      const ambiente = new THREE.AmbientLight(0xffffff, 1.35)
+      const sole = new THREE.DirectionalLight(0xff6a2a, 2.4); sole.position.set(180, 160, -220)
+      const blu = new THREE.DirectionalLight(0x3a6bff, 1.1); blu.position.set(-40, -180, 60)
       g.lights([ambiente, sole, blu])
     } catch {}
+    // Il globo e' largo quasi tutto lo schermo: sui Mac retina (densita' 2) sarebbero 4 volte i
+    // pixel da ridisegnare a ogni fotogramma. A 1,25 i puntini restano nitidi e la pagina scorre.
+    try { g.renderer().setPixelRatio(Math.min(1.25, window.devicePixelRatio || 1)) } catch {}
     // L'Italia al centro della vista, vicino: il globo e' tagliato dal bordo destro dello schermo.
     try { g.pointOfView({ lat: 34, lng: 14, altitude: 1.55 }, 0) } catch {}
   }
@@ -161,31 +167,31 @@ export default function GloboLanding({ testi, lingua }) {
             atmosphereColor="#2b6cff"
             atmosphereAltitude={0.19}
             hexPolygonsData={paesi}
-            hexPolygonResolution={4}
-            hexPolygonMargin={0.52}
+            hexPolygonResolution={3}
+            hexPolygonMargin={0.4}
             hexPolygonColor={() => 'rgba(236,238,242,.92)'}
             hexPolygonAltitude={0.004}
             hexBinPointsData={sessioni}
             hexBinPointLat="lat"
             hexBinPointLng="lng"
             hexBinPointWeight="count"
-            hexBinResolution={4}
-            hexMargin={0.3}
-            hexAltitude={0.008}
-            hexTopColor={() => '#ffffff'}
-            hexSideColor={() => '#dbe6ff'}
+            hexBinResolution={3}
+            hexMargin={0.18}
+            hexAltitude={d => 0.02 + Math.min(4, d.sumWeight) * 0.018}
+            hexTopColor={() => '#5aa2ff'}
+            hexSideColor={() => 'rgba(41,151,255,.75)'}
             hexTransitionDuration={600}
             pointsData={ordini}
             pointLat="lat"
             pointLng="lng"
-            pointAltitude={0.014}
-            pointRadius={0.32}
+            pointAltitude={0.09}
+            pointRadius={0.42}
             pointColor={() => ARANCIO}
             ringsData={freschi}
             ringLat="lat"
             ringLng="lng"
-            ringColor={() => (t) => `rgba(255,85,0,${1 - t})`}
-            ringMaxRadius={3.4}
+            ringColor={() => (t) => `rgba(255,95,20,${1 - t})`}
+            ringMaxRadius={5.5}
             ringPropagationSpeed={2.2}
             ringRepeatPeriod={1100}
             arcsData={ordini}
@@ -203,7 +209,7 @@ export default function GloboLanding({ testi, lingua }) {
             htmlElementsData={ordini}
             htmlLat="lat"
             htmlLng="lng"
-            htmlAltitude={0.03}
+            htmlAltitude={0.1}
             htmlElement={etichetta}
             htmlTransitionDuration={0}
           />

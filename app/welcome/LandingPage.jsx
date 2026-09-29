@@ -158,7 +158,8 @@ function useAlba(sezione, pagina) {
       const inizio = Math.max(0, h - window.innerHeight - coda)
       const p = calmo ? 0 : Math.min(1, Math.max(0, (y - inizio) / coda))
       el.style.setProperty('--alba', p.toFixed(3))
-      const scuro = calmo ? y < h - 60 : p < 0.6
+      // La barra resta scura finche' in cima allo schermo c'e' ancora cielo blu.
+      const scuro = y < h - window.innerHeight * 0.35
       const era = pg.dataset.scuro === '1'
       if (era !== scuro) pg.dataset.scuro = scuro ? '1' : '0'
     }
@@ -175,6 +176,181 @@ function useAlba(sezione, pagina) {
 }
 
 
+// ── Il cielo dell'apertura (Marino, 29 set: «il nero fuori dal mondo e' troppo scuro, piatto: deve
+// sembrare che ci sia una costellazione»). Una tela con le stelle che brillano piano, qualche
+// costellazione unita da fili sottili e le stelle piu' vicine che si spostano un poco col mouse.
+// Disegna a 30 fotogrammi al secondo e solo quando si vede; per chi chiede meno movimento, una volta.
+function Costellazione() {
+  const tela = useRef(null)
+  useEffect(() => {
+    const c = tela.current
+    if (!c) return
+    const ctx = c.getContext('2d')
+    const calmo = !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    let W = 0, H = 0, stelle = [], fili = [], raf = 0, visibile = true, ultimo = 0
+    let mx = 0.5, my = 0.5, px = 0, py = 0
+    const caso = (a, b) => a + Math.random() * (b - a)
+    const prepara = () => {
+      const dpr = Math.min(2, window.devicePixelRatio || 1)
+      W = c.clientWidth; H = c.clientHeight
+      c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      stelle = Array.from({ length: Math.round(W * H / 2600) }, () => {
+        const z = Math.random()
+        return { x: caso(0, W), y: caso(0, H), r: z < 0.9 ? caso(0.25, 0.8) : caso(0.9, 1.6), a: caso(0.25, 0.9), f: caso(0.4, 1.6), o: caso(0, 6.28), z }
+      })
+      // Le costellazioni: 7 gruppi di 4-6 stelle vicine, unite in fila.
+      fili = []
+      for (let g = 0; g < 7; g++) {
+        let x = caso(W * 0.04, W * 0.96), y = caso(H * 0.05, H * 0.9)
+        const pezzi = []
+        for (let i = 0, n = 4 + Math.floor(Math.random() * 3); i < n; i++) {
+          const st = { x, y, r: caso(1, 1.7), a: 0.95, f: caso(0.4, 1), o: caso(0, 6.28), z: 1 }
+          stelle.push(st); pezzi.push(st)
+          x += caso(-110, 110); y += caso(-70, 70)
+        }
+        fili.push(pezzi)
+      }
+    }
+    const disegna = (t) => {
+      px += (mx - 0.5 - px) * 0.05; py += (my - 0.5 - py) * 0.05
+      ctx.clearRect(0, 0, W, H)
+      const sposta = st => [st.x - px * 18 * st.z, st.y - py * 12 * st.z]
+      ctx.lineWidth = 0.6
+      ctx.strokeStyle = 'rgba(170,190,255,.14)'
+      for (const pezzi of fili) {
+        ctx.beginPath()
+        pezzi.forEach((st, i) => { const [x, y] = sposta(st); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y) })
+        ctx.stroke()
+      }
+      for (const st of stelle) {
+        const [x, y] = sposta(st)
+        const a = calmo ? st.a : st.a * (0.55 + 0.45 * Math.sin(t / 1000 * st.f + st.o))
+        ctx.globalAlpha = a
+        ctx.fillStyle = st.z > 0.97 ? '#dfe8ff' : '#ffffff'
+        ctx.beginPath(); ctx.arc(x, y, st.r, 0, 6.2832); ctx.fill()
+      }
+      ctx.globalAlpha = 1
+    }
+    const ciclo = (t) => {
+      raf = 0
+      if (!visibile) return
+      if (t - ultimo > 33) { ultimo = t; disegna(t) }
+      raf = requestAnimationFrame(ciclo)
+    }
+    const muove = e => { mx = e.clientX / window.innerWidth; my = e.clientY / window.innerHeight }
+    prepara(); disegna(0)
+    const ro = new ResizeObserver(() => { prepara(); disegna(performance.now()) })
+    ro.observe(c)
+    const io = new IntersectionObserver(([v]) => { visibile = v.isIntersecting; if (visibile && !calmo && !raf) raf = requestAnimationFrame(ciclo) })
+    io.observe(c)
+    if (!calmo) { window.addEventListener('mousemove', muove, { passive: true }); raf = requestAnimationFrame(ciclo) }
+    return () => { ro.disconnect(); io.disconnect(); window.removeEventListener('mousemove', muove); if (raf) cancelAnimationFrame(raf) }
+  }, [])
+  return <canvas ref={tela} className={s.costellazione} aria-hidden="true" />
+}
+
+// ── La scritta a pallini (come il logo nel piede di unitedcarriers.com): la parola e' fatta di
+// puntini; passandoci sopra col mouse i puntini si aprono attorno al cursore e poi tornano al loro
+// posto. Il colore e' quello del CSS (color) della tela; la parola occupa tutta la larghezza.
+function ScrittaPuntini({ testo, className }) {
+  const tela = useRef(null)
+  useEffect(() => {
+    const c = tela.current
+    if (!c) return
+    const ctx = c.getContext('2d')
+    const calmo = !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    let punti = [], W = 0, H = 0, raf = 0, mx = -9999, my = -9999, colore = '#111', vivo = true, passo = 7
+    const prepara = async () => {
+      try { await document.fonts.ready } catch {}
+      if (!vivo) return
+      const dpr = Math.min(2, window.devicePixelRatio || 1)
+      W = c.clientWidth
+      passo = W < 700 ? 4 : 7
+      const famiglia = getComputedStyle(c).fontFamily
+      ctx.font = `700 100px ${famiglia}`
+      const larga = ctx.measureText(testo).width || 1
+      const corpo = Math.floor(100 * W / larga)
+      H = Math.round(corpo * 0.78)
+      c.style.height = H + 'px'
+      c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      colore = getComputedStyle(c).color
+      const off = document.createElement('canvas'); off.width = W; off.height = H
+      const o = off.getContext('2d')
+      o.font = `700 ${corpo}px ${famiglia}`; o.textBaseline = 'alphabetic'; o.fillStyle = '#000'
+      o.fillText(testo, 0, Math.round(H * 0.94))
+      const dati = o.getImageData(0, 0, W, H).data
+      punti = []
+      for (let y = Math.floor(passo / 2); y < H; y += passo) for (let x = Math.floor(passo / 2); x < W; x += passo) {
+        if (dati[(y * W + x) * 4 + 3] > 128) punti.push({ ox: x, oy: y, x, y, vx: 0, vy: 0 })
+      }
+      disegna()
+    }
+    const disegna = () => {
+      ctx.clearRect(0, 0, W, H)
+      ctx.fillStyle = colore
+      const r = passo * 0.34
+      ctx.beginPath()
+      for (const p of punti) { ctx.moveTo(p.x + r, p.y); ctx.arc(p.x, p.y, r, 0, 6.2832) }
+      ctx.fill()
+    }
+    const passo1 = () => {
+      raf = 0
+      const R = Math.max(70, W * 0.06), R2 = R * R
+      let fermo = true
+      for (const p of punti) {
+        const dx = p.x - mx, dy = p.y - my, d2 = dx * dx + dy * dy
+        if (d2 < R2) { const d = Math.sqrt(d2) || 1, f = (1 - d / R) * 2.6; p.vx += dx / d * f; p.vy += dy / d * f }
+        p.vx += (p.ox - p.x) * 0.06; p.vy += (p.oy - p.y) * 0.06
+        p.vx *= 0.82; p.vy *= 0.82
+        p.x += p.vx; p.y += p.vy
+        if (Math.abs(p.vx) + Math.abs(p.vy) > 0.05 || Math.abs(p.x - p.ox) + Math.abs(p.y - p.oy) > 0.3) fermo = false
+      }
+      disegna()
+      if (!fermo) raf = requestAnimationFrame(passo1)
+    }
+    const muove = e => {
+      if (calmo) return
+      const b = c.getBoundingClientRect(); mx = e.clientX - b.left; my = e.clientY - b.top
+      if (!raf) raf = requestAnimationFrame(passo1)
+    }
+    const esce = () => { mx = -9999; my = -9999; if (!raf) raf = requestAnimationFrame(passo1) }
+    prepara()
+    const ro = new ResizeObserver(() => { if (Math.abs(c.clientWidth - W) > 2) prepara() })
+    ro.observe(c)
+    c.addEventListener('mousemove', muove); c.addEventListener('mouseleave', esce)
+    const mo = new MutationObserver(() => { colore = getComputedStyle(c).color; disegna() })
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+    return () => { vivo = false; ro.disconnect(); mo.disconnect(); c.removeEventListener('mousemove', muove); c.removeEventListener('mouseleave', esce); if (raf) cancelAnimationFrame(raf) }
+  }, [testo])
+  return <canvas ref={tela} className={`${s.puntini} ${className || ''}`} role="img" aria-label={testo} />
+}
+
+// Il titolo a macchina da scrivere (Marino, 21 set; richiesto di nuovo il 29 set): «Quanto» resta,
+// il resto si scrive e si cancella a turno. Tutte le frasi stanno invisibili nella stessa cella,
+// cosi' il titolo ha gia' l'altezza della piu' lunga e sotto non salta niente.
+function Macchina({ prima, oggetti }) {
+  const [n, setN] = useState(0)
+  const [lettere, setLettere] = useState(oggetti[0].length)
+  const [cancella, setCancella] = useState(false)
+  useEffect(() => { setN(0); setLettere(oggetti[0].length); setCancella(false) }, [oggetti])
+  useEffect(() => {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+    const frase = oggetti[n]
+    let t
+    if (!cancella && lettere < frase.length) t = setTimeout(() => setLettere(l => l + 1), 55)
+    else if (!cancella) t = setTimeout(() => setCancella(true), 2600)
+    else if (lettere > 0) t = setTimeout(() => setLettere(l => l - 1), 24)
+    else t = setTimeout(() => { setCancella(false); setN(x => (x + 1) % oggetti.length) }, 300)
+    return () => clearTimeout(t)
+  }, [n, lettere, cancella, oggetti])
+  return (
+    <span className={s.macchina} aria-hidden="true">
+      {oggetti.map(o => <span key={o} className={s.macchinaMisura}>{prima}{o}</span>)}
+      <span className={s.macchinaViva}>{prima}{oggetti[n].slice(0, lettere)}<span className={s.cursore} /></span>
+    </span>
+  )
+}
+
 // L'apertura, identica alla loro: il nastro, l'etichetta bold, il titolo maiuscolo in tre righe che
 // entrano dal basso col lampo blu, la riga di testo, i due bottoni a pillola; il globo grande a
 // destra, tagliato dal bordo; sotto, la coda di cielo dove avviene l'alba (useAlba).
@@ -184,16 +360,12 @@ function Apertura({ t, lang, pagina }) {
   useAlba(sezione, pagina)
   return (
     <section id="inizio" ref={sezione} className={s.apertura}>
-      <div className={s.stelle} aria-hidden="true" />
-      <div className={s.alba} aria-hidden="true" />
+      <Costellazione />
       <Nastro t={t} />
       <div className={`${s.largo} ${s.aperturaGriglia}`}>
         <div className={s.aperturaTesto}>
           <p className={s.etichetta}>{t.uc.eyebrow}</p>
-          <h1 className={s.h1}>
-            <span className={s.soloLettori}>{t.uc.titolo.join(' ')}</span>
-            {t.uc.titolo.map((r, i) => <span key={r} className={s.riga} aria-hidden="true"><span style={{ '--i': i }}>{r}</span></span>)}
-          </h1>
+          <h1 className={s.h1}><span className={s.soloLettori}>{a.titolo}</span><Macchina prima={a.titoloPrima} oggetti={a.oggetti} /></h1>
           <p className={s.sotto}>{a.sotto}</p>
           <div className={s.azioni}>
             <Link href="/register" className={s.btn}>{a.prova}</Link>
@@ -202,7 +374,6 @@ function Apertura({ t, lang, pagina }) {
         </div>
         <div className={s.aperturaGlobo}><Globo testi={a.globo} lingua={INTL[lang]} /></div>
       </div>
-      <div className={s.albaVelo} aria-hidden="true" />
     </section>
   )
 }
@@ -211,22 +382,22 @@ function Apertura({ t, lang, pagina }) {
 // la foto e' la Dashboard vera; i numeri sono fatti del prodotto, contati dai dizionari, non risultati.
 function Intro({ t, lang }) {
   const u = t.uc
-  const numeri = [[FONTI.length, u.statFonti], [LINGUE.length, u.statLingue], [t.tutto.aree.length, u.statAree]]
+  const numeri = [[FONTI.length, u.statFonti, u.statFontiDesc], [LINGUE.length, u.statLingue, u.statLingueDesc], [t.tutto.aree.length, u.statAree, u.statAreeDesc]]
   return (
     <section className={s.intro}>
       <div className={`${s.largo} ${s.introGriglia}`}>
         <div className={s.introSinistra}>
-          <div className={s.introFoto} data-tappa="dashboard"><Immagini lang={lang} id="dashboard" alt={t.apertura.alt} /></div>
+          <div className={s.introVista} data-tappa="dashboard"><Immagini lang={lang} id="dashboard" alt={t.apertura.alt} /></div>
           <h2 className={`${s.titolone}`}><span className={s.grigio}>{u.intro1}</span>{u.intro2}</h2>
         </div>
         <div>
           <p className={s.introTesto} data-compare>{t.apertura.sotto}</p>
           <div className={s.azioni} style={{ justifyContent: 'flex-start', marginTop: 40 }}><a href="#prodotto" className={s.btnVuoto}>{u.introCta}</a></div>
           <p className={s.introNota}>{u.introNota}</p>
-          {numeri.map(([n, l]) => (
+          {numeri.map(([n, l, d]) => (
             <div key={l} className={s.stat} data-compare>
               <strong className={s.cifra}>{n}</strong>
-              <p className={s.etichetta}>{l}</p>
+              <div><p className={s.statTitolo}>{l}</p><p className={s.statTesto}>{d}</p></div>
             </div>
           ))}
         </div>
@@ -270,24 +441,23 @@ function Prodotto({ t, lang }) {
   }, [t])
   return (
     <section id="prodotto" className={s.sezione} style={{ paddingTop: 0 }}>
-      <div className={s.parola} aria-hidden="true"><span>{u.parola}</span></div>
-      <div className={`${s.largo} ${s.racconto}`}>
-        <div className={s.raccontoTesta}>
-          <h2 className={s.titolone}><span className={s.grigio}>{u.prodotto1}</span>{u.prodotto2}</h2>
-          <p className={s.testo}>{u.prodottoTesto}</p>
-        </div>
-        <div className={s.schermo}>
-          <div className={s.schermoFermo}>
-            <div className={s.cornice}>
-              <div className={s.schermoFoto}>
-                {t.blocchi.map((b, i) => (
-                  <Immagini key={b.id} lang={lang} id={b.id} alt={b.alt} className={i === attivo ? s.fotoAttiva : ''} />
-                ))}
-              </div>
+      <div className={`${s.largo} ${s.parola}`}><ScrittaPuntini testo={u.parola.toUpperCase()} /></div>
+      <div className={`${s.largo} ${s.racconto3}`}>
+        {/* Fermo mentre scorrono i passi a destra (Marino, 29 set): il titolo e lo schermo, che cambia foto a ogni passo. */}
+        <div className={s.raccontoFermo}>
+          <div className={s.raccontoTesta}>
+            <h2 className={s.titoloProdotto}><span className={s.grigio}>{u.prodotto1}</span>{u.prodotto2}</h2>
+            <p className={s.testo}>{u.prodottoTesto}</p>
+          </div>
+          <div className={s.cornice}>
+            <div className={s.schermoFoto}>
+              {t.blocchi.map((b, i) => (
+                <Immagini key={b.id} lang={lang} id={b.id} alt={b.alt} className={i === attivo ? s.fotoAttiva : ''} />
+              ))}
             </div>
           </div>
         </div>
-        <div>
+        <div className={s.passi}>
           {t.blocchi.map((b, i) => (
             <div key={b.id} ref={el => { passi.current[i] = el }} data-i={i} className={`${s.passo} ${i === attivo ? s.passoAttivo : ''}`}>
               <Icon name={ICONE_PASSI[b.id] || 'grid'} size={34} className={s.passoIcona} />
@@ -580,6 +750,7 @@ function Piede({ t }) {
           <div className={s.piedePillola}><span>{t.uc.nastro}</span><span>{t.uc.aree}</span></div>
           <div className={s.piedeNastroScorre}>{[...voci, ...voci].map((v, i) => <span key={i}>{v}</span>)}</div>
         </div>
+        <div className={s.piedeLogo}><ScrittaPuntini testo="LYFTAI" /></div>
         <div className={`${s.piedeSotto} ${s.nota}`}>
           <span>© {new Date().getFullYear()} LYFT SRL. {p.diritti}</span>
         </div>

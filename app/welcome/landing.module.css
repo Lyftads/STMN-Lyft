@@ -820,3 +820,104 @@
   .domanda p { margin-left: 52px; }
   .chiusura { padding: 120px 0; }
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+   TERZO GIRO (29 set sera) — le correzioni di Marino sulle registrazioni e sugli screen.
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* ── L'alba come la loro: un ORIZZONTE che sale dal basso ─────────────────────────────────
+   Prima era un cerchio da 150vmax ingrandito a ogni fotogramma: il compositore del browser non ce
+   la faceva e la pagina lampeggiava bianca (visto nella registrazione, 18.50). Ora il cielo e' lo
+   sfondo stesso della sezione, fermo: scorrendo sale da solo, senza calcoli e senza strati giganti.
+   Nero per tutta l'altezza dello schermo, poi blu notte, blu pieno, azzurro, e il bianco solo
+   nell'ultimo tratto (Marino: «nella sfumatura c'e' troppo bianco»). La coda (--coda) e' il cielo. */
+.apertura {
+  --notte: #06070b;
+  --cielo1: #3a6cff; --cielo2: #9ec0ff;
+  --coda: 110vh;
+  padding-bottom: var(--coda);
+  background:
+    radial-gradient(42% 30% at 16% 18%, rgba(88, 70, 190, .16), transparent 70%),
+    radial-gradient(36% 26% at 62% 44%, rgba(34, 70, 180, .12), transparent 72%),
+    linear-gradient(to top,
+      var(--fondoPagina) 0,
+      var(--cielo2) calc(var(--coda) * .12),
+      var(--cielo1) calc(var(--coda) * .34),
+      #1622c8 calc(var(--coda) * .56),
+      #0b0e3a calc(var(--coda) * .82),
+      var(--notte) calc(var(--coda) + 8vh),
+      var(--notte) 100%);
+}
+:global(:root[data-theme='dark']) .apertura { --cielo1: #1f3fb8; --cielo2: #14224d; }
+.costellazione { position: absolute; left: 0; top: 0; width: 100%; height: 100svh; z-index: 0; pointer-events: none; -webkit-mask-image: linear-gradient(#000 70%, transparent); mask-image: linear-gradient(#000 70%, transparent); }
+/* Il globo sale e se ne va mentre sorge il giorno (solo traslazione: niente ingrandimenti). */
+.aperturaGlobo { transform: translate3d(0, calc(var(--alba) * -22vh), 0); }
+/* Il sole arancio dietro al bordo in alto a destra, senza filtri (i filtri grandi costano). */
+.globoSole { filter: none; right: -6%; top: -6%; width: 62%; height: 62%; background: radial-gradient(circle, rgba(255, 90, 20, .5) 0%, rgba(255, 90, 20, .16) 36%, transparent 66%); }
+
+/* ── La barra e' sempre fissa: prima passava da fissa a sticky a meta' alba e la pagina saltava. ── */
+.barra { position: fixed; top: 0; left: 0; right: 0; transition: background-color .35s var(--ease), border-color .35s var(--ease), top .35s var(--ease); }
+.pagina main > section { scroll-margin-top: 80px; }
+
+/* ── Il titolo a macchina da scrivere, maiuscolo e largo ──────────────────────────────── */
+.aperturaTesto .h1 { font-size: clamp(40px, 4.6vw, 74px); line-height: .98; }
+
+/* ── L'intro: il prodotto in grande, senza cornice ne' ombra (Marino: «non deve sembrare uno
+   screen»): un ritaglio ingrandito sulle schede dei numeri che sfuma nel bianco. ─────────── */
+.introSinistra { top: 96px; padding-top: 60px; }
+.introVista {
+  position: relative; width: 100%; height: clamp(300px, 32vw, 500px); overflow: hidden; margin: 0 0 56px;
+  -webkit-mask-image: linear-gradient(to right, #000 62%, transparent 98%), linear-gradient(to bottom, #000 60%, transparent 98%);
+  -webkit-mask-composite: source-in; mask-image: linear-gradient(to right, #000 62%, transparent 98%), linear-gradient(to bottom, #000 60%, transparent 98%); mask-composite: intersect;
+}
+.pagina .introVista img { width: 185%; max-width: none; height: auto; transform: translate(-17%, -13%); }
+/* I numeri col loro testo accanto (Marino: «qui scrivi qualcosa, e' troppo vuoto»). */
+.stat { display: grid; grid-template-columns: minmax(120px, 200px) minmax(0, 1fr); gap: 40px; align-items: center; padding: 44px 0; }
+.stat .cifra { font-size: clamp(64px, 7vw, 116px); }
+.statTitolo { font-family: var(--display); text-transform: uppercase; font-size: 18px; line-height: 1.1; margin: 0 0 10px; color: var(--testo); }
+.statTesto { font-size: 15px; line-height: 1.55; color: var(--testo2); margin: 0; max-width: 460px; }
+
+/* ── I loghi: al passaggio del mouse la casella si accende (nero pieno, retino a puntini) e il
+   logo si ingrandisce, come le caselle dei loro partner. ──────────────────────────────── */
+.fonte { cursor: default; transition: background-color .35s var(--ease), color .35s var(--ease); background-size: 8px 8px; }
+.fonte svg { transition: transform .45s cubic-bezier(.2, .8, .2, 1), opacity .3s; }
+.fonte:hover { background-color: var(--testo); color: var(--fondoPagina); background-image: radial-gradient(rgba(128, 128, 128, .28) 1px, transparent 1.5px); }
+.fonte:hover svg { transform: scale(1.45) rotate(-8deg); opacity: 1; }
+
+/* ── Le scritte a pallini (ScrittaPuntini): PRODOTTO sopra al racconto, LYFTAI nel piede ── */
+.puntini { display: block; width: 100%; font-family: var(--display); color: var(--testo); }
+.parola.largo { padding-top: 96px; padding-bottom: 40px; overflow: visible; }
+.parola .puntini { color: color-mix(in srgb, var(--testo) 16%, var(--fondoPagina)); }
+.piedeLogo { margin: 56px 0 8px; }
+
+/* ── Il racconto del prodotto: titolo e schermo FERMI, scorrono solo i passi a destra ───── */
+.racconto3 { display: grid; grid-template-columns: minmax(0, 8.4fr) minmax(0, 3.6fr); gap: clamp(32px, 4vw, 72px); align-items: start; }
+.raccontoFermo { position: sticky; top: 90px; height: calc(100vh - 110px); display: grid; grid-template-columns: minmax(0, 3.5fr) minmax(0, 6.5fr); gap: clamp(24px, 3vw, 48px); align-items: center; }
+.raccontoFermo .raccontoTesta { position: static; min-height: 0; padding: 0; display: block; }
+.titoloProdotto { font-family: var(--display); text-transform: uppercase; font-weight: 700; line-height: .95; letter-spacing: -.01em; font-size: clamp(32px, 3vw, 52px); margin: 0 0 28px; }
+.raccontoFermo .testo { font-size: 16px; color: var(--testo2); max-width: 420px; }
+.passi { padding: 28vh 0 38vh; }
+.passi .passo { min-height: 36vh; display: flex; flex-direction: column; justify-content: center; transition: opacity .4s var(--ease); }
+.passi .passo:not(.passoAttivo) { opacity: .3; }
+
+@media (prefers-reduced-motion: reduce) {
+  .apertura { padding-bottom: 0; }
+  .aperturaGlobo { transform: none; }
+}
+@media (max-width: 1080px) {
+  .racconto3 { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .raccontoFermo { display: contents; }
+  .raccontoFermo .raccontoTesta { margin-bottom: 24px; }
+  .raccontoFermo .cornice { position: sticky; top: 60px; z-index: 2; box-shadow: 0 14px 24px -16px rgba(0, 0, 0, .3); }
+  .passi { padding: 8vh 0 20vh; }
+  .passi .passo { min-height: 46vh; }
+}
+@media (max-width: 860px) {
+  .apertura { --coda: 60vh; }
+  .aperturaGlobo { transform: translate3d(0, calc(var(--alba) * -12vh), 0) scale(1.1); }
+  .aperturaTesto .h1 { font-size: clamp(34px, 9.5vw, 46px); }
+  .introVista { height: 280px; margin-bottom: 32px; }
+  .stat { grid-template-columns: 1fr; gap: 12px; padding: 32px 0; }
+  .parola.largo { padding-top: 56px; padding-bottom: 20px; }
+  .piedeLogo { margin-top: 32px; }
+}

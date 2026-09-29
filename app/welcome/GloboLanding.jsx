@@ -203,36 +203,53 @@ export default function GloboLanding({ testi, lingua }) {
       }
     }
     const dentro = (x, y, an) => { let k = false; for (let i = 0, j = an.length - 1; i < an.length; j = i++) { const [xi, yi] = an[i], [xj, yj] = an[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) k = !k } return k }
-    const pos = [], vari = []
-    const passo = 0.95
-    for (let lat = -56; lat <= 78; lat += passo) {
-      const pl = passo / Math.max(0.2, Math.cos(lat * Math.PI / 180))
-      for (let lng = -180; lng < 180; lng += pl) {
-        const y = lat + (Math.random() - 0.5) * passo * 0.8, x = lng + (Math.random() - 0.5) * pl * 0.8
-        if (Math.random() < 0.3) continue
-        let si = false
-        for (const p of poligoni) if (x >= p.a && x <= p.b && y >= p.c && y <= p.d && dentro(x, y, p.anello)) { si = true; break }
-        if (!si) continue
-        const q = g.getCoords(y, x, 0.006)
-        pos.push(q.x, q.y, q.z); vari.push(0.55 + Math.random() * 0.9)
+    const terra = (x, y) => { for (const p of poligoni) if (x >= p.a && x <= p.b && y >= p.c && y <= p.d && dentro(x, y, p.anello)) return true; return false }
+    // Come su unitedcarriers.com (Marino, 29 set: «i pallini delineano poco i continenti»): tre strati
+    // di puntini piccoli e tutti uguali — le COSTE fitte e piene (sono loro a disegnare i continenti),
+    // l'interno delle terre su una griglia regolare, e un velo tenue sull'oceano.
+    const pos = [], tipo = []
+    const metti = (lat, lng, t) => { const q = g.getCoords(lat, lng, 0.004); pos.push(q.x, q.y, q.z); tipo.push(t) }
+    for (const p of poligoni) {
+      const an = p.anello
+      for (let i = 1; i < an.length; i++) {
+        const [x0, y0] = an[i - 1], [x1, y1] = an[i]
+        const passi = Math.max(1, Math.ceil(Math.hypot((x1 - x0) * Math.cos(y0 * Math.PI / 180), y1 - y0) / 0.5))
+        for (let k = 0; k < passi; k++) {
+          const t = k / passi, y = y0 + (y1 - y0) * t, x = x0 + (x1 - x0) * t
+          // Solo le COSTE: il file e' diviso per stato, e un bordo che non tocca il mare e' un confine.
+          const e = 0.6
+          if (!terra(x + e, y) || !terra(x - e, y) || !terra(x, y + e) || !terra(x, y - e)) metti(y, x, 1)
+        }
       }
     }
+    const griglia = (passo, t, voglio) => {
+      for (let lat = -60; lat <= 80; lat += passo) {
+        const pl = passo / Math.max(0.15, Math.cos(lat * Math.PI / 180))
+        for (let lng = -180; lng < 180; lng += pl) {
+          const y = lat + (Math.random() - 0.5) * passo * 0.25, x = lng + (Math.random() - 0.5) * pl * 0.25
+          if (terra(x, y) === voglio) metti(y, x, t)
+        }
+      }
+    }
+    griglia(0.72, 0, true)
+    griglia(1.5, 2, false)
     const geo = new THREE.BufferGeometry()
     geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3))
-    geo.setAttribute('vari', new THREE.Float32BufferAttribute(vari, 1))
+    geo.setAttribute('tipo', new THREE.Float32BufferAttribute(tipo, 1))
     const R = g.getGlobeRadius ? g.getGlobeRadius() : 100
     const mat = new THREE.ShaderMaterial({
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
       // uLato: i puntini crescono e calano con il globo (a 1200 px di lato = misura piena).
-      uniforms: { uPx: { value: Math.min(1.25, window.devicePixelRatio || 1) }, uR: { value: R }, uLato: { value: Math.max(0.55, Math.min(1.2, lato / 1200)) } },
-      vertexShader: `attribute float vari; uniform float uPx; uniform float uR; uniform float uLato; varying float vA; varying float vY;
+      uniforms: { uPx: { value: Math.min(1.25, window.devicePixelRatio || 1) }, uR: { value: R }, uLato: { value: Math.max(0.7, Math.min(1.2, lato / 1200)) } },
+      vertexShader: `attribute float tipo; uniform float uPx; uniform float uR; uniform float uLato; varying float vA; varying float vY; varying float vT;
         void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0);
           vec3 n = normalize(normalMatrix * position); float verso = dot(n, normalize(-mv.xyz));
-          vA = smoothstep(-0.02, 0.45, verso) * (0.4 + 0.5 * vari); vY = n.y;
-          gl_PointSize = max(1.2, uPx * 2.6 * uLato * vari * (uR * 3.1 / -mv.z)); gl_Position = projectionMatrix * mv; }`,
-      fragmentShader: `varying float vA; varying float vY;
-        void main(){ float d = length(gl_PointCoord - 0.5); float a = smoothstep(0.5, 0.08, d) * vA; if (a < 0.01) discard;
-          vec3 c = mix(vec3(0.78, 0.84, 1.0), vec3(1.0, 0.93, 0.86), smoothstep(-0.2, 0.9, vY));
+          float forza = tipo < 0.5 ? 0.6 : (tipo < 1.5 ? 0.9 : 0.13);
+          vA = smoothstep(-0.05, 0.12, verso) * forza; vY = n.y; vT = tipo;
+          gl_PointSize = max(1.0, uPx * 1.55 * uLato * (uR * 3.1 / -mv.z)); gl_Position = projectionMatrix * mv; }`,
+      fragmentShader: `varying float vA; varying float vY; varying float vT;
+        void main(){ float d = length(gl_PointCoord - 0.5); float a = smoothstep(0.5, 0.2, d) * vA; if (a < 0.01) discard;
+          vec3 c = vT > 1.5 ? mix(vec3(0.35, 0.5, 1.0), vec3(0.8, 0.85, 1.0), smoothstep(-0.6, 0.4, vY)) : vec3(1.0);
           gl_FragColor = vec4(c * a, a); }`,
     })
     const nuvola = new THREE.Points(geo, mat)

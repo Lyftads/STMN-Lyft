@@ -937,7 +937,8 @@
   .aperturaTesto .sotto { margin-top: 5vh; max-width: 400px; font-size: 18px; }
   .aperturaTesto .azioni { margin-top: 6vh; }
   .aperturaGlobo { position: absolute; right: auto; width: 139vh; left: calc(89.7vw - 69.5vh); top: calc(50vh - 69.5vh); max-width: none; transform: translate3d(0, calc(var(--alba) * -22vh), 0); }
-  .globoNumeri { left: 15%; bottom: 21%; }
-  .globoNota { left: 15%; right: auto; bottom: 17%; }
+  /* Dentro la sfera, sull'oceano scuro: il bordo acceso resta libero (29 set). */
+  .globoNumeri { left: 23%; bottom: 25%; }
+  .globoNota { left: 23%; right: auto; bottom: 21%; }
 }
 .globoSole { display: none; }

@@ -1304,3 +1304,263 @@
   .stazioneScheda { bottom: 64px; }
   .stazione .stazionePalo { height: 58px; top: -56px; }
 }
+
+/* ── Il viaggio, versione FILM: la fascia scura, la sorgente, le scie, il contatore, il portale ── */
+.viaggioBanda {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 42%;
+  background:
+    radial-gradient(rgba(255, 255, 255, .05) 1px, transparent 1.5px) 0 0 / 26px 26px,
+    linear-gradient(#0b0e14, #090b10);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .07);
+}
+@media (min-width: 861px) {
+  .nastroCorsa { top: 62%; }
+  /* sei stazioni su due file alternate, come i loro cartelli lungo la strada */
+  .stazione { left: calc(50% + (var(--i) * 13vw - 32.5vw)); }
+  .stazioneScheda { --att: clamp(0, calc((var(--vp, 0) - (0.02 + var(--i) * 0.171)) / 0.05), 1); bottom: 60px; }
+  .stazione .stazionePalo { height: 54px; top: -52px; }
+  .stazione:nth-child(odd) .stazioneScheda { bottom: 176px; }
+  .stazione:nth-child(odd) .stazionePalo { height: 170px; top: -168px; }
+}
+.paccoChip em { --via: calc((var(--vp, 0) - (0.09 + var(--i) * 0.171)) / 0.05); background: #ffffff; color: #111111; display: inline-flex; align-items: center; gap: 5px; }
+.paccoChip em svg { flex-shrink: 0; }
+/* sul buio della banda: binario e pali chiari */
+.nastroBinario { border-color: rgba(255, 255, 255, .28); background-image: repeating-linear-gradient(90deg, rgba(255, 255, 255, .14) 0 26px, transparent 26px 52px); }
+.stazione .stazionePalo { background: rgba(255, 255, 255, .22); }
+.stazioneChat { font-size: 13px; font-weight: 600; color: var(--testo); background: var(--fondo2); border-radius: 12px 12px 12px 4px; padding: 8px 12px; }
+.stazioneLogo { display: inline-flex; align-items: center; gap: 5px; }
+.stazioneTitolo { display: flex; align-items: center; gap: 6px; }
+/* il pacco: cala dal distributore all'inizio, sparisce nel portale alla fine */
+.pacco {
+  transform: translate3d(calc((var(--vp, 0) * 76 - 38) * 1vw), calc(clamp(0, calc((0.08 - var(--vp, 0)) / 0.08), 1) * -74px), 0);
+  opacity: calc(1 - clamp(0, calc((var(--vp, 0) - 0.965) / 0.03), 1));
+}
+/* le scie di velocita' dietro al pacco */
+.paccoScia, .paccoScia::before, .paccoScia::after {
+  content: ''; position: absolute; right: 100%; height: 2px; border-radius: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .75));
+}
+.paccoScia { width: 64px; top: 14px; margin-right: 10px; opacity: calc(clamp(0, calc((var(--vp, 0) - 0.05) / 0.04), 1) * (1 - clamp(0, calc((var(--vp, 0) - 0.93) / 0.04), 1))); }
+.paccoScia::before { width: 44px; right: 8px; top: 14px; }
+.paccoScia::after { width: 30px; right: 2px; top: 28px; }
+/* la sorgente: Shopify sgancia l'ordine */
+.viaggioSorgente {
+  position: absolute; left: calc(50% - 33vw); top: -136px; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: 999px;
+  background: #ffffff; color: #111111; border: 1px solid rgba(255, 255, 255, .3); box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+  font-family: var(--mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap;
+}
+.viaggioSorgente svg { color: #95bf47; }
+.viaggioSorgente i { position: absolute; left: 50%; top: 100%; width: 0; height: 92px; border-left: 2px dashed rgba(255, 255, 255, .3); }
+/* il contatore, come il loro contachilometri */
+.viaggioContatore { position: absolute; right: clamp(24px, 4vw, 64px); top: -120px; text-align: right; display: grid; gap: 2px; }
+.viaggioContatore span { font-family: var(--mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: rgba(255, 255, 255, .5); }
+.viaggioContatore strong { font-family: var(--display); font-weight: 700; font-size: 44px; line-height: 1; color: #ffffff; font-variant-numeric: tabular-nums; }
+/* il portale: il pacco entra in LyftAI */
+.viaggioPorta { position: absolute; left: calc(50% + 35vw); top: -46px; display: grid; justify-items: center; gap: 10px; }
+.viaggioPorta i { width: 14px; height: 104px; border-radius: 8px; background: #14181f; border: 1px solid rgba(255, 255, 255, .2); box-shadow: 0 0 34px rgba(41, 151, 255, .35); }
+@media (prefers-reduced-motion: reduce) {
+  .pacco { transform: none; opacity: 1; }
+  .paccoScia { display: none; }
+  .viaggioBanda { position: absolute; }
+}
+@media (max-width: 860px) {
+  .viaggioBanda { height: 46vh; }
+  .nastroCorsa { top: 0; }
+  .stazione { left: 50%; top: calc(65vh + var(--i) * 5.6vh); }
+  .stazione .stazionePalo, .stazione:nth-child(odd) .stazionePalo { top: -4px; height: 10px; }
+  .stazioneScheda, .stazione:nth-child(even) .stazioneScheda, .stazione:nth-child(odd) .stazioneScheda {
+    bottom: auto; top: 41vh;
+    --fin: calc((var(--vp, 0) - (0.1 + var(--i) * 0.152)) / 0.045);
+    --fuori: calc((var(--vp, 0) - (0.24 + var(--i) * 0.152)) / 0.045);
+  }
+  .stazione:nth-child(6) .stazioneScheda { --fuori: -99; opacity: clamp(0, var(--fin), 1); }
+  .stazione:nth-child(4) .stazioneScheda { --fuori: calc((var(--vp, 0) - (0.24 + var(--i) * 0.152)) / 0.045); opacity: calc(clamp(0, var(--fin), 1) * (1 - clamp(0, var(--fuori), 1))); }
+  .paccoChip em { --via: calc((var(--vp, 0) - (0.16 + var(--i) * 0.152)) / 0.05); }
+  .pacco { transform: translate3d(0, calc(58vh + var(--vp, 0) * 30vh), 0); }
+  .paccoScia { display: none; }
+  .viaggioSorgente { left: 50%; top: 57vh; }
+  .viaggioSorgente i { height: 26px; }
+  .viaggioContatore { top: auto; bottom: 3vh; right: 20px; }
+  .viaggioContatore strong { font-size: 30px; }
+  .viaggioPorta { left: 50%; transform: translateX(-50%); top: auto; bottom: 1vh; }
+  .viaggioPorta i { width: 74px; height: 12px; }
+}
+
+/* ── Cervello: mezzaluna piu' morbida e piu' lunga; il titolo si stacca dal bagliore ── */
+@media (min-width: 861px) {
+  .buio { padding-top: 380px; }
+  .buio::before, :global(:root[data-theme='dark']) .buio::before {
+    background:
+      radial-gradient(circle 115vw at 50% -84vw, var(--fondoPagina) 0 82%, color-mix(in srgb, var(--fondoPagina) 55%, transparent) 89%, color-mix(in srgb, var(--fondoPagina) 22%, transparent) 95%, transparent 100%),
+      radial-gradient(circle 150vw at 50% -84vw, transparent 0 68%, rgba(82, 112, 238, .45) 80%, rgba(46, 66, 190, .28) 90%, transparent 100%),
+      radial-gradient(ellipse at 50% 30%, #1d3a7a 0%, #0b1636 55%, #060c1f 100%);
+  }
+}
+
+/* ── FILM, atto secondo: nastro VERO, strada, annunci, aereo (29 set, «sorprendimi») ───── */
+@media (min-width: 861px) {
+  .stazione { left: calc(50% + (var(--i) * 10vw - 32vw)); }
+  .stazioneScheda { --att: clamp(0, calc((var(--vp, 0) - (0.019 + var(--i) * 0.132)) / 0.05), 1); }
+  .paccoChip em { --via: calc((var(--vp, 0) - (0.11 + var(--i) * 0.132)) / 0.05); }
+}
+/* Il nastro trasportatore: superficie zigrinata che scorre, sponde, rulli che girano, gambe. */
+.nastroBinario {
+  left: -4vw; width: 58vw; right: auto; top: 58px; height: 16px; border: 0; border-radius: 9px;
+  background:
+    repeating-linear-gradient(100deg, rgba(255, 255, 255, .16) 0 8px, rgba(255, 255, 255, .02) 8px 24px),
+    linear-gradient(#2a2f3a, #171b23);
+  background-position-x: calc(var(--vp, 0) * -46vw), 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25), inset 0 -2px 0 rgba(0, 0, 0, .5), 0 2px 6px rgba(0, 0, 0, .45);
+}
+.nastroBinario::before {
+  /* i rulli sotto il nastro: i "perni" scorrono e sembrano girare */
+  content: ''; position: absolute; left: 6px; right: 6px; top: 100%; height: 12px; margin-top: 3px;
+  background:
+    radial-gradient(circle 2px at 6px 6px, #0b0e14 96%, transparent) 0 0 / 34px 12px repeat-x,
+    radial-gradient(circle 6px at 6px 6px, #3a4150 96%, #262b35) 0 0 / 34px 12px repeat-x;
+  background-position-x: calc(var(--vp, 0) * -46vw + 12px), calc(var(--vp, 0) * -46vw + 12px);
+  filter: none;
+}
+.nastroBinario::after {
+  /* le gambe */
+  content: ''; position: absolute; left: 20px; right: 20px; top: 100%; height: 74px; margin-top: 14px;
+  background: repeating-linear-gradient(90deg, #1c212b 0 8px, transparent 8px 170px);
+}
+/* La strada: asfalto, mezzeria tratteggiata che scorre, bordi. */
+.viaggioStrada {
+  position: absolute; left: 54vw; right: -4vw; top: 52px; height: 30px; border-radius: 4px 0 0 4px;
+  background:
+    linear-gradient(90deg, transparent 0, rgba(255, 255, 255, .07) 30px, transparent 60px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, .8) 0 26px, transparent 26px 54px) 50% 50% / 100% 3px no-repeat,
+    linear-gradient(#20242d, #14171e);
+  background-position-x: 0, calc(var(--vp, 0) * -46vw), 0;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, .16), inset 0 -2px 0 rgba(0, 0, 0, .5);
+}
+/* Le schede-annuncio (Google PMax, creative Meta) */
+.schedaAnnuncio { min-width: 210px; }
+.adSponsor { margin: 0; font-size: 10px; font-weight: 700; color: var(--testo); }
+.adTitolo { margin: 0; font-size: 14px; font-weight: 600; color: #1a4fd6; }
+.adUrl { margin: 0 0 2px; font-size: 11px; color: #1a7a3c; }
+.adCreative {
+  height: 54px; border-radius: 8px; display: grid; place-items: center; color: #ffffff;
+  background: linear-gradient(120deg, #202737, #3c4a68 55%, #26314a);
+}
+/* L'aereo: entra in scena nel finale (--volo 0..1), sale verso destra con la scia; il pacco lo segue. */
+.aereo {
+  position: absolute; left: 50%; top: 40px; color: #14181f; pointer-events: none;
+  --volo: clamp(0, calc((var(--vp, 0) - 0.78) / 0.22), 1);
+  opacity: clamp(0, calc(var(--volo) * 9), 1);
+  transform: translate3d(calc(-56vw + var(--volo) * 96vw), calc(4vh - var(--volo) * 42vh), 0) rotate(-9deg);
+}
+.aereoScia {
+  position: absolute; right: 100%; top: 30px; width: 34vw; height: 2px; margin-right: -6px;
+  background: linear-gradient(90deg, transparent, rgba(120, 130, 150, .55));
+  box-shadow: 0 10px 0 rgba(120, 130, 150, .3);
+  opacity: calc(var(--volo) * .9);
+}
+/* il pacco si aggancia all'aereo e decolla */
+.pacco {
+  --volo: clamp(0, calc((var(--vp, 0) - 0.82) / 0.18), 1);
+  transform: translate3d(calc((min(var(--vp, 0), 0.82) * 76 - 38) * 1vw + var(--volo) * 30vw), calc(clamp(0, calc((0.08 - var(--vp, 0)) / 0.08), 1) * -74px + var(--volo) * -38vh), 0) rotate(calc(var(--volo) * -9deg));
+  opacity: calc(1 - clamp(0, calc((var(--vp, 0) - 0.985) / 0.015), 1));
+}
+/* il portale lascia il posto all'aereo */
+.viaggioPorta { display: none; }
+@media (prefers-reduced-motion: reduce) { .aereo { display: none; } .pacco { transform: none; opacity: 1; } }
+@media (max-width: 860px) {
+  /* nastro e strada in verticale: il nastro nella meta' alta della corsia, la strada sotto */
+  .nastroBinario {
+    left: calc(50% - 8px); width: 16px; top: 62vh; bottom: 22vh; height: auto; border-left: 0;
+    background:
+      repeating-linear-gradient(10deg, rgba(255, 255, 255, .16) 0 8px, rgba(255, 255, 255, .02) 8px 24px),
+      linear-gradient(90deg, #2a2f3a, #171b23);
+    background-position-y: calc(var(--vp, 0) * -30vh), 0;
+  }
+  .nastroBinario::before, .nastroBinario::after { display: none; }
+  .viaggioStrada {
+    left: calc(50% - 15px); right: auto; width: 30px; top: auto; bottom: 0; height: 22vh; border-radius: 4px 4px 0 0;
+    background:
+      repeating-linear-gradient(0deg, rgba(255, 255, 255, .8) 0 22px, transparent 22px 46px) 50% 50% / 3px 100% no-repeat,
+      linear-gradient(90deg, #20242d, #14171e);
+    background-position-y: calc(var(--vp, 0) * -30vh), 0;
+  }
+  .aereo { top: auto; bottom: 12vh; --volo: clamp(0, calc((var(--vp, 0) - 0.8) / 0.2), 1); transform: translate3d(calc(-60vw + var(--volo) * 130vw), 0, 0) rotate(-4deg); }
+  .aereoScia { width: 40vw; }
+  .pacco {
+    --volo: clamp(0, calc((var(--vp, 0) - 0.84) / 0.16), 1);
+    transform: translate3d(calc(var(--volo) * 60vw), calc(58vh + min(var(--vp, 0), 0.84) * 30vh + var(--volo) * 2vh), 0);
+    opacity: calc(1 - clamp(0, calc((var(--vp, 0) - 0.985) / 0.015), 1));
+  }
+}
+
+/* ── FILM v2: l'aereo arriva DAL MONDO all'inizio, fascio di luce arancio, e sgancia il pacco ── */
+@media (min-width: 861px) {
+  .aereo {
+    top: 0; color: #14181f;
+    --arrivo: clamp(0, calc(var(--vp, 0) / 0.12), 1);
+    opacity: calc(clamp(0, calc(var(--vp, 0) * 30), 1) * (1 - clamp(0, calc((var(--vp, 0) - 0.13) / 0.04), 1)));
+    transform: translate3d(calc(-62vw + var(--arrivo) * 26vw), calc(-42vh + var(--arrivo) * 40vh), 0) rotate(11deg) scaleX(1);
+  }
+  .aereoScia {
+    width: 44vw; top: 26px; margin-right: -4px;
+    background: linear-gradient(90deg, transparent, rgba(255, 90, 20, .75));
+    box-shadow: 0 9px 0 rgba(255, 90, 20, .3);
+    opacity: .95;
+  }
+}
+/* il pacco cala dall'aereo sul nastro all'inizio (gia' nel transform: il termine -74px);
+   e alla fine NON decolla piu': entra nella chat e la pagina scivola nel Cervello */
+@media (min-width: 861px) {
+  .pacco {
+    --volo: 0;
+    transform: translate3d(calc((min(var(--vp, 0), 0.86) * 76 - 38) * 1vw), calc(clamp(0, calc((0.1 - var(--vp, 0)) / 0.1), 1) * -34vh), 0);
+    opacity: calc(clamp(0, calc(var(--vp, 0) * 24), 1) * (1 - clamp(0, calc((var(--vp, 0) - 0.9) / 0.05), 1)));
+  }
+}
+/* il video Meta con la scritta dentro, e il catalogo Google */
+.adCreative { position: relative; gap: 6px; display: flex; align-items: center; justify-content: center; }
+.adCreative span { font-size: 10px; font-family: var(--mono); letter-spacing: .04em; color: rgba(255, 255, 255, .8); text-transform: uppercase; }
+.adCatalogo { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.adCatalogo i {
+  height: 44px; border-radius: 8px; display: grid; place-items: end center; padding-bottom: 3px;
+  font-style: normal; font-size: 9px; font-family: var(--mono); color: var(--testo);
+  background: linear-gradient(160deg, var(--fondo2) 55%, var(--bordo));
+  border: 1px solid var(--bordo);
+}
+@media (max-width: 860px) {
+  .aereo {
+    bottom: auto; top: 50vh;
+    --arrivo: clamp(0, calc(var(--vp, 0) / 0.12), 1);
+    opacity: calc(clamp(0, calc(var(--vp, 0) * 30), 1) * (1 - clamp(0, calc((var(--vp, 0) - 0.13) / 0.04), 1)));
+    transform: translate3d(calc(-70vw + var(--arrivo) * 64vw), calc(-16vh + var(--arrivo) * 12vh), 0) rotate(14deg) scale(.7);
+  }
+  .aereoScia { background: linear-gradient(90deg, transparent, rgba(255, 90, 20, .75)); box-shadow: 0 8px 0 rgba(255, 90, 20, .3); opacity: .95; }
+  .pacco {
+    --volo: 0;
+    transform: translate3d(0, calc(52vh + min(var(--vp, 0), 1) * 34vh + clamp(0, calc((0.1 - var(--vp, 0)) / 0.1), 1) * 4vh), 0);
+    opacity: calc(clamp(0, calc(var(--vp, 0) * 24), 1) * (1 - clamp(0, calc((var(--vp, 0) - 0.93) / 0.05), 1)));
+  }
+}
+/* Solo la scena giusta sullo schermo: la scheda compare quando il pacco arriva alla sua stazione e
+   si dissolve due stazioni dopo. Niente piu' schede spente che affollano il cielo. */
+@media (min-width: 861px) {
+  .stazioneScheda {
+    opacity: calc(clamp(0, calc((var(--vp, 0) - (0.019 + var(--i) * 0.132)) / 0.05), 1) * (1 - clamp(0, calc((var(--vp, 0) - (0.30 + var(--i) * 0.132)) / 0.08), 1)));
+  }
+  .stazione:nth-child(7) .stazioneScheda {
+    /* l'ultima (la chat col Cervello) resta: e' il ponte verso la sezione blu */
+    opacity: clamp(0, calc((var(--vp, 0) - 0.679) / 0.05), 1);
+  }
+}
+/* Le stazioni partono piu' a destra (la prima scheda toccava il titolo) e le finestre seguono. */
+@media (min-width: 861px) {
+  .stazione { left: calc(50% + (var(--i) * 10vw - 28vw)); }
+  .stazioneScheda {
+    --att: clamp(0, calc((var(--vp, 0) - (0.07 + var(--i) * 0.132)) / 0.05), 1);
+    opacity: calc(clamp(0, calc((var(--vp, 0) - (0.07 + var(--i) * 0.132)) / 0.05), 1) * (1 - clamp(0, calc((var(--vp, 0) - (0.35 + var(--i) * 0.132)) / 0.08), 1)));
+  }
+  .stazione:nth-child(7) .stazioneScheda { opacity: clamp(0, calc((var(--vp, 0) - 0.729) / 0.05), 1); }
+  .paccoChip em { --via: calc((var(--vp, 0) - (0.16 + var(--i) * 0.132)) / 0.05); }
+}
+@media (max-width: 860px) { .pacco { z-index: 2; } }

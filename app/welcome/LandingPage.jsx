@@ -455,19 +455,24 @@ function Fonti({ t }) {
 }
 
 
-// ── Il viaggio di un ordine (dall'ultima registrazione di unitedcarriers.com, 29 set: il carrello
-// carica il container, il camion parte sulla strada con la parola gigante dietro e le tappe che si
-// accendono). La nostra versione: un PACCO — l'ordine — che corre su un nastro attraverso le
-// stazioni del software (Dashboard, margine, MER, attribuzione) e accumula le etichette dei conti.
-// La scena e' inchiodata: scorre solo l'avanzamento (--vp 0..1, scritto una volta per fotogramma).
+// ── Il viaggio di un ordine — versione FILM (Marino, 29 set: «deve sembrare un film come United
+// Carriers, effetto wow»). La meta' bassa dello schermo e' una fascia scura, la strada: il logo
+// Shopify sgancia il pacco sul nastro, il pacco corre con le scie, le stazioni-widget si accendono
+// al passaggio, le etichette coi loghi veri si attaccano sotto, un contatore live scala il margine
+// come il loro contachilometri, e in fondo il pacco entra nel portale LyftAI. Tutto HTML e CSS,
+// comandato da --vp; l'unico numero scritto dal JavaScript e' il contatore.
+const CONTI_ETICHETTA = (t) => (t.blocchi.find(b => b.id === 'pnl') || {}).etichetta || 'P&L'
 const VIAGGIO_TAPPE = [
-  { id: 'dashboard', chip: '€96' },
-  { id: 'margine', chip: null },
-  { id: 'mer', chip: 'MER 3,6×' },
-  { id: 'attr', chip: 'Meta · Prospecting' },
+  { id: 'shopify', chip: '€96', logo: 'Shopify' },
+  { id: 'margine', chip: null, logo: null },
+  { id: 'meta', chip: 'ROAS 3,1×', logo: 'Meta' },
+  { id: 'google', chip: 'PMax 4,2×', logo: 'Google Ads' },
+  { id: 'conti', chip: 'EBIT €19k', logo: null },
+  { id: 'ai', chip: null, logo: null },
 ]
 function Viaggio({ t }) {
   const sez = useRef(null)
+  const conta = useRef(null)
   useEffect(() => {
     const el = sez.current
     if (!el) return
@@ -479,6 +484,11 @@ function Viaggio({ t }) {
       const tot = el.offsetHeight - window.innerHeight
       const p = tot > 0 ? Math.min(1, Math.max(0, -r.top / tot)) : 0
       el.style.setProperty('--vp', p.toFixed(4))
+      // il contatore: €96 che scala fino a €38 mentre il pacco attraversa il conto del margine
+      if (conta.current) {
+        const q = Math.min(1, Math.max(0, (p - 0.21) / 0.15))
+        conta.current.textContent = '€' + Math.round(96 - q * 58)
+      }
     }
     const chiedi = () => { if (!raf) raf = requestAnimationFrame(aggiorna) }
     aggiorna()
@@ -487,7 +497,7 @@ function Viaggio({ t }) {
     return () => { window.removeEventListener('scroll', chiedi); window.removeEventListener('resize', chiedi); if (raf) cancelAnimationFrame(raf) }
   }, [])
   const v = t.viaggio
-  const chips = [null, v.margine, null, null]
+  const chips = [null, v.margine, null, null, null, null]
   return (
     <section ref={sez} className={s.viaggio}>
       <div className={s.viaggioFermo}>
@@ -499,20 +509,28 @@ function Viaggio({ t }) {
             <p className={s.sotto}>{v.sotto}</p>
           </div>
         </div>
+        {/* La fascia scura: la loro strada. */}
+        <div className={s.viaggioBanda} aria-hidden="true" />
         <div className={s.nastroCorsa} aria-hidden="true">
-          {/* Le stazioni NON sono immagini (Marino, 29 set): sono pezzi di interfaccia veri, in HTML —
-              la scheda KPI, il conto del margine riga per riga, il MER, la campagna. */}
+          {/* Il contatore, come il loro contachilometri: il margine che si calcola in corsa. */}
+          <div className={s.viaggioContatore}>
+            <span>{v.margineP}</span>
+            <strong ref={conta}>€96</strong>
+          </div>
+          {/* Le stazioni: pezzi di interfaccia veri, non immagini. */}
+          {/* Atto 1: Shopify riceve l'ordine sganciato dall'aereo. */}
           <div className={s.stazione} style={{ '--i': 0 }}>
             <div className={s.stazioneScheda}>
-              <p className={s.stazioneTitolo}>{t.filo.dashboard}</p>
+              <p className={s.stazioneTitolo}><svg viewBox="0 0 24 24" width="13" height="13" fill="#95bf47" aria-hidden="true"><path d={LOGHI['Shopify']} /></svg> {t.apertura.globo.nuovo}</p>
+              <div className={s.stazioneRiga}><span>ORDINE #4126</span><strong>€96</strong></div>
               <div className={s.stazioneRiga}><span>{t.apertura.globo.ordini}</span><strong>27 → 28</strong></div>
-              <div className={s.stazioneRiga}><span>{t.viaggio.ricavi}</span><strong>€2.140 <em className={s.su}>▲ 12%</em></strong></div>
             </div>
             <i className={s.stazionePalo} />
           </div>
+          {/* Atto 2: la marginalita' dell'ordine, riga per riga. */}
           <div className={s.stazione} style={{ '--i': 1 }}>
             <div className={s.stazioneScheda}>
-              <p className={s.stazioneTitolo}>{t.filo.productPerformance}</p>
+              <p className={s.stazioneTitolo}><Icon name="euro" size={13} /> {t.filo.productPerformance}</p>
               <div className={s.stazioneRiga}><span>{t.viaggio.prezzo}</span><strong>€96</strong></div>
               <div className={s.stazioneRiga}><span>{t.viaggio.iva}</span><strong>−€17</strong></div>
               <div className={s.stazioneRiga}><span>{t.viaggio.costo} + Ads</span><strong>−€41</strong></div>
@@ -520,32 +538,78 @@ function Viaggio({ t }) {
             </div>
             <i className={s.stazionePalo} />
           </div>
+          {/* Atto 3: la campagna Meta che ha generato l'ordine — il VIDEO, e dal video ROAS e CPC. */}
           <div className={s.stazione} style={{ '--i': 2 }}>
-            <div className={s.stazioneScheda}>
-              <p className={s.stazioneTitolo}>{t.filo.kpiBrain}</p>
-              <div className={s.stazioneCifra}>3,6×</div>
-              <div className={s.stazioneRiga}><span>{t.viaggio.spesa}</span><strong>€612</strong></div>
-              <div className={s.stazioneRiga}><span>{t.viaggio.ricavi}</span><strong>€2.204</strong></div>
+            <div className={s.stazioneScheda + ' ' + s.schedaAnnuncio}>
+              <p className={s.stazioneTitolo}><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><path d={LOGHI['Meta']} /></svg> {t.filo.attribution}</p>
+              <div className={s.adCreative}><Icon name="play" size={16} /><span>Prospecting – Video</span></div>
+              <div className={s.stazioneRiga}><span>ROAS</span><strong className={s.su}>3,1×</strong></div>
+              <div className={s.stazioneRiga}><span>CPC</span><strong>€0,42</strong></div>
             </div>
             <i className={s.stazionePalo} />
           </div>
+          {/* Atto 4: la campagna Google col catalogo prodotti (PMax). */}
           <div className={s.stazione} style={{ '--i': 3 }}>
-            <div className={s.stazioneScheda}>
-              <p className={s.stazioneTitolo}>{t.filo.attribution}</p>
-              <div className={s.stazioneRiga}><span>Meta</span><strong>Prospecting – Video</strong></div>
-              <div className={s.stazioneRiga}><span>{t.apertura.globo.ordini}</span><strong className={s.su}>+1</strong></div>
+            <div className={s.stazioneScheda + ' ' + s.schedaAnnuncio}>
+              <p className={s.stazioneTitolo}><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true"><path d={LOGHI['Google Ads']} /></svg> {t.viaggio.google}</p>
+              <div className={s.adCatalogo}>
+                <i>€96</i><i>€59</i><i>€120</i>
+              </div>
+              <div className={s.stazioneRiga}><span>ROAS</span><strong className={s.su}>4,2×</strong></div>
             </div>
             <i className={s.stazionePalo} />
           </div>
+          {/* Atto 5: il conto economico. */}
+          <div className={s.stazione} style={{ '--i': 4 }}>
+            <div className={s.stazioneScheda}>
+              <p className={s.stazioneTitolo}><Icon name="file" size={13} /> {CONTI_ETICHETTA(t)}</p>
+              <div className={s.stazioneRiga}><span>{t.viaggio.ricavi}</span><strong>€55.298</strong></div>
+              <div className={s.stazioneRiga}><span>COGS + Ads</span><strong>−€35.983</strong></div>
+              <div className={s.stazioneRiga + ' ' + s.stazioneTotale}><span>EBIT</span><strong className={s.su}>€19.315</strong></div>
+            </div>
+            <i className={s.stazionePalo} />
+          </div>
+          {/* Atto 6: dal conto economico parte la chat col Cervello (la sezione dopo). */}
+          <div className={s.stazione} style={{ '--i': 5 }}>
+            <div className={s.stazioneScheda}>
+              <p className={s.stazioneTitolo}><Icon name="chat" size={13} /> {t.filo.ai}</p>
+              <div className={s.stazioneChat}>«{v.margineP} €38 · MER 3,6×»</div>
+              <div className={s.stazioneRiga}><span>{t.ai.etichetta}</span><strong>online</strong></div>
+            </div>
+            <i className={s.stazionePalo} />
+          </div>
+          {/* Il pacco, con le scie e le etichette coi loghi. */}
           <div className={s.pacco}>
+            <div className={s.paccoScia} />
             <div className={s.paccoScatola}><span>ORDINE</span><strong>#4126</strong></div>
             <div className={s.paccoChip}>
               {VIAGGIO_TAPPE.map((tp, i) => (
-                <em key={tp.id} style={{ '--i': i }}>{tp.chip || chips[i]}</em>
+                <em key={tp.id} style={{ '--i': i }}>
+                  {tp.logo && <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" aria-hidden="true"><path d={LOGHI[tp.logo]} /></svg>}
+                  {tp.chip || chips[i]}
+                </em>
               ))}
             </div>
           </div>
+          {/* Il portale: il pacco entra in LyftAI. */}
+          <div className={s.viaggioPorta}>
+            <LogoMark size={30} withGlow={false} />
+            <i />
+          </div>
+          <div className={s.viaggioStrada} />
           <div className={s.nastroBinario} />
+          {/* L'aereo: arriva DAL MONDO all'inizio, col fascio di luce arancio degli ordini del globo,
+              e sgancia il pacco sul nastro. */}
+          <div className={s.aereo}>
+            <svg viewBox="0 0 120 44" width="132" height="48" aria-hidden="true">
+              <path d="M4 30 L44 26 L62 12 Q65 9 69 9 L74 9 L66 26 L96 24 Q106 24 112 28 L116 31 L108 34 L14 36 Q7 36 4 30 Z" fill="currentColor" />
+              <path d="M56 34 L70 33 L60 42 L52 42 Z" fill="currentColor" opacity=".85" />
+              <circle cx="99" cy="29" r="1.6" fill="#fff" opacity=".9" />
+              <circle cx="92" cy="29.5" r="1.6" fill="#fff" opacity=".9" />
+              <circle cx="85" cy="30" r="1.6" fill="#fff" opacity=".9" />
+            </svg>
+            <i className={s.aereoScia} />
+          </div>
         </div>
       </div>
     </section>

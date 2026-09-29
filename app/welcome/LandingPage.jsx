@@ -1,22 +1,25 @@
 'use client'
 
 // ════════════════════════════════════════════════════════════════════════════
-//  LA LANDING — rifatta il 21 set 2026 nello stile del prodotto.
+//  LA LANDING — dal 29 set 2026 e' la pagina di unitedcarriers.com col nostro prodotto dentro.
 //
-//  Prima era vetro nero, titolo in tre colori, particelle, un iframe della demo e
-//  sezioni che promettevano cose tolte dal prodotto (Lighthouse, Performance Agent,
-//  Creative Intel, white-label) o numeri non verificabili (+34% ROAS, testimonianze).
-//  Ora: pagina chiara, SEI misure di testo, un solo bottone nero, e il colore solo
-//  dentro le immagini del prodotto vero (dalla demo, nella lingua del visitatore).
+//  Marino: «deve essere identico ma sul nostro di prodotto». Quindi lo stesso impianto, sezione per
+//  sezione: nastro in cima · apertura di notte col globo tagliato dal bordo e il titolo maiuscolo
+//  gigante che entra riga per riga · l'alba (il blu che sbianca scorrendo) · l'intro a due toni coi
+//  numeri grandi · la parola gigante e la scena inchiodata del prodotto · la sezione buia col
+//  Cervello · la griglia con le crocette · le righe su nero per le agenzie · i prezzi · F.A.Q ·
+//  contatti · chiusura ad anelli · piede col nastro. Stesso carattere largo e maiuscolo (Unbounded)
+//  e mono (IBM Plex Mono), stessi colori: nero, bianco, un blu per il lampo dei titoli, l'arancio
+//  solo sul globo. Le due differenze volute: il carico che attraversa la loro pagina qui e' un
+//  ORDINE, e le foto sono il software vero; niente testimonianze ne' numeri di risultato inventati.
 //
-//  Stile in landing.module.css; testi in testi.js (cinque lingue, stesse chiavi).
-//  Comportamento tenuto dalla versione di prima: lingua dalla rotta o rilevata,
-//  URL che cambia con la lingua, prezzi (aziende/agenzie, mensile/annuale),
-//  modulo contatti su /api/contact.
+//  Stile in landing.module.css (il blocco «COME UNITEDCARRIERS.COM» in fondo vince sul resto);
+//  testi in testi.js (cinque lingue, stesse chiavi; le parti nuove sotto t.uc).
 // ════════════════════════════════════════════════════════════════════════════
 
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
+import { Unbounded, IBM_Plex_Mono } from 'next/font/google'
 import { useEffect, useRef, useState } from 'react'
 import Icon from '../components/ui/Icon'
 import LogoMark from '../components/LogoMark'
@@ -31,9 +34,11 @@ import { Produttivita, TempoReale } from './Squadra'
 import s from './landing.module.css'
 import Lenis from 'lenis'
 
-// Il globo (three.js, ~1,8 MB non compressi) arriva in un pezzo a parte e dopo il testo: la pagina
-// si legge subito, il mondo compare appena pronto. Al suo posto, intanto, un riquadro vuoto della
-// stessa misura, cosi' niente salta.
+// I caratteri dell'esempio: un grottesco largo e bold per i titoli, un mono per le etichette.
+const display = Unbounded({ subsets: ['latin'], weight: ['700'], display: 'swap' })
+const mono = IBM_Plex_Mono({ subsets: ['latin'], weight: ['400', '500'], display: 'swap' })
+
+// Il globo (three.js, ~1,8 MB non compressi) arriva in un pezzo a parte e dopo il testo.
 const Globo = dynamic(() => import('./GloboLanding'), { ssr: false, loading: () => <div className={s.globoAttesa} /> })
 
 const NOMI_LINGUA = { it: 'Italiano', en: 'English', es: 'Español', fr: 'Français', de: 'Deutsch' }
@@ -41,13 +46,11 @@ const INTL = { it: 'it-IT', en: 'en-IE', es: 'es-ES', fr: 'fr-FR', de: 'de-DE' }
 const PERCORSO = { it: '/welcome', en: '/en', es: '/es', fr: '/fr', de: '/de' }
 // Le piattaforme da cui arrivano i numeri: nomi di marchi, non si traducono.
 const FONTI = ['Shopify', 'Meta', 'Google Ads', 'Google Analytics 4', 'Search Console', 'Klaviyo', 'Mailchimp', 'Omnisend']
+// L'icona di ogni passo del racconto (loro: le icone a matrice di punti accanto ai servizi).
+const ICONE_PASSI = { productPerformance: 'euro', kpiBrain: 'gauge', attribution: 'target', budgetAdvisor: 'scale', incrContribution: 'layers', inventory: 'box', clienti: 'users', cro: 'funnel', pnl: 'file' }
 
-function Foto({ lang, id, alt }) {
-  return <div className={s.cornice}><Immagini lang={lang} id={id} alt={alt} /></div>
-}
-
-// L'interruttore giorno / notte (Marino, 21 set 2026). E' la stessa scelta dell'app: impostaTema
-// scrive 'lyft-theme' e cambia data-theme su <html>, con la dissolvenza dell'app.
+// L'interruttore giorno / notte (Marino, 21 set 2026): la stessa scelta dell'app (impostaTema
+// scrive 'lyft-theme' e cambia data-theme su <html>).
 function Tema({ t }) {
   const [scuro, setScuro] = useState(false)
   useEffect(() => {
@@ -69,9 +72,7 @@ function Tema({ t }) {
   )
 }
 
-// Le sezioni compaiono salendo, una volta sola. Il testo c'e' gia' nell'HTML: la classe che le
-// nasconde arriva solo DOPO il caricamento e solo per cio' che sta sotto lo schermo, cosi' senza
-// JavaScript (o per chi indicizza) la pagina e' tutta visibile.
+// Le sezioni compaiono salendo, una volta sola; senza JavaScript la pagina e' tutta visibile.
 function useComparsa(radice) {
   useEffect(() => {
     const el = radice.current
@@ -87,9 +88,19 @@ function useComparsa(radice) {
   }, [radice])
 }
 
+// Il nastro in cima (loro: le news a sinistra, due link mono a destra).
+function Nastro({ t }) {
+  return (
+    <div className={s.ticker}>
+      <span>{t.uc.ticker}</span>
+      <span><Link href="/demo">{t.apertura.demo}</Link> &nbsp;|&nbsp; <Link href="/login">{t.nav.accedi}</Link></span>
+    </div>
+  )
+}
+
 function Barra({ t, lang, scegli }) {
   const [aperto, setAperto] = useState(false)
-  const voci = [['#prodotto', t.nav.prodotto], ['#agenzie', t.nav.agenzie], ['#prezzi', t.nav.prezzi], ['#domande', t.nav.domande]]
+  const voci = [['#prodotto', t.nav.prodotto], ['#agenzie', t.nav.agenzie], ['#prezzi', t.nav.prezzi], ['#domande', t.nav.domande], ['#contatti', t.contatti.etichetta]]
   return (
     <header className={s.barra}>
       <div className={`${s.largo} ${s.barraDentro}`}>
@@ -102,7 +113,6 @@ function Barra({ t, lang, scegli }) {
           <select className={`${s.lingua} ${s.linguaBarra}`} value={lang} onChange={e => scegli(e.target.value)} aria-label={t.nav.lingua}>
             {LINGUE.map(l => <option key={l} value={l}>{NOMI_LINGUA[l]}</option>)}
           </select>
-          <Link href="/login" className={`${s.voce} ${s.nascondiPiccolo}`}>{t.nav.accedi}</Link>
           <Link href="/register" className={`${s.btn} ${s.btnPiccolo} ${s.nascondiPiccolo}`}>{t.nav.prova}</Link>
           <button type="button" className={s.menuBtn} aria-expanded={aperto} aria-controls="menu-landing" aria-label={t.nav.menu} onClick={() => setAperto(a => !a)}>
             {aperto ? <Icon name="close" size={18} /> : (
@@ -113,7 +123,6 @@ function Barra({ t, lang, scegli }) {
       </div>
       {aperto && (
         <nav id="menu-landing" className={s.menuAperto} onClick={e => { if (e.target.tagName !== 'SELECT') setAperto(false) }}>
-          {/* Sui telefoni piccoli la lingua sta qui: nella barra non c'e' posto per tutto. */}
           <select className={`${s.lingua} ${s.linguaMenu}`} value={lang} onChange={e => { scegli(e.target.value); setAperto(false) }} aria-label={t.nav.lingua}>
             {LINGUE.map(l => <option key={l} value={l}>{NOMI_LINGUA[l]}</option>)}
           </select>
@@ -123,34 +132,6 @@ function Barra({ t, lang, scegli }) {
         </nav>
       )}
     </header>
-  )
-}
-
-// Il titolo a macchina da scrivere (Marino, 21 set 2026): «Quanto» resta, il resto si scrive e si
-// cancella a turno — vendi, spendi, ti resta. La pagina nasce con la prima frase INTERA (chi la
-// indicizza e chi non ha JavaScript la legge tutta); il titolo vero per i lettori di schermo e'
-// quello nascosto accanto, e questa parte e' aria-hidden. Tutte le frasi stanno invisibili nella
-// stessa cella: il titolo occupa gia' l'altezza della piu' lunga e sotto non salta niente.
-function Macchina({ prima, oggetti }) {
-  const [n, setN] = useState(0)
-  const [lettere, setLettere] = useState(oggetti[0].length)
-  const [cancella, setCancella] = useState(false)
-  useEffect(() => { setN(0); setLettere(oggetti[0].length); setCancella(false) }, [oggetti])
-  useEffect(() => {
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
-    const frase = oggetti[n]
-    let t
-    if (!cancella && lettere < frase.length) t = setTimeout(() => setLettere(l => l + 1), 55)
-    else if (!cancella) t = setTimeout(() => setCancella(true), 2600)
-    else if (lettere > 0) t = setTimeout(() => setLettere(l => l - 1), 24)
-    else t = setTimeout(() => { setCancella(false); setN(x => (x + 1) % oggetti.length) }, 300)
-    return () => clearTimeout(t)
-  }, [n, lettere, cancella, oggetti])
-  return (
-    <span className={s.macchina} aria-hidden="true">
-      {oggetti.map(o => <span key={o} className={s.macchinaMisura}>{prima}{o}</span>)}
-      <span className={s.macchinaViva}>{prima}{oggetti[n].slice(0, lettere)}<span className={s.cursore} /></span>
-    </span>
   )
 }
 
@@ -193,6 +174,10 @@ function useAlba(sezione, pagina) {
   }, [sezione, pagina])
 }
 
+
+// L'apertura, identica alla loro: il nastro, l'etichetta bold, il titolo maiuscolo in tre righe che
+// entrano dal basso col lampo blu, la riga di testo, i due bottoni a pillola; il globo grande a
+// destra, tagliato dal bordo; sotto, la coda di cielo dove avviene l'alba (useAlba).
 function Apertura({ t, lang, pagina }) {
   const a = t.apertura
   const sezione = useRef(null)
@@ -201,42 +186,57 @@ function Apertura({ t, lang, pagina }) {
     <section id="inizio" ref={sezione} className={s.apertura}>
       <div className={s.stelle} aria-hidden="true" />
       <div className={s.alba} aria-hidden="true" />
+      <Nastro t={t} />
       <div className={`${s.largo} ${s.aperturaGriglia}`}>
         <div className={s.aperturaTesto}>
-          <p className={s.etichetta}>{a.etichetta}</p>
-          <h1 className={s.h1}><span className={s.soloLettori}>{a.titolo}</span><Macchina prima={a.titoloPrima} oggetti={a.oggetti} /></h1>
+          <p className={s.etichetta}>{t.uc.eyebrow}</p>
+          <h1 className={s.h1}>
+            <span className={s.soloLettori}>{t.uc.titolo.join(' ')}</span>
+            {t.uc.titolo.map((r, i) => <span key={r} className={s.riga} aria-hidden="true"><span style={{ '--i': i }}>{r}</span></span>)}
+          </h1>
           <p className={s.sotto}>{a.sotto}</p>
           <div className={s.azioni}>
             <Link href="/register" className={s.btn}>{a.prova}</Link>
-            <Link href="/demo" className={s.btnVuoto}>{a.demo} <Icon name="play" size={12} /></Link>
-          </div>
-          <div className={s.promesse}>
-            {a.promesse.map(p => <span key={p}><Icon name="check" size={14} /> {p}</span>)}
+            <Link href="/demo" className={s.btnVuoto}>{a.demo}</Link>
           </div>
         </div>
-        {/* A destra, grande e alla stessa altezza della scritta: il mondo che gira, con le sessioni e gli ordini. */}
         <div className={s.aperturaGlobo}><Globo testi={a.globo} lingua={INTL[lang]} /></div>
       </div>
-      {/* Il velo: il fondo della pagina che sale sopra a tutto quando l'alba e' compiuta. */}
       <div className={s.albaVelo} aria-hidden="true" />
     </section>
   )
 }
 
-// La Dashboard vera, subito sotto l'apertura: si apre mentre arriva.
-function Vetrina({ t, lang }) {
+// L'intro (loro: WE MOVE FREIGHT. / WE OWN THE OUTCOME. con la foto piccola e i tre numeri grandi):
+// la foto e' la Dashboard vera; i numeri sono fatti del prodotto, contati dai dizionari, non risultati.
+function Intro({ t, lang }) {
+  const u = t.uc
+  const numeri = [[FONTI.length, u.statFonti], [LINGUE.length, u.statLingue], [t.tutto.aree.length, u.statAree]]
   return (
-    <section className={s.vetrina}>
-      <div className={`${s.cornice} ${s.siApre}`} data-tappa="dashboard">
-        <Immagini lang={lang} id="dashboard" alt={t.apertura.alt} />
+    <section className={s.intro}>
+      <div className={`${s.largo} ${s.introGriglia}`}>
+        <div className={s.introSinistra}>
+          <div className={s.introFoto} data-tappa="dashboard"><Immagini lang={lang} id="dashboard" alt={t.apertura.alt} /></div>
+          <h2 className={`${s.titolone}`}><span className={s.grigio}>{u.intro1}</span>{u.intro2}</h2>
+        </div>
+        <div>
+          <p className={s.introTesto} data-compare>{t.apertura.sotto}</p>
+          <div className={s.azioni} style={{ justifyContent: 'flex-start', marginTop: 40 }}><a href="#prodotto" className={s.btnVuoto}>{u.introCta}</a></div>
+          <p className={s.introNota}>{u.introNota}</p>
+          {numeri.map(([n, l]) => (
+            <div key={l} className={s.stat} data-compare>
+              <strong className={s.cifra}>{n}</strong>
+              <p className={s.etichetta}>{l}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   )
 }
 
+// Da dove vengono i numeri: la griglia con le crocette agli angoli, come i loro partner.
 function Fonti({ t }) {
-  // La griglia con le crocette agli angoli (come i partner di unitedcarriers.com), al posto del
-  // nastro che scorreva: otto caselle ferme, i marchi si leggono tutti in una volta.
   return (
     <section className={s.fonti} aria-label={t.fonti.etichetta}>
       <div className={s.largo}>
@@ -253,11 +253,11 @@ function Fonti({ t }) {
   )
 }
 
-// Il prodotto raccontato scorrendo (come «Crea rapidamente» e le schede di shopify.com): il testo
-// scorre a sinistra, lo schermo resta fermo a destra e cambia immagine quando il passo arriva a meta'
-// schermo; sotto, l'avanzamento 01-05. Sul telefono niente schermo fermo: ogni passo ha la sua
-// immagine sotto il testo, come prima.
-function Blocchi({ t, lang }) {
+// Il prodotto (loro: la parola SERVICES gigante, poi la scena inchiodata col titolo a sinistra, la
+// strada al centro e le schede a destra): qui la parola e' PRODOTTO, al centro c'e' lo schermo del
+// software che cambia foto, a destra i nove passi con l'icona, il nome e una riga.
+function Prodotto({ t, lang }) {
+  const u = t.uc
   const [attivo, setAttivo] = useState(0)
   const passi = useRef([])
   useEffect(() => {
@@ -269,22 +269,12 @@ function Blocchi({ t, lang }) {
     return () => io.disconnect()
   }, [t])
   return (
-    <section id="prodotto" className={s.sezione}>
+    <section id="prodotto" className={s.sezione} style={{ paddingTop: 0 }}>
+      <div className={s.parola} aria-hidden="true"><span>{u.parola}</span></div>
       <div className={`${s.largo} ${s.racconto}`}>
-        <div>
-          {t.blocchi.map((b, i) => (
-            <div key={b.id} ref={el => { passi.current[i] = el }} data-i={i} className={`${s.passo} ${i === attivo ? s.passoAttivo : ''}`}>
-              <p className={s.etichetta} data-tappa={b.id}><span className={s.numero}>{String(i + 1).padStart(2, '0')}</span>{b.etichetta}</p>
-              <h2 className={s.h2}>{b.titolo}</h2>
-              <p className={s.testo}>{b.testo}</p>
-              <ul className={s.punti}>
-                {b.punti.map(([forte, resto]) => (
-                  <li key={forte}><Icon name="check" size={16} className={s.segno} /><span><strong>{forte}</strong> {resto}</span></li>
-                ))}
-              </ul>
-              <div className={s.fotoPasso}><Foto lang={lang} id={b.id} alt={b.alt} /></div>
-            </div>
-          ))}
+        <div className={s.raccontoTesta}>
+          <h2 className={s.titolone}><span className={s.grigio}>{u.prodotto1}</span>{u.prodotto2}</h2>
+          <p className={s.testo}>{u.prodottoTesto}</p>
         </div>
         <div className={s.schermo}>
           <div className={s.schermoFermo}>
@@ -295,26 +285,28 @@ function Blocchi({ t, lang }) {
                 ))}
               </div>
             </div>
-            <div className={s.avanzamento} aria-hidden="true">
-              {t.blocchi.map((b, i) => (
-                <span key={b.id} className={i === attivo ? s.tappaAttiva : i < attivo ? s.tappaFatta : ''}><i />{String(i + 1).padStart(2, '0')}</span>
-              ))}
-            </div>
           </div>
+        </div>
+        <div>
+          {t.blocchi.map((b, i) => (
+            <div key={b.id} ref={el => { passi.current[i] = el }} data-i={i} className={`${s.passo} ${i === attivo ? s.passoAttivo : ''}`}>
+              <Icon name={ICONE_PASSI[b.id] || 'grid'} size={34} className={s.passoIcona} />
+              <p className={s.etichetta} data-tappa={b.id}>{b.etichetta}</p>
+              <p className={s.testo}>{b.testo}</p>
+            </div>
+          ))}
         </div>
       </div>
     </section>
   )
 }
 
-// La chat che si scrive da sola (come «Il tuo brand è entrato in chat» di shopify.com): la
-// domanda, "sta scrivendo…", la risposta parola per parola, poi la domanda dopo. Parte solo quando
-// si vede. Con "riduci movimento" resta ferma sulla prima risposta, intera.
+// La chat che si scrive da sola: la domanda, "sta scrivendo…", la risposta parola per parola.
 function ChatDemo({ t }) {
   const c = t.ai.chat
   const radice = useRef(null)
-  const [n, setN] = useState(0)          // quale scambio
-  const [fase, setFase] = useState('fatto') // domanda | scrive | risponde | fatto
+  const [n, setN] = useState(0)
+  const [fase, setFase] = useState('fatto')
   const [parole, setParole] = useState(9999)
   const [visibile, setVisibile] = useState(false)
   useEffect(() => {
@@ -354,30 +346,36 @@ function ChatDemo({ t }) {
   )
 }
 
+// La sezione buia (loro: la nave sull'oceano coi quattro benefici attorno): il Cervello al centro,
+// le sue tre voci attorno, il titolo maiuscolo bianco sopra.
 function Cervello({ t }) {
   const a = t.ai
+  const icone = ['chat', 'bulb', 'users']
+  const Voce = ({ v, i }) => (
+    <div className={s.buioVoce} data-compare>
+      <Icon name={icone[i]} size={28} />
+      <h3 className={s.h3}>{v.titolo}</h3>
+      <p className={s.testo}>{v.testo}</p>
+    </div>
+  )
   return (
-    <section className={`${s.sezione} ${s.sezioneGrigia}`}>
-      <div className={`${s.largo} ${s.divisa}`}>
-        <div data-compare>
+    <section className={s.buio}>
+      <div className={s.largo}>
+        <div className={s.testaSezione} data-compare>
           <p className={s.etichetta}>{a.etichetta}</p>
-          <h2 className={`${s.h2} ${s.acceso}`}>{a.titolo}</h2>
-          <p className={s.sotto}>{a.sotto}</p>
-          <ul className={`${s.voceElenco} ${s.cascata}`} data-compare>
-            {a.voci.map((v, i) => (
-              <li key={v.titolo} style={{ '--i': i }}>
-                <Icon name={['chat', 'bulb', 'users'][i]} size={18} />
-                <div><h3 className={s.h3}>{v.titolo}</h3><p className={s.testo} style={{ fontSize: 'var(--t-5)', marginTop: 4 }}>{v.testo}</p></div>
-              </li>
-            ))}
-          </ul>
+          <h2 className={s.h2}>{a.titolo}</h2>
         </div>
-        <div data-compare><ChatDemo t={t} /></div>
+        <div className={s.buioGriglia}>
+          <div><Voce v={a.voci[0]} i={0} /><div style={{ height: 48 }} /><Voce v={a.voci[1]} i={1} /></div>
+          <div data-compare><ChatDemo t={t} /></div>
+          <div className={s.buioDestra}><Voce v={a.voci[2]} i={2} /></div>
+        </div>
       </div>
     </section>
   )
 }
 
+// Tutto quello che c'e': la griglia coi puntini agli angoli, come i loro partner.
 function Tutto({ t }) {
   const a = t.tutto
   return (
@@ -385,18 +383,19 @@ function Tutto({ t }) {
       <div className={s.largo}>
         <div className={s.testaSezione} data-compare>
           <p className={s.etichetta}>{a.etichetta}</p>
-          <h2 className={`${s.h2} ${s.acceso}`}>{a.titolo}</h2>
+          <h2 className={s.h2}>{a.titolo}</h2>
           <p className={s.sotto}>{a.sotto}</p>
         </div>
-        <div className={`${s.griglia} ${s.cascata}`} data-compare>
-          {a.aree.map((ar, i) => (
-            <div key={ar.titolo} className={s.area} style={{ '--i': i }}>
-              <div className={s.areaTesta}><Icon name={ar.icona} size={18} /><h3 className={s.h3}>{ar.titolo}</h3></div>
+        <div className={s.crocette}>
+          <div className={s.crocetteTesta}><span>{t.uc.tuttoRiga}</span><b>{t.uc.aree}</b></div>
+          {a.aree.map(ar => (
+            <div key={ar.titolo} className={s.cella}>
+              <h3 className={s.h3}><Icon name={ar.icona} size={18} />{ar.titolo}</h3>
               <ul>{ar.voci.map(v => <li key={v}>{v}</li>)}</ul>
             </div>
           ))}
         </div>
-        <p className={`${s.nota} ${s.centro}`} style={{ maxWidth: 720, margin: '28px auto 0' }} data-compare>
+        <p className={s.nota} style={{ maxWidth: 720, margin: '28px 0 0' }} data-compare>
           <strong style={{ color: 'var(--testo)', fontWeight: 600 }}>{a.rivenditori.titolo}.</strong> {a.rivenditori.testo}
         </p>
       </div>
@@ -404,26 +403,27 @@ function Tutto({ t }) {
   )
 }
 
+// Per le agenzie: su nero, a righe con l'etichetta mono a destra, come i loro Insights.
 function Agenzie({ t, vai }) {
   const a = t.agenzie
   return (
-    <section id="agenzie" className={`${s.sezione} ${s.sezioneGrigia}`}>
-      <div className={s.largo}>
+    <section id="agenzie" className={s.nero}>
+      <div className={`${s.largo} ${s.neroGriglia}`}>
         <div className={s.testaSezione} data-compare>
           <p className={s.etichetta}>{a.etichetta}</p>
-          <h2 className={`${s.h2} ${s.acceso}`}>{a.titolo}</h2>
+          <h2 className={s.h2}>{a.titolo}</h2>
           <p className={s.sotto}>{a.sotto}</p>
+          <div className={`${s.azioni} ${s.azioniSinistra}`}>
+            <a href="#prezzi" className={s.btn} onClick={() => vai('agenzie')}>{a.cta}</a>
+          </div>
         </div>
-        <div className={`${s.duo} ${s.cascata}`} data-compare>
+        <div className={s.righe} data-compare>
           {a.voci.map((v, i) => (
-            <div key={v.titolo} className={s.area} style={{ '--i': i }}>
-              <div className={s.areaTesta}><Icon name={['lock', 'globe', 'users'][i]} size={18} /><h3 className={s.h3}>{v.titolo}</h3></div>
-              <p className={s.testo} style={{ fontSize: 'var(--t-5)' }}>{v.testo}</p>
+            <div key={v.titolo} className={s.rigaNera}>
+              <div><h3 className={s.h3}>{v.titolo}</h3><p className={s.testo}>{v.testo}</p></div>
+              <span className={s.rigaTag}>{String(i + 1).padStart(2, '0')} · {a.etichetta}</span>
             </div>
           ))}
-        </div>
-        <div className={`${s.azioni} ${s.azioniSinistra}`}>
-          <a href="#prezzi" className={s.btnVuoto} onClick={() => vai('agenzie')}>{a.cta}</a>
         </div>
       </div>
     </section>
@@ -441,7 +441,7 @@ function Prezzi({ t, lang, pubblico, setPubblico }) {
       <div className={s.largo}>
         <div className={s.testaSezione}>
           <p className={s.etichetta}>{p.etichetta}</p>
-          <h2 className={`${s.h2} ${s.acceso}`}>{p.titolo}</h2>
+          <h2 className={s.h2}>{p.titolo}</h2>
           <p className={s.sotto}>{pubblico === 'agenzie' ? p.agenzieSotto : p.sotto}</p>
         </div>
         <div className={s.comandi}>
@@ -492,14 +492,15 @@ function Prezzi({ t, lang, pubblico, setPubblico }) {
   )
 }
 
+
 function Domande({ t }) {
   const d = t.domande
   return (
-    <section id="domande" className={`${s.sezione} ${s.sezioneGrigia}`}>
-      <div className={`${s.largo} ${s.divisa}`}>
-        <div className={`${s.testaSezione} ${s.testaFerma}`}>
-          <p className={s.etichetta}>{d.etichetta}</p>
-          <h2 className={`${s.h2} ${s.acceso}`}>{d.titolo}</h2>
+    <section id="domande" className={s.sezione}>
+      <div className={`${s.largo} ${s.faqGriglia}`}>
+        <div className={s.testaFerma}>
+          <h2 className={s.faqTitolo}>{t.uc.faq}</h2>
+          <p className={s.sotto} style={{ marginTop: 0, fontSize: 17 }}>{d.titolo}</p>
         </div>
         <div className={s.domande}>
           {d.voci.map((v, i) => (
@@ -509,8 +510,81 @@ function Domande({ t }) {
             </details>
           ))}
         </div>
+        <div>
+          <p className={s.faqAiuto}>{t.uc.faqAiuto}</p>
+          <a href="#contatti" className={s.voce} style={{ color: 'var(--testo)' }}>{t.uc.faqCta} →</a>
+        </div>
       </div>
     </section>
+  )
+}
+
+function Chiusura({ t }) {
+  const c = t.chiusura
+  return (
+    <section className={s.chiusura}>
+      <div className={s.anelli} aria-hidden="true" />
+      <div className={`${s.largo} ${s.chiusuraDentro}`} data-compare>
+        <h2 className={s.h2}>{c.titolo}</h2>
+        <p className={s.sotto}>{c.sotto}</p>
+        <div className={s.azioni}>
+          <Link href="/register" className={s.btn}>{c.prova}</Link>
+          <Link href="/demo" className={s.btnVuoto}>{c.demo}</Link>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// Il piede (loro: colonne, il nastro che scorre con la pillola INDUSTRIES / SERVICES, la sede):
+// qui il nastro sono le voci delle aree del prodotto.
+function Piede({ t }) {
+  const p = t.piede
+  const voci = t.tutto.aree.flatMap(a => a.voci)
+  return (
+    <footer className={s.piede}>
+      <div className={s.largo}>
+        <div className={s.piedeGriglia}>
+          <div>
+            <div className={s.marchio}><LogoMark size={24} withGlow={false} /> LyftAI</div>
+            <p className={s.nota} style={{ marginTop: 12, maxWidth: 300 }}>{p.tagline}</p>
+          </div>
+          <div>
+            <p className={s.piedeTitolo}>{p.prodotto}</p>
+            <ul>
+              <li><a href="#prodotto">{t.nav.prodotto}</a></li>
+              <li><a href="#prezzi">{t.nav.prezzi}</a></li>
+              <li><Link href="/demo">{t.chiusura.demo}</Link></li>
+              <li><Link href="/login">{t.nav.accedi}</Link></li>
+            </ul>
+          </div>
+          <div>
+            <p className={s.piedeTitolo}>{p.azienda}</p>
+            <ul className={s.nota} style={{ gap: 4 }}>
+              <li>LYFT SRL</li>
+              <li>Via Corso Giuseppe Mazzini 223</li>
+              <li>San Benedetto del Tronto (AP) 63074</li>
+              <li>P. IVA: 02600730440</li>
+            </ul>
+          </div>
+          <div>
+            <p className={s.piedeTitolo}>{p.legale}</p>
+            <ul>
+              <li><Link href="/privacy">{p.privacy}</Link></li>
+              <li><Link href="/terms">{p.termini}</Link></li>
+              <li><Link href="/dpa">{p.dpa}</Link></li>
+            </ul>
+          </div>
+        </div>
+        <div className={s.piedeNastro} aria-hidden="true">
+          <div className={s.piedePillola}><span>{t.uc.nastro}</span><span>{t.uc.aree}</span></div>
+          <div className={s.piedeNastroScorre}>{[...voci, ...voci].map((v, i) => <span key={i}>{v}</span>)}</div>
+        </div>
+        <div className={`${s.piedeSotto} ${s.nota}`}>
+          <span>© {new Date().getFullYear()} LYFT SRL. {p.diritti}</span>
+        </div>
+      </div>
+    </footer>
   )
 }
 
@@ -584,68 +658,6 @@ function Contatti({ t, lang }) {
   )
 }
 
-function Chiusura({ t }) {
-  const c = t.chiusura
-  return (
-    <section className={s.chiusura}>
-      {/* Gli anelli concentrici (come la chiusura di unitedcarriers.com): richiamano le orbite del globo dell'apertura. */}
-      <div className={s.anelli} aria-hidden="true" />
-      <div className={`${s.largo} ${s.chiusuraDentro}`} data-compare>
-        <h2 className={`${s.h2} ${s.acceso}`}>{c.titolo}</h2>
-        <p className={s.sotto}>{c.sotto}</p>
-        <div className={s.azioni}>
-          <Link href="/register" className={s.btn}>{c.prova}</Link>
-          <Link href="/demo" className={s.btnVuoto}>{c.demo}</Link>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function Piede({ t }) {
-  const p = t.piede
-  return (
-    <footer className={s.piede}>
-      <div className={s.largo}>
-        <div className={s.piedeGriglia}>
-          <div>
-            <div className={s.marchio}><LogoMark size={24} withGlow={false} /> LyftAI</div>
-            <p className={s.nota} style={{ marginTop: 12, maxWidth: 300 }}>{p.tagline}</p>
-          </div>
-          <div>
-            <p className={s.piedeTitolo}>{p.prodotto}</p>
-            <ul>
-              <li><a href="#prodotto">{t.nav.prodotto}</a></li>
-              <li><a href="#prezzi">{t.nav.prezzi}</a></li>
-              <li><Link href="/demo">{t.chiusura.demo}</Link></li>
-              <li><Link href="/login">{t.nav.accedi}</Link></li>
-            </ul>
-          </div>
-          <div>
-            <p className={s.piedeTitolo}>{p.azienda}</p>
-            <ul className={s.nota} style={{ gap: 4 }}>
-              <li>LYFT SRL</li>
-              <li>Via Corso Giuseppe Mazzini 223</li>
-              <li>San Benedetto del Tronto (AP) 63074</li>
-              <li>P. IVA: 02600730440</li>
-            </ul>
-          </div>
-          <div>
-            <p className={s.piedeTitolo}>{p.legale}</p>
-            <ul>
-              <li><Link href="/privacy">{p.privacy}</Link></li>
-              <li><Link href="/terms">{p.termini}</Link></li>
-              <li><Link href="/dpa">{p.dpa}</Link></li>
-            </ul>
-          </div>
-        </div>
-        <div className={`${s.piedeSotto} ${s.nota}`}>
-          <span>© {new Date().getFullYear()} LYFT SRL. {p.diritti}</span>
-        </div>
-      </div>
-    </footer>
-  )
-}
 
 // ── Il filo dell'ordine (da unitedcarriers.com, dove il carico attraversa tutta la pagina: carrello,
 // camion, nave). Qui l'oggetto e' un ORDINE. Nasce accanto ai numeri del globo e, scorrendo, vola di
@@ -673,7 +685,7 @@ function FiloOrdine({ t, lingua }) {
       if (id === 'inizio') return [r.right + 16, r.top]
       if (id === 'dashboard') return [r.right - w - 14, r.top + 14]
       if (id === 'ai') return [r.right - w - 12, r.top + (r.height - h) / 2]
-      return [r.left, r.top - h - 14]
+      return [r.right - w, r.top - h - 12]
     }
     const aggiorna = () => {
       raf = 0
@@ -793,9 +805,8 @@ function useLenis() {
   }, [])
 }
 
-// La lingua arriva dalla ROTTA (/welcome = it, /en, /es, /fr, /de): cosi' l'HTML servito a chi
-// indicizza e' gia' nella lingua giusta. Su /welcome senza scelta si rileva: ?lang= → scelta
-// salvata su questo dispositivo → lingua del browser → paese.
+// La lingua arriva dalla ROTTA (/welcome = it, /en, /es, /fr, /de). Su /welcome senza scelta si
+// rileva: ?lang= → scelta salvata su questo dispositivo → lingua del browser → paese.
 export default function LandingPage({ initialLang = null }) {
   const [lang, setLang] = useState(initialLang || 'it')
   const [pubblico, setPubblico] = useState('brand')
@@ -824,7 +835,6 @@ export default function LandingPage({ initialLang = null }) {
     return () => { vivo = false }
   }, [initialLang])
 
-  // Anche il resto della pagina che non e' la landing (il banner dei cookie) parla la sua lingua.
   const { locale: linguaApp, setLocale } = useI18n()
   useEffect(() => {
     try { localStorage.setItem('lyftai_lang', lang) } catch {}
@@ -832,7 +842,6 @@ export default function LandingPage({ initialLang = null }) {
     if (linguaApp !== lang) setLocale(lang, { profilo: false })
   }, [lang]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Cambiare lingua cambia anche l'indirizzo: ogni lingua ha la sua pagina da condividere e indicizzare.
   const scegli = (l) => {
     if (!TESTI[l]) return
     scelta.current = true
@@ -842,13 +851,13 @@ export default function LandingPage({ initialLang = null }) {
 
   const t = TESTI[lang] || TESTI.it
   return (
-    <div ref={radice} className={`${s.pagina} landing-pagina`}>
+    <div ref={radice} className={`${s.pagina} landing-pagina`} style={{ '--display': display.style.fontFamily, '--mono': mono.style.fontFamily, '--corpo': "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', 'Inter', 'Segoe UI', Roboto, sans-serif" }}>
       <Barra t={t} lang={lang} scegli={scegli} />
       <main>
         <Apertura t={t} lang={lang} pagina={radice} />
+        <Intro t={t} lang={lang} />
         <Fonti t={t} />
-        <Vetrina t={t} lang={lang} />
-        <Blocchi t={t} lang={lang} />
+        <Prodotto t={t} lang={lang} />
         <Cervello t={t} />
         <Produttivita t={t} lang={lang} />
         <TempoReale t={t} lang={INTL[lang]} />

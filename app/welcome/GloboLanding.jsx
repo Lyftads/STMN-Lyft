@@ -1,13 +1,11 @@
 'use client'
 
-// Il globo dell'apertura della landing (Marino, 21 set 2026: «sotto a quello che hai scritto,
-// spostato verso destra, il mondo che gira con le sessioni e gli ordini»).
-//
-// Dal 29 set 2026 e' un globo di NOTTE (da unitedcarriers.com, che Marino ha portato come modello):
-// sfera scura, terre a puntini bianchi, celle nell'unico accento della pagina dove c'e' qualcuno sul
-// sito, un punto bianco con un'onda dove arriva un ordine, e un'atmosfera dello stesso accento che
-// scorrendo diventa l'alba (vedi useAlba). Ma NON legge dati: e' pubblico, quindi gira su un negozio
-// d'esempio generato qui, e la didascalia lo dice.
+// Il globo dell'apertura della landing — dal 29 set 2026 IDENTICO a quello di unitedcarriers.com
+// (Marino: «il mondo deve essere uguale a quello dell'esempio»): sfera nera, terre a puntini
+// bianchi, la luce dell'alba arancio sul bordo in alto a destra, il blu dell'atmosfera sotto,
+// spilli arancio con l'etichetta della citta' in mono, archi arancio dal negozio verso chi compra.
+// Ma NON legge dati: e' pubblico, quindi gira su un negozio d'esempio generato qui, e la
+// didascalia lo dice.
 //
 // E' solo da guardare: niente trascinamenti (sul telefono il dito deve poter scorrere la pagina),
 // si ferma quando esce dallo schermo, e non gira per chi ha chiesto meno movimento.
@@ -17,6 +15,9 @@ import * as THREE from 'three'
 import st from './landing.module.css'
 
 const COUNTRIES_URL = '/geo/countries-110m.geojson'
+const ARANCIO = '#ff5500'
+// Il negozio d'esempio spedisce da qui: gli archi partono da Milano.
+const NEGOZIO = { lat: 45.46, lng: 9.19 }
 
 // Dove sono i visitatori del negozio d'esempio: soprattutto Italia, poi Europa, qualcuno lontano.
 // [citta', lat, lng, peso]
@@ -77,7 +78,8 @@ export default function GloboLanding({ testi, lingua }) {
     const acquisti = setInterval(() => {
       const c = unaCitta()
       const o = { ...vicino(c), lat: c[1], lng: c[2], euro: 38 + Math.round(Math.random() * 140), t: Date.now() }
-      setOrdini(v => [...v.filter(x => Date.now() - x.t < 12000), o])
+      // Gli ultimi ordini restano sul globo (spillo, etichetta, arco) per una ventina di secondi.
+      setOrdini(v => [...v.filter(x => Date.now() - x.t < 20000), o].slice(-7))
       setOrdiniOggi(n => n + 1)
       setUltimo(o)
     }, 3800)
@@ -105,85 +107,107 @@ export default function GloboLanding({ testi, lingua }) {
       c.enableZoom = false; c.enablePan = false; c.enableRotate = false
       c.autoRotate = !calmo; c.autoRotateSpeed = 0.35
     } catch {}
-    // Piu' vicino di prima (1,9): Marino lo trovava piccolo. L'Italia resta al centro della vista.
-    try { g.pointOfView({ lat: 36, lng: 12, altitude: 1.6 }, 0) } catch {}
+    // Le luci dell'esempio: il sole arancio dell'alba da dietro, in alto a destra (accende il bordo
+    // e i puntini vicino al bordo); il blu dell'atmosfera da sotto; un filo di luce ambiente.
+    try {
+      const ambiente = new THREE.AmbientLight(0xffffff, 0.4)
+      const sole = new THREE.DirectionalLight(0xff5a1f, 4.5); sole.position.set(150, 190, 30)
+      const blu = new THREE.DirectionalLight(0x2b6cff, 2.2); blu.position.set(-40, -170, 120)
+      g.lights([ambiente, sole, blu])
+    } catch {}
+    // L'Italia al centro della vista, vicino: il globo e' tagliato dal bordo destro dello schermo.
+    try { g.pointOfView({ lat: 34, lng: 14, altitude: 1.55 }, 0) } catch {}
   }
 
+  // La sfera: nera, un filo di blu verso sud. Phong e non Basic: cosi' le luci la scolpiscono.
   const sfera = useMemo(() => {
-    if (typeof document === 'undefined') return new THREE.MeshBasicMaterial({ color: '#0b0e15' })
+    if (typeof document === 'undefined') return new THREE.MeshPhongMaterial({ color: '#0b0e15' })
     const tela = document.createElement('canvas')
     tela.width = 8; tela.height = 512
     const ctx = tela.getContext('2d')
     const g = ctx.createLinearGradient(0, 0, 0, 512)
-    // Notte: quasi nero in alto, un filo di blu verso sud, dove sotto c'e' il bagliore dell'alba.
-    g.addColorStop(0, '#0d1017'); g.addColorStop(0.55, '#0b0e15'); g.addColorStop(1, '#0c1a3d')
+    g.addColorStop(0, '#171b24'); g.addColorStop(0.55, '#10131a'); g.addColorStop(1, '#0d1a3a')
     ctx.fillStyle = g; ctx.fillRect(0, 0, 8, 512)
     const mappa = new THREE.CanvasTexture(tela)
     mappa.colorSpace = THREE.SRGBColorSpace
-    return new THREE.MeshBasicMaterial({ map: mappa })
+    return new THREE.MeshPhongMaterial({ map: mappa, shininess: 6, specular: new THREE.Color('#1a2033') })
   }, [])
-
-  const coloreTerre = useMemo(() => {
-    const mischia = (a, b, t) => a.map((x, i) => Math.round(x + (b[i] - x) * t))
-    // Bianchi a puntini, appena piu' freddi verso sud: sul nero si legge la forma dei continenti.
-    const NORD = [236, 238, 242], CENTRO = [214, 219, 228], SUD = [178, 190, 214]
-    const m = new Map()
-    for (const f of paesi) {
-      let somma = 0, n = 0
-      const scendi = (c) => { if (typeof c[0] === 'number') { somma += c[1]; n++ } else c.forEach(scendi) }
-      try { scendi(f.geometry.coordinates) } catch {}
-      const t = Math.min(1, Math.max(0, (70 - (n ? somma / n : 20)) / 110))
-      const c = t < 0.5 ? mischia(NORD, CENTRO, t / 0.5) : mischia(CENTRO, SUD, (t - 0.5) / 0.5)
-      m.set(f, `rgba(${c[0]},${c[1]},${c[2]},.82)`)
-    }
-    return m
-  }, [paesi])
 
   const intero = (n) => new Intl.NumberFormat(lingua).format(n)
   const freschi = ordini.filter(o => Date.now() - o.t < 4500)
 
+  // L'etichetta della citta' in mono, in un riquadro nero, sopra allo spillo: come i paesi sul loro globo.
+  const etichetta = (d) => {
+    const el = document.createElement('div')
+    el.className = st.globoEtichetta
+    el.textContent = d.citta
+    return el
+  }
+
   return (
     <div className={st.globo}>
-      <div ref={wrapRef} aria-hidden="true" style={{ width: '100%', aspectRatio: '1 / 1', pointerEvents: 'none' }}>
-        <Globe
-          ref={globeRef}
-          onGlobeReady={avvia}
-          width={lato}
-          height={lato}
-          backgroundColor="rgba(0,0,0,0)"
-          globeMaterial={sfera}
-          showAtmosphere
-          atmosphereColor="#2997ff"
-          atmosphereAltitude={0.16}
-          hexPolygonsData={paesi}
-          hexPolygonResolution={3}
-          hexPolygonMargin={0.42}
-          hexPolygonColor={f => coloreTerre.get(f) || 'rgba(214,219,228,.82)'}
-          hexPolygonAltitude={0.003}
-          hexBinPointsData={sessioni}
-          hexBinPointLat="lat"
-          hexBinPointLng="lng"
-          hexBinPointWeight="count"
-          hexBinResolution={3}
-          hexMargin={0.22}
-          hexAltitude={0.006}
-          hexTopColor={() => '#2997ff'}
-          hexSideColor={() => '#2997ff'}
-          hexTransitionDuration={600}
-          pointsData={ordini}
-          pointLat="lat"
-          pointLng="lng"
-          pointAltitude={0.012}
-          pointRadius={0.34}
-          pointColor={() => '#ffffff'}
-          ringsData={freschi}
-          ringLat="lat"
-          ringLng="lng"
-          ringColor={() => (t) => `rgba(255,255,255,${1 - t})`}
-          ringMaxRadius={3.4}
-          ringPropagationSpeed={2.2}
-          ringRepeatPeriod={1100}
-        />
+      <div className={st.globoTela}>
+        {/* Il sole dell'alba dietro al bordo in alto a destra, come nell'esempio. */}
+        <div className={st.globoSole} aria-hidden="true" />
+        <div ref={wrapRef} aria-hidden="true" style={{ width: '100%', aspectRatio: '1 / 1', pointerEvents: 'none' }}>
+          <Globe
+            ref={globeRef}
+            onGlobeReady={avvia}
+            width={lato}
+            height={lato}
+            backgroundColor="rgba(0,0,0,0)"
+            globeMaterial={sfera}
+            showAtmosphere
+            atmosphereColor="#2b6cff"
+            atmosphereAltitude={0.19}
+            hexPolygonsData={paesi}
+            hexPolygonResolution={4}
+            hexPolygonMargin={0.52}
+            hexPolygonColor={() => 'rgba(236,238,242,.92)'}
+            hexPolygonAltitude={0.004}
+            hexBinPointsData={sessioni}
+            hexBinPointLat="lat"
+            hexBinPointLng="lng"
+            hexBinPointWeight="count"
+            hexBinResolution={4}
+            hexMargin={0.3}
+            hexAltitude={0.008}
+            hexTopColor={() => '#ffffff'}
+            hexSideColor={() => '#dbe6ff'}
+            hexTransitionDuration={600}
+            pointsData={ordini}
+            pointLat="lat"
+            pointLng="lng"
+            pointAltitude={0.014}
+            pointRadius={0.32}
+            pointColor={() => ARANCIO}
+            ringsData={freschi}
+            ringLat="lat"
+            ringLng="lng"
+            ringColor={() => (t) => `rgba(255,85,0,${1 - t})`}
+            ringMaxRadius={3.4}
+            ringPropagationSpeed={2.2}
+            ringRepeatPeriod={1100}
+            arcsData={ordini}
+            arcStartLat={() => NEGOZIO.lat}
+            arcStartLng={() => NEGOZIO.lng}
+            arcEndLat="lat"
+            arcEndLng="lng"
+            arcColor={() => ['rgba(255,85,0,0)', 'rgba(255,120,40,.95)']}
+            arcStroke={0.35}
+            arcAltitudeAutoScale={0.32}
+            arcDashLength={0.55}
+            arcDashGap={0.2}
+            arcDashAnimateTime={1900}
+            arcsTransitionDuration={0}
+            htmlElementsData={ordini}
+            htmlLat="lat"
+            htmlLng="lng"
+            htmlAltitude={0.03}
+            htmlElement={etichetta}
+            htmlTransitionDuration={0}
+          />
+        </div>
       </div>
       {/* I due numeri, come nella Dashboard: chi c'e' adesso e quanti hanno comprato oggi. */}
       <div className={st.globoNumeri} data-tappa="inizio">

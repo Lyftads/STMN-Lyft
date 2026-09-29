@@ -29,6 +29,8 @@ const it = {
   fonti: { etichetta: 'Legge i dati da' },
   // Il filo dell'ordine: le tappe che la pillola attraversa scorrendo (vedi FiloOrdine in LandingPage.jsx).
   filo: { dashboard: 'Entra nella Dashboard', productPerformance: 'Margine calcolato', kpiBrain: 'Contato nel MER', attribution: 'Attribuito alla campagna', clienti: 'Nella scheda cliente', ai: 'Nella risposta dell’AI' },
+  // La pagina "come unitedcarriers.com" (29 set 2026): i testi delle parti nuove.
+  uc: {ticker: 'Per negozi Shopify · vendite, pubblicità, margine',eyebrow: 'Un solo cervello',titolo: ['Quanto vendi.','Quanto spendi.','Quanto ti resta.'],intro1: 'Tu vendi.',intro2: 'Noi facciamo i conti.',introCta: 'Scopri il prodotto',introNota: 'Da migliaia di ordini, un conto solo',statFonti: 'Fonti collegate',statLingue: 'Lingue',statAree: 'Aree del prodotto',parola: 'Prodotto',prodotto1: 'Ogni numero,',prodotto2: 'al suo posto.',prodottoTesto: 'Shopify, Meta, Google e le tue email in una tabella sola, aggiornata mentre vendi. Ogni passo qui a destra è una tab del software vero.',faq: 'F.A.Q',faqAiuto: 'Hai ancora domande? Ti rispondiamo noi.',faqCta: 'Scrivici',aree: 'Aree',tuttoRiga: 'Tutto incluso',nastro: 'Strumenti'},
   blocchi: [
     {
       id: 'productPerformance',
@@ -311,6 +313,8 @@ const en = {
   fonti: { etichetta: 'Reads data from' },
   // Il filo dell'ordine: le tappe che la pillola attraversa scorrendo (vedi FiloOrdine in LandingPage.jsx).
   filo: { dashboard: 'Into the Dashboard', productPerformance: 'Margin calculated', kpiBrain: 'Counted in MER', attribution: 'Attributed to the campaign', clienti: 'In the customer record', ai: 'In the AI’s answer' },
+  // La pagina "come unitedcarriers.com" (29 set 2026): i testi delle parti nuove.
+  uc: {ticker: 'For Shopify stores · sales, ads, margin',eyebrow: 'One brain',titolo: ['What you sell.','What you spend.','What you keep.'],intro1: 'You sell.',intro2: 'We do the maths.',introCta: 'See the product',introNota: 'From countless orders, one account',statFonti: 'Connected sources',statLingue: 'Languages',statAree: 'Product areas',parola: 'Product',prodotto1: 'Every number,',prodotto2: 'in its place.',prodottoTesto: 'Shopify, Meta, Google and your email in one table, updated as you sell. Every step on the right is a tab of the real software.',faq: 'F.A.Q',faqAiuto: 'Still have questions? We answer ourselves.',faqCta: 'Write to us',aree: 'Areas',tuttoRiga: 'All included',nastro: 'Tools'},
   blocchi: [
     {
       id: 'productPerformance',
@@ -619,6 +623,8 @@ const es = {
   fonti: { etichetta: 'Lee los datos de' },
   // Il filo dell'ordine: le tappe che la pillola attraversa scorrendo (vedi FiloOrdine in LandingPage.jsx).
   filo: { dashboard: 'Entra en el Dashboard', productPerformance: 'Margen calculado', kpiBrain: 'Contado en el MER', attribution: 'Atribuido a la campaña', clienti: 'En la ficha del cliente', ai: 'En la respuesta de la IA' },
+  // La pagina "come unitedcarriers.com" (29 set 2026): i testi delle parti nuove.
+  uc: {ticker: 'Para tiendas Shopify · ventas, publicidad, margen',eyebrow: 'Un solo cerebro',titolo: ['Cuánto vendes.','Cuánto gastas.','Cuánto te queda.'],intro1: 'Tú vendes.',intro2: 'Nosotros hacemos las cuentas.',introCta: 'Descubre el producto',introNota: 'De miles de pedidos, una sola cuenta',statFonti: 'Fuentes conectadas',statLingue: 'Idiomas',statAree: 'Áreas del producto',parola: 'Producto',prodotto1: 'Cada número,',prodotto2: 'en su sitio.',prodottoTesto: 'Shopify, Meta, Google y tu email en una sola tabla, actualizada mientras vendes. Cada paso a la derecha es una pestaña del software real.',faq: 'F.A.Q',faqAiuto: '¿Aún tienes dudas? Te respondemos nosotros.',faqCta: 'Escríbenos',aree: 'Áreas',tuttoRiga: 'Todo incluido',nastro: 'Herramientas'},
   blocchi: [
     {
       id: 'productPerformance',
@@ -931,6 +937,8 @@ const fr = {
   fonti: { etichetta: 'Lit les données de' },
   // Il filo dell'ordine: le tappe che la pillola attraversa scorrendo (vedi FiloOrdine in LandingPage.jsx).
   filo: { dashboard: 'Entre dans le Dashboard', productPerformance: 'Marge calculée', kpiBrain: 'Compté dans le MER', attribution: 'Attribué à la campagne', clienti: 'Dans la fiche client', ai: 'Dans la réponse de l’IA' },
+  // La pagina "come unitedcarriers.com" (29 set 2026): i testi delle parti nuove.
+  uc: {ticker: 'Pour les boutiques Shopify · ventes, publicité, marge',eyebrow: 'Un seul cerveau',titolo: ['Ce que tu vends.','Ce que tu dépenses.','Ce qu’il te reste.'],intro1: 'Tu vends.',intro2: 'On fait les comptes.',introCta: 'Découvrir le produit',introNota: 'De milliers de commandes, un seul compte',statFonti: 'Sources connectées',statLingue: 'Langues',statAree: 'Domaines du produit',parola: 'Produit',prodotto1: 'Chaque chiffre,',prodotto2: 'à sa place.',prodottoTesto: 'Shopify, Meta, Google et tes e-mails dans un seul tableau, mis à jour pendant que tu vends. Chaque étape à droite est un onglet du vrai logiciel.',faq: 'F.A.Q',faqAiuto: 'Encore des questions ? On te répond nous-mêmes.',faqCta: 'Écris-nous',aree: 'Domaines',tuttoRiga: 'Tout inclus',nastro: 'Outils'},
   blocchi: [
     {
       id: 'productPerformance',
@@ -1251,6 +1259,8 @@ const de = {
   fonti: { etichetta: 'Liest die Daten aus' },
   // Il filo dell'ordine: le tappe che la pillola attraversa scorrendo (vedi FiloOrdine in LandingPage.jsx).
   filo: { dashboard: 'Ins Dashboard', productPerformance: 'Marge berechnet', kpiBrain: 'Im MER gezählt', attribution: 'Der Kampagne zugeordnet', clienti: 'In der Kundenakte', ai: 'In der Antwort der KI' },
+  // La pagina "come unitedcarriers.com" (29 set 2026): i testi delle parti nuove.
+  uc: {ticker: 'Für Shopify-Shops · Verkäufe, Werbung, Marge',eyebrow: 'Ein einziges Gehirn',titolo: ['Was du verkaufst.','Was du ausgibst.','Was dir bleibt.'],intro1: 'Du verkaufst.',intro2: 'Wir rechnen.',introCta: 'Produkt entdecken',introNota: 'Aus tausenden Bestellungen eine einzige Rechnung',statFonti: 'Verbundene Quellen',statLingue: 'Sprachen',statAree: 'Produktbereiche',parola: 'Produkt',prodotto1: 'Jede Zahl',prodotto2: 'an ihrem Platz.',prodottoTesto: 'Shopify, Meta, Google und deine E-Mails in einer Tabelle, aktualisiert während du verkaufst. Jeder Schritt rechts ist ein Tab der echten Software.',faq: 'F.A.Q',faqAiuto: 'Noch Fragen? Wir antworten selbst.',faqCta: 'Schreib uns',aree: 'Bereiche',tuttoRiga: 'Alles inklusive',nastro: 'Werkzeuge'},
   blocchi: [
     {
       id: 'productPerformance',

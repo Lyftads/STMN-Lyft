@@ -532,24 +532,23 @@ function Viaggio({ t }) {
     <section ref={sez} className={s.viaggio}>
       <div className={s.viaggioFermo}>
         <div className={s.viaggioParola} aria-hidden="true">{v.parola}</div>
-        {/* Gli atti: video scrubbati (desktop) con la foto come poster e ripiego (telefono). */}
-        {VIAGGIO_ATTI.map((a, i) => (
-          <div key={a.id} className={`${s.atto} ${s['atto_' + a.id]}`} aria-hidden="true">
-            <video ref={el => { video.current[i] = el }} data-src={`/landing/scena/${a.id}.mp4`}
-              poster={`/landing/scena/${a.id === 'cielo' ? 'nuvole' : a.id}.webp`} muted playsInline preload="none" tabIndex={-1} />
-            <img className={s.attoPoster} src={`/landing/scena/${a.id === 'cielo' ? 'nuvole' : a.id}.webp`} alt="" loading="lazy" decoding="async" />
-          </div>
-        ))}
-        {/* L'aereo vero attraversa il cielo col fascio arancio degli ordini del globo. */}
-        <div className={s.aereoProp} aria-hidden="true">
-          <img src="/landing/scena/aereo.webp" alt="" loading="lazy" decoding="async" />
+        {/* ── SCENA v5: oggetti VERI ritagliati su BIANCO (dai fotogrammi di UC) ──
+            Atto 1: le nuvole si sciolgono nel bianco della pagina, l'aereo GRANDE la attraversa.
+            Atto 2: strada DISEGNATA (banda scura con la mezzeria che scorre) + camion vero dall'alto.
+            Atto 3: nastro trasportatore vero che CAMMINA (la trama scorre), pacco sopra, scaffali
+            veri intorno — niente pavimento: intorno c'e' il bianco del sito. */}
+        <div className={s.cieloVelo} aria-hidden="true">
+          <video ref={el => { video.current[0] = el }} data-src="/landing/scena/cielo.mp4" poster="/landing/scena/nuvole.webp" muted playsInline preload="none" tabIndex={-1} />
+          <img src="/landing/scena/nuvole.webp" alt="" loading="lazy" decoding="async" />
         </div>
-        {/* Il pacco vero, trascinato sul nastro del magazzino. */}
+        <div className={s.stradaDisegno} aria-hidden="true"><i /></div>
+        <img className={s.camionTop} src="/landing/scena/camion.webp" alt="" aria-hidden="true" loading="lazy" decoding="async" />
+        <div className={s.nastroTop} aria-hidden="true" />
+        <img className={`${s.rackProp} ${s.rack1}`} src="/landing/scena/rack-a.webp" alt="" aria-hidden="true" loading="lazy" decoding="async" />
+        <img className={`${s.rackProp} ${s.rack2}`} src="/landing/scena/rack-b.webp" alt="" aria-hidden="true" loading="lazy" decoding="async" />
+        <img className={`${s.rackProp} ${s.rack3}`} src="/landing/scena/rack-b.webp" alt="" aria-hidden="true" loading="lazy" decoding="async" />
+        <img className={`${s.rackProp} ${s.rack4}`} src="/landing/scena/rack-a.webp" alt="" aria-hidden="true" loading="lazy" decoding="async" />
         <img className={s.paccoProp} src="/landing/scena/pacco.webp" alt="" aria-hidden="true" loading="lazy" decoding="async" />
-        {/* Il velo in alto: il titolo si legge su qualunque atto. */}
-        {/* Il grading da pellicola: grana e vignettatura sul mondo, MAI sull'interfaccia. */}
-        <div className={s.veloFilm} aria-hidden="true" />
-        <div className={s.scrimFilm} aria-hidden="true" />
         <div className={s.largo}>
           <div className={`${s.viaggioTesta} ${s.testaFilm}`}>
             <p className={s.etichetta}>{t.nav.prodotto}</p>
@@ -557,6 +556,9 @@ function Viaggio({ t }) {
             <p className={s.sotto}>{v.sotto}</p>
           </div>
         </div>
+        {/* L'aereo grande e le nuvole in primo piano: sopra il titolo, come nel loro fotogramma. */}
+        <img className={s.aereoGrande} src="/landing/scena/aereo.webp" alt="" aria-hidden="true" loading="lazy" decoding="async" />
+        <img className={s.nuvolaFronte} src="/landing/scena/nuvola-b.webp" alt="" aria-hidden="true" loading="lazy" decoding="async" />
         {/* L'HUD: contatore, stazioni, etichette. Spazio-schermo: niente puo' coprirlo. */}
         <div className={s.hud} aria-hidden="true">
           <div className={s.viaggioContatore}><span ref={contaLbl}>ORDINE #4126</span><strong ref={conta}>€96</strong></div>

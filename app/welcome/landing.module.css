@@ -1786,3 +1786,95 @@
   .hud .viaggioContatore span { color: rgba(255, 255, 255, .85); text-shadow: 0 1px 10px rgba(0, 0, 0, .55); }
   .hud .viaggioContatore strong { color: #ffffff; text-shadow: 0 2px 20px rgba(0, 0, 0, .5); }
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+   SCENA v5 — OGGETTI VERI SU BIANCO (29 set, dai fotogrammi di UC). Ultimo blocco: vince.
+   ════════════════════════════════════════════════════════════════════════ */
+.viaggioFermo::after { display: none; }
+/* ── Atto 1 · il cielo: le nuvole si sciolgono nel bianco, l'aereo GRANDE sopra il titolo ── */
+.cieloVelo {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  opacity: clamp(0, calc((0.29 - var(--vp, 0)) / 0.05), 1);
+}
+.cieloVelo video, .cieloVelo img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  -webkit-mask-image: radial-gradient(115% 105% at 84% 92%, #000 30%, transparent 70%);
+  mask-image: radial-gradient(115% 105% at 84% 92%, #000 30%, transparent 70%);
+}
+.cieloVelo video { z-index: 1; }
+.aereoGrande {
+  position: absolute; z-index: 4; left: 50%; top: 46vh; width: min(108vw, 1560px); margin-left: min(-54vw, -780px);
+  pointer-events: none; height: auto;
+  --volo: clamp(0, calc(var(--vp, 0) / 0.26), 1);
+  opacity: clamp(0, calc((0.28 - var(--vp, 0)) / 0.03), 1);
+  transform: translate3d(calc(-26vw + var(--volo) * 54vw), calc(var(--volo) * -8vh), 0) rotate(90deg);
+  filter: drop-shadow(-30px 44px 44px rgba(10, 15, 40, .3));
+}
+.nuvolaFronte {
+  position: absolute; z-index: 4; right: -14vw; bottom: -12vh; width: 66vw; pointer-events: none;
+  transform: translate3d(calc(var(--vp, 0) * -16vw), 0, 0);
+  opacity: clamp(0, calc((0.29 - var(--vp, 0)) / 0.04), 1);
+}
+/* ── Atto 2 · la strada DISEGNATA e il camion vero ── */
+.stradaDisegno {
+  position: absolute; z-index: 1; left: 0; right: 0; top: 56vh; height: 30vh; background: #0f1116;
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, .12), inset 0 -3px 0 rgba(255, 255, 255, .12);
+  opacity: calc(clamp(0, calc((var(--vp, 0) - 0.24) / 0.04), 1) * clamp(0, calc((0.52 - var(--vp, 0)) / 0.04), 1));
+}
+.stradaDisegno i {
+  position: absolute; left: -6%; right: -6%; top: 50%; height: 4px; transform: translateY(-50%);
+  background: repeating-linear-gradient(90deg, rgba(255, 255, 255, .85) 0 48px, transparent 48px 122px);
+  background-position-x: calc(var(--vp, 0) * -90vw);
+}
+.camionTop {
+  position: absolute; z-index: 2; left: 20vw; top: calc(71vh - 9.6vw); width: 29vw; height: auto; pointer-events: none;
+  --guida: clamp(0, calc((var(--vp, 0) - 0.24) / 0.26), 1);
+  opacity: calc(clamp(0, calc((var(--vp, 0) - 0.25) / 0.03), 1) * clamp(0, calc((0.52 - var(--vp, 0)) / 0.03), 1));
+  transform: translate3d(calc(var(--guida) * 9vw), calc(sin(var(--guida) * 14rad) * 3px), 0);
+  filter: drop-shadow(-26px 30px 26px rgba(0, 0, 0, .42));
+}
+/* ── Atto 3 · il nastro vero che CAMMINA, il pacco, gli scaffali — su bianco ── */
+.nastroTop {
+  position: absolute; z-index: 1; left: -2vw; right: -2vw; top: 61vh; height: 17vh; pointer-events: none;
+  background: url('/landing/scena/nastro.webp') repeat-x center / auto 118%;
+  background-position-x: calc(var(--vp, 0) * -70vw);
+  filter: drop-shadow(0 22px 26px rgba(0, 0, 0, .28));
+  opacity: clamp(0, calc((var(--vp, 0) - 0.5) / 0.04), 1);
+}
+.paccoProp {
+  top: calc(69.5vh - 3.6vw); bottom: auto; width: clamp(64px, 7vw, 112px); z-index: 2;
+  --corsa: clamp(0, calc((var(--vp, 0) - 0.52) / 0.44), 1);
+  opacity: calc(clamp(0, calc((var(--vp, 0) - 0.52) / 0.03), 1) * (1 - clamp(0, calc((var(--vp, 0) - 0.96) / 0.03), 1)));
+  transform: translate3d(calc(-12vw + var(--corsa) * 118vw), calc(sin(var(--corsa) * 9rad) * 2px), 0) rotate(2deg);
+  filter: drop-shadow(0 14px 16px rgba(0, 0, 0, .38));
+}
+.rackProp {
+  position: absolute; z-index: 1; pointer-events: none; height: auto;
+  opacity: clamp(0, calc((var(--vp, 0) - var(--nasce, 0.5)) / 0.05), 1);
+  transform: translate3d(0, calc((var(--vp, 0) - 0.7) * -4vh), 0);
+  filter: drop-shadow(0 18px 22px rgba(0, 0, 0, .22));
+}
+.rack1 { --nasce: 0.5; top: 36vh; left: 5vw; width: 23vw; }
+.rack2 { --nasce: 0.53; top: 32vh; left: 64vw; width: 26vw; }
+.rack3 { --nasce: 0.56; top: 84vh; left: 24vw; width: 26vw; }
+.rack4 { --nasce: 0.54; top: 86vh; left: 71vw; width: 22vw; }
+@media (prefers-reduced-motion: reduce) {
+  .cieloVelo, .nuvolaFronte, .aereoGrande, .stradaDisegno, .camionTop { display: none; }
+  .nastroTop, .rackProp, .paccoProp { opacity: 1; }
+  .paccoProp { transform: rotate(2deg); left: 46vw; }
+}
+@media (max-width: 860px) {
+  .cieloVelo video { display: none; }
+  .cieloVelo video, .cieloVelo img { mask-image: radial-gradient(130% 90% at 70% 96%, #000 30%, transparent 74%); -webkit-mask-image: radial-gradient(130% 90% at 70% 96%, #000 30%, transparent 74%); }
+  .aereoGrande { width: 210vw; margin-left: -105vw; top: 52vh; transform: translate3d(calc(-18vw + var(--volo) * 40vw), calc(var(--volo) * -6vh), 0) rotate(90deg); }
+  .nuvolaFronte { width: 110vw; right: -30vw; bottom: -6vh; }
+  .stradaDisegno { top: 52vh; height: 24vh; }
+  .stradaDisegno i { background: repeating-linear-gradient(90deg, rgba(255, 255, 255, .85) 0 30px, transparent 30px 78px); }
+  .camionTop { width: 58vw; left: 12vw; top: calc(64vh - 19.5vw); }
+  .nastroTop { top: 58vh; height: 12.5vh; }
+  .paccoProp { width: 58px; top: calc(64vh - 26px); }
+  .rack1 { top: 36vh; left: -8vw; width: 46vw; }
+  .rack2 { top: 33vh; left: 60vw; width: 48vw; }
+  .rack3 { top: 76vh; left: 10vw; width: 46vw; }
+  .rack4 { top: 79vh; left: 64vw; width: 44vw; }
+}

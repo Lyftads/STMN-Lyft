@@ -1043,3 +1043,10 @@
 }
 .luna { width: 120vw; bottom: calc(var(--coda) * .26); }
 @media (max-width: 860px) { .luna { width: 125vw; bottom: calc(var(--coda) * .3); } }
+/* (29 set) «leggermente piu' morbida e meno curva»: disco piu' largo (curva piu' dolce) e
+   dissolvenza del bordo su una fascia piu' ampia. */
+.luna {
+  width: 165vw; bottom: calc(var(--coda) * .3);
+  background: radial-gradient(closest-side, var(--notte) 0, var(--notte) 80%, color-mix(in srgb, var(--notte) 55%, transparent) 90%, transparent 100%);
+}
+@media (max-width: 860px) { .luna { width: 175vw; bottom: calc(var(--coda) * .34); } }

@@ -1094,3 +1094,47 @@
     linear-gradient(to bottom, var(--fondoPagina) 0, rgba(20, 30, 70, .6) 140px, transparent 320px),
     radial-gradient(ellipse at 50% 30%, #1d3a7a 0%, #0b1636 55%, #060c1f 100%);
 }
+
+/* (29 set, dalla registrazione) I bottoni si riempiono d'arancio al passaggio, come i loro
+   TALK WITH US / WORK WITH US. L'arancio e' quello del globo: lo stesso e in due posti soli. */
+.btn, .btnVuoto { transition: background-color .25s var(--ease), border-color .25s var(--ease), color .25s var(--ease), transform .08s var(--ease); }
+.btn:hover { background: #f50; border-color: #f50; color: #fff !important; }
+.btnVuoto:hover { background: #f50; border-color: #f50; color: #fff; }
+.tema button, .scelta button { transition: background-color .2s var(--ease), color .2s var(--ease); }
+/* (29 set) «l'effetto sfumato deve essere sempre a mezza luna»: il bianco sopra al Cervello non e'
+   una fascia dritta ma un disco enorme che sporge in giu' al centro — la stessa curva dell'apertura —
+   col bordo dissolto. Sotto, l'azzurro di prima. */
+.buio::before {
+  background:
+    radial-gradient(circle 90vw at 50% -78vw, var(--fondoPagina) 0 84%, color-mix(in srgb, var(--fondoPagina) 60%, rgba(120, 150, 235, .5)) 90%, rgba(90, 120, 220, .3) 95%, transparent 100%),
+    radial-gradient(ellipse at 50% 30%, #1d3a7a 0%, #0b1636 55%, #060c1f 100%);
+}
+:global(:root[data-theme='dark']) .buio::before {
+  background:
+    radial-gradient(circle 90vw at 50% -78vw, var(--fondoPagina) 0 84%, rgba(20, 30, 70, .5) 93%, transparent 100%),
+    radial-gradient(ellipse at 50% 30%, #1d3a7a 0%, #0b1636 55%, #060c1f 100%);
+}
+.buio { padding-top: 260px; }
+@media (max-width: 860px) {
+  .buio { padding-top: 170px; }
+  .buio::before, :global(:root[data-theme='dark']) .buio::before {
+    background:
+      radial-gradient(circle 170vw at 50% -152vw, var(--fondoPagina) 0 86%, color-mix(in srgb, var(--fondoPagina) 55%, rgba(120, 150, 235, .45)) 92%, transparent 100%),
+      radial-gradient(ellipse at 50% 30%, #1d3a7a 0%, #0b1636 55%, #060c1f 100%);
+  }
+}
+/* Negli angoli in alto (fuori dal disco) il bianco staccava netto: un velo sottile li fonde. */
+.buio::before {
+  background:
+    linear-gradient(to bottom, var(--fondoPagina) 0, color-mix(in srgb, var(--fondoPagina) 45%, transparent) 50px, transparent 130px),
+    radial-gradient(circle 90vw at 50% -78vw, var(--fondoPagina) 0 84%, color-mix(in srgb, var(--fondoPagina) 60%, rgba(120, 150, 235, .5)) 90%, rgba(90, 120, 220, .3) 95%, transparent 100%),
+    radial-gradient(ellipse at 50% 30%, #1d3a7a 0%, #0b1636 55%, #060c1f 100%);
+}
+@media (max-width: 860px) {
+  .buio::before {
+    background:
+      linear-gradient(to bottom, var(--fondoPagina) 0, color-mix(in srgb, var(--fondoPagina) 45%, transparent) 40px, transparent 100px),
+      radial-gradient(circle 170vw at 50% -152vw, var(--fondoPagina) 0 86%, color-mix(in srgb, var(--fondoPagina) 55%, rgba(120, 150, 235, .45)) 92%, transparent 100%),
+      radial-gradient(ellipse at 50% 30%, #1d3a7a 0%, #0b1636 55%, #060c1f 100%);
+  }
+}

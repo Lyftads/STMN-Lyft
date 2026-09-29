@@ -98,6 +98,33 @@ function Nastro({ t }) {
   )
 }
 
+// Le lettere che si mescolano (dalla registrazione di unitedcarriers.com, 29 set): al passaggio del
+// mouse la voce si decodifica — lettere a caso che si fissano una alla volta da sinistra. Il font e'
+// mono, quindi la larghezza non balla. Solo col mouse, mai per chi ha chiesto meno movimento.
+const MESCOLA_SEGNI = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ##$%&'
+const MESCOLA_TIMER = new WeakMap()
+function mescola(e) {
+  const el = e.currentTarget
+  if (!window.matchMedia?.('(pointer: fine) and (prefers-reduced-motion: no-preference)').matches) return
+  // Se una mescolata precedente sta ancora girando, si ferma e si riparte dal testo VERO
+  // (senza questo, il testo vero catturato era quello a meta' corsa e restava sbagliato).
+  const vecchio = MESCOLA_TIMER.get(el)
+  if (vecchio) { clearInterval(vecchio.timer); el.textContent = vecchio.vero }
+  const vero = el.textContent
+  if (!vero || vero.length > 24) return
+  let giro = 0
+  const timer = setInterval(() => {
+    giro++
+    const fissi = Math.max(0, giro - 3)
+    if (fissi >= vero.length) { clearInterval(timer); MESCOLA_TIMER.delete(el); el.textContent = vero; return }
+    el.textContent = [...vero].map((c, i) => {
+      if (c === ' ' || i < fissi) return c
+      return MESCOLA_SEGNI[Math.floor(Math.random() * MESCOLA_SEGNI.length)]
+    }).join('')
+  }, 28)
+  MESCOLA_TIMER.set(el, { timer, vero })
+}
+
 function Barra({ t, lang, scegli }) {
   const [aperto, setAperto] = useState(false)
   const voci = [['#prodotto', t.nav.prodotto], ['#agenzie', t.nav.agenzie], ['#prezzi', t.nav.prezzi], ['#domande', t.nav.domande], ['#contatti', t.contatti.etichetta]]
@@ -106,7 +133,7 @@ function Barra({ t, lang, scegli }) {
       <div className={`${s.largo} ${s.barraDentro}`}>
         <a href="#inizio" className={s.marchio} aria-label="LyftAI"><LogoMark size={26} withGlow={false} /> LyftAI</a>
         <nav className={s.voci} aria-label={t.nav.prodotto}>
-          {voci.map(([h, l]) => <a key={h} href={h} className={s.voce}>{l}</a>)}
+          {voci.map(([h, l]) => <a key={h} href={h} className={s.voce} onMouseEnter={mescola}>{l}</a>)}
         </nav>
         <div className={s.destra}>
           <Tema t={t} />

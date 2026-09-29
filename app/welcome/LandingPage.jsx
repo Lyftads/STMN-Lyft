@@ -559,6 +559,27 @@ function Viaggio({ t }) {
         {/* L'aereo grande e le nuvole in primo piano: sopra il titolo, come nel loro fotogramma. */}
         <img className={s.aereoGrande} src="/landing/scena/aereo.webp" alt="" aria-hidden="true" loading="lazy" decoding="async" />
         <img className={s.nuvolaFronte} src="/landing/scena/nuvola-b.webp" alt="" aria-hidden="true" loading="lazy" decoding="async" />
+        {/* Le DESCRIZIONI delle funzionalita' accanto alla scena (dallo screen di UC: etichetta,
+            titolo grande, testo e punti — non solo i popup): sono i blocchi del racconto, gia'
+            tradotti in 5 lingue. Una per il camion, due per il nastro. */}
+        {[
+          { id: 'productPerformance', da: 0.27, a: 0.51, destra: true },
+          { id: 'attribution', da: 0.55, a: 0.72, destra: false },
+          { id: 'pnl', da: 0.75, a: 0.95, destra: true },
+        ].map(d => {
+          const b = t.blocchi.find(x => x.id === d.id)
+          if (!b) return null
+          return (
+            <div key={d.id} className={`${s.descFilm} ${d.destra ? s.descDestra : s.descSinistra}`} style={{ '--da': d.da, '--fine': d.a }}>
+              <p className={s.etichetta}>{b.etichetta}</p>
+              <h3 className={s.descTitolo}>{b.titolo}</h3>
+              <p className={s.descTesto}>{b.testo}</p>
+              <ul className={s.descPunti}>
+                {(b.punti || []).slice(0, 2).map(([forte, resto]) => <li key={forte}><strong>{forte}</strong> {resto}</li>)}
+              </ul>
+            </div>
+          )
+        })}
         {/* L'HUD: contatore, stazioni, etichette. Spazio-schermo: niente puo' coprirlo. */}
         <div className={s.hud} aria-hidden="true">
           <div className={s.viaggioContatore}><span ref={contaLbl}>ORDINE #4126</span><strong ref={conta}>€96</strong></div>
@@ -574,14 +595,14 @@ function Viaggio({ t }) {
             <div className={s.stazioneRiga}><span>{v.costo} + Ads</span><strong>−€41</strong></div>
             <div className={s.stazioneRiga + ' ' + s.stazioneTotale}><span>{v.margineP}</span><strong>€38</strong></div>
           </div>
-          <div className={`${s.hudScheda} ${s.stazioneScheda} ${s.schedaAnnuncio}`} style={{ '--at': 0.55, '--lato': 0 }}>
+          <div className={`${s.hudScheda} ${s.stazioneScheda} ${s.schedaAnnuncio}`} style={{ '--at': 0.54, '--lato': 1 }}>
             <p className={s.stazioneTitolo}><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><path d={LOGHI['Meta']} /></svg> {t.filo.attribution}</p>
             {/* il video-ad VERO: questo gira da solo, e' un contenuto dentro al film */}
             <div className={s.adVideo}><video src="/landing/scena/meta-ad.mp4" poster="/landing/scena/meta-creative.webp" muted playsInline autoPlay loop preload="metadata" tabIndex={-1} /><span>Prospecting – Video</span></div>
             <div className={s.stazioneRiga}><span>ROAS</span><strong className={s.su}>3,1×</strong></div>
             <div className={s.stazioneRiga}><span>CPC</span><strong>€0,42</strong></div>
           </div>
-          <div className={`${s.hudScheda} ${s.stazioneScheda} ${s.schedaAnnuncio}`} style={{ '--at': 0.66, '--lato': 1 }}>
+          <div className={`${s.hudScheda} ${s.stazioneScheda} ${s.schedaAnnuncio}`} style={{ '--at': 0.68, '--lato': 1 }}>
             <p className={s.stazioneTitolo}><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true"><path d={LOGHI['Google Ads']} /></svg> {v.google}</p>
             <div className={s.adCatalogo}>
               <i style={{ backgroundImage: 'url(/landing/scena/prod-scarpe.webp)' }}><b>€96</b></i>

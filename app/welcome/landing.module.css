@@ -1878,3 +1878,55 @@
   .rack3 { top: 76vh; left: 10vw; width: 46vw; }
   .rack4 { top: 79vh; left: 64vw; width: 44vw; }
 }
+
+/* ── Ritocchi v5.1 (29 set, dagli screen): partenza BIANCA, aereo intero, descrizioni accanto ── */
+/* 1) L'atto del cielo parte dal bianco: le nuvole col mondo ARRIVANO scrollando. */
+.cieloVelo { opacity: calc(clamp(0, calc((var(--vp, 0) - 0.02) / 0.06), 1) * clamp(0, calc((0.29 - var(--vp, 0)) / 0.05), 1)); }
+.nuvolaFronte { opacity: calc(clamp(0, calc((var(--vp, 0) - 0.03) / 0.05), 1) * clamp(0, calc((0.29 - var(--vp, 0)) / 0.04), 1)); }
+/* 2) L'aereo intero, piu' in alto: si vede il corpo col muso, le ali sbordano in alto e in basso in pari. */
+.aereoGrande {
+  width: min(92vw, 1360px); margin-left: min(-46vw, -680px); top: 4vh;
+  opacity: calc(clamp(0, calc((var(--vp, 0) - 0.015) / 0.03), 1) * clamp(0, calc((0.28 - var(--vp, 0)) / 0.03), 1));
+  transform: translate3d(calc(-20vw + var(--volo) * 46vw), calc(var(--volo) * 4vh), 0) rotate(90deg);
+}
+/* 3) Il titolo esce di scena del tutto a meta' film: il posto e' delle descrizioni. */
+.testaFilm .h2 { opacity: calc(1 - clamp(0, calc((var(--vp, 0) - 0.3) / 0.14), 1)); }
+.testaFilm .etichetta { opacity: calc(1 - clamp(0, calc((var(--vp, 0) - 0.28) / 0.1), 1)); }
+/* 4) Le descrizioni delle funzionalita': grandi, di pagina, con la loro finestra sulla timeline. */
+.descFilm {
+  position: absolute; z-index: 4; top: 13vh; width: min(34vw, 470px); pointer-events: none;
+  opacity: calc(clamp(0, calc((var(--vp, 0) - var(--da)) / 0.04), 1) * clamp(0, calc((var(--fine) - var(--vp, 0)) / 0.04), 1));
+  translate: 0 calc((1 - clamp(0, calc((var(--vp, 0) - var(--da)) / 0.04), 1)) * 26px);
+}
+.descSinistra { left: clamp(24px, 4vw, 64px); }
+.descDestra { right: clamp(24px, 4vw, 64px); }
+.descTitolo { font-family: var(--display); text-transform: uppercase; font-weight: 700; font-size: clamp(26px, 2.5vw, 42px); line-height: .98; letter-spacing: -.01em; color: var(--testo); margin: 10px 0 14px; }
+.descTesto { font-size: 15px; line-height: 1.55; color: var(--testo2); margin: 0; }
+.descPunti { list-style: none; padding: 12px 0 0; margin: 14px 0 0; border-top: 1px solid var(--bordo); display: grid; gap: 8px; }
+.descPunti li { font-size: 13px; line-height: 1.5; color: var(--testo2); }
+.descPunti strong { color: var(--testo); font-weight: 650; }
+@media (max-width: 860px) {
+  .aereoGrande { width: 190vw; margin-left: -95vw; top: 34vh; }
+  .descFilm { top: 21vh; width: 86vw; left: 7vw !important; right: auto !important; }
+  .descTitolo { font-size: 24px; }
+  .descTesto { font-size: 14px; }
+  .descPunti { display: none; }
+  /* le schede-popup scendono per non coprire le descrizioni */
+  .hudScheda, .hud .stazioneScheda { top: auto !important; bottom: 26vh; }
+}
+@media (prefers-reduced-motion: reduce) { .descFilm { position: static; opacity: 1; translate: none; width: auto; margin: 24px clamp(24px, 4vw, 64px); } }
+/* v5.2: partenza piu' bianca, descrizioni sempre leggibili */
+.cieloVelo { opacity: calc(clamp(0, calc((var(--vp, 0) - 0.04) / 0.09), 1) * clamp(0, calc((0.29 - var(--vp, 0)) / 0.05), 1)); }
+.nuvolaFronte { opacity: calc(clamp(0, calc((var(--vp, 0) - 0.06) / 0.08), 1) * clamp(0, calc((0.29 - var(--vp, 0)) / 0.04), 1)); }
+.aereoGrande {
+  --volo: clamp(0, calc((var(--vp, 0) - 0.02) / 0.24), 1);
+  opacity: calc(clamp(0, calc((var(--vp, 0) - 0.03) / 0.05), 1) * clamp(0, calc((0.28 - var(--vp, 0)) / 0.03), 1));
+  transform: translate3d(calc(-34vw + var(--volo) * 62vw), calc(var(--volo) * 4vh), 0) rotate(90deg);
+}
+/* il velo bianco dietro alle descrizioni: si leggono sopra qualunque cosa, senza sembrare schede */
+.descFilm {
+  padding: 20px 22px; border-radius: 16px;
+  background: color-mix(in srgb, var(--fondo) 84%, transparent);
+  backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
+}
+.rack2 { top: 40vh; }

@@ -1050,3 +1050,27 @@
   background: radial-gradient(closest-side, var(--notte) 0, var(--notte) 80%, color-mix(in srgb, var(--notte) 55%, transparent) 90%, transparent 100%);
 }
 @media (max-width: 860px) { .luna { width: 175vw; bottom: calc(var(--coda) * .34); } }
+/* (29 set) Sul telefono la scritta «Negozio d'esempio» toccava il titolo: schede e didascalia
+   salgono, e il margine sotto il globo scende di conseguenza. */
+@media (max-width: 860px) {
+  .aperturaGlobo { margin-bottom: 130px; }
+  .globoNumeri { bottom: -100px; }
+  .globoNota { bottom: -124px; }
+}
+@media (max-width: 860px) {
+  .aperturaGlobo { margin-bottom: 120px; }
+  .globoNumeri { bottom: -44px; }
+  .globoNota { bottom: -70px; }
+}
+/* (29 set) «ripristina il cielo stellato»: il disco della luna, allargato, copriva tutta l'apertura
+   e le stelle erano finite dietro. Il cielo sta SOPRA il disco (che e' quasi dello stesso nero). */
+.costellazione { z-index: 2; }
+/* (29 set) «mondo leggermente piu' piccolo, tutto leggermente piu' a sinistra»: la colonna del
+   testo (e del menu, che le sta allineato) passa dal 28% al 21%; il globo da 139vh a 122vh. */
+@media (min-width: 861px) {
+  .pagina[data-scuro='1'] .voci { left: calc(var(--pad) + (100% - 2 * var(--pad)) * .21); }
+  .aperturaTesto { padding-left: 21%; }
+  .aperturaGlobo { width: 122vh; left: calc(90.5vw - 61vh); top: calc(50vh - 61vh); }
+  .globoNumeri { left: 21%; }
+  .globoNota { left: 21%; }
+}

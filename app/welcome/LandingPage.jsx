@@ -833,80 +833,6 @@ function Contatti({ t, lang }) {
 }
 
 
-// ── Il filo dell'ordine (da unitedcarriers.com, dove il carico attraversa tutta la pagina: carrello,
-// camion, nave). Qui l'oggetto e' un ORDINE. Nasce accanto ai numeri del globo e, scorrendo, vola di
-// tappa in tappa — entra nella Dashboard, gli si calcola il margine, viene contato nel MER,
-// attribuito alla campagna, finisce nella scheda cliente e nella risposta dell'AI. Le tappe sono
-// elementi gia' in pagina segnati con data-tappa; la posizione si legge a ogni fotogramma dai loro
-// rettangoli, cosi' regge alle immagini che arrivano dopo e alle finestre ridimensionate. Fra una
-// tappa e l'altra la pillola sta ferma sulla tappa raggiunta finche' la prossima non si avvicina,
-// poi vola ad arco. Solo da desktop con il mouse, e mai per chi ha chiesto meno movimento.
-const TAPPE = ['inizio', 'dashboard', 'productPerformance', 'kpiBrain', 'attribution', 'clienti', 'ai']
-function FiloOrdine({ t, lingua }) {
-  const el = useRef(null)
-  const [tappa, setTappa] = useState(0)
-  const [acceso, setAcceso] = useState(false)
-  useEffect(() => {
-    const pill = el.current
-    if (!pill) return
-    if (!window.matchMedia('(min-width: 861px) and (pointer: fine) and (prefers-reduced-motion: no-preference)').matches) return
-    let raf = 0, ultima = -1, vis = false
-    const liscia = x => x * x * (3 - 2 * x)
-    // Dove si posa a ogni tappa: sui numeri del globo a destra; dentro la Dashboard in alto a destra;
-    // sui passi del racconto SOPRA l'etichetta (nel bianco, senza coprire lo schermo); nella chat
-    // dentro l'intestazione, a destra.
-    const posto = (id, r, w, h) => {
-      if (id === 'inizio') return [r.right + 16, r.top]
-      if (id === 'dashboard') return [r.right - w - 14, r.top + 14]
-      if (id === 'ai') return [r.right - w - 12, r.top + (r.height - h) / 2]
-      return [r.right - w, r.top - h - 12]
-    }
-    const aggiorna = () => {
-      raf = 0
-      const H = window.innerHeight
-      const nodi = TAPPE.map(id => document.querySelector(`[data-tappa="${id}"]`))
-      if (nodi.some(n => !n)) return
-      const rett = nodi.map(n => n.getBoundingClientRect())
-      const w = pill.offsetWidth, hp = pill.offsetHeight
-      const linea = H * 0.55
-      let i = -1
-      for (let k = 0; k < rett.length; k++) if (rett[k].top <= linea) i = k
-      const partito = (window.scrollY || 0) > 40
-      let x, y, k = Math.max(0, i), mostra = partito
-      if (i < 0) {
-        [x, y] = posto('inizio', rett[0], w, hp)
-      } else if (i >= rett.length - 1) {
-        [x, y] = posto(TAPPE[i], rett[i], w, hp)
-        mostra = partito && rett[i].top > -H * 0.6
-      } else {
-        const a = rett[i], b = rett[i + 1]
-        const tt = liscia(Math.min(1, Math.max(0, (linea - a.top) / Math.max(1, b.top - a.top))))
-        const [ax, ay] = posto(TAPPE[i], a, w, hp)
-        const [bx, by] = posto(TAPPE[i + 1], b, w, hp)
-        x = ax + (bx - ax) * tt
-        y = ay + (by - ay) * tt - Math.sin(tt * Math.PI) * 28
-        if (tt > 0.5) k = i + 1
-      }
-      pill.style.transform = `translate3d(${Math.round(x)}px, ${Math.round(y)}px, 0)`
-      if (k !== ultima) { ultima = k; setTappa(k) }
-      if (mostra !== vis) { vis = mostra; setAcceso(mostra) }
-    }
-    const chiedi = () => { if (!raf) raf = requestAnimationFrame(aggiorna) }
-    aggiorna()
-    window.addEventListener('scroll', chiedi, { passive: true })
-    window.addEventListener('resize', chiedi)
-    return () => { window.removeEventListener('scroll', chiedi); window.removeEventListener('resize', chiedi); if (raf) cancelAnimationFrame(raf) }
-  }, [t])
-  const id = TAPPE[tappa]
-  const euro = '€' + new Intl.NumberFormat(lingua, { maximumFractionDigits: 0 }).format(96)
-  return (
-    <div ref={el} className={`${s.filo} ${acceso ? s.filoAcceso : ''}`} aria-hidden="true">
-      <span key={id} className={s.filoTappa}>{id === 'inizio' ? t.apertura.globo.nuovo : t.filo[id]}</span>
-      <strong>Milano · {euro}</strong>
-    </div>
-  )
-}
-
 // ── Il cursore (Marino, 29 set 2026: «voglio anche il cursore custom», come su unitedcarriers.com):
 // un punto e un anello che seguono il mouse con un po' di ritardo; l'anello si riempie con
 // l'avanzamento della pagina e si allarga sopra a link e bottoni, sui campi di testo diventa un
@@ -1043,7 +969,6 @@ export default function LandingPage({ initialLang = null }) {
         <Chiusura t={t} />
       </main>
       <Piede t={t} />
-      <FiloOrdine t={t} lingua={INTL[lang]} />
       <Cursore pagina={radice} />
     </div>
   )

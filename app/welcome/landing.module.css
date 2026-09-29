@@ -1020,3 +1020,26 @@
   bottom: calc(var(--coda) * .36);
 }
 .aperturaGlobo { opacity: clamp(0, calc(1 - var(--alba) * 1.05), 1); }
+/* (29 set) «Deve essere piu' a mezzaluna, si vede poco»: disco piu' piccolo = curva piu' marcata;
+   la sfumatura resta, ma su una fascia piu' stretta cosi' la forma si legge. */
+.luna {
+  width: 150vw;
+  background: radial-gradient(closest-side, var(--notte) 0, var(--notte) 88%, color-mix(in srgb, var(--notte) 50%, transparent) 94%, transparent 100%);
+}
+@media (max-width: 860px) { .luna { width: 230vw; } }
+/* (29 set) «sembra quasi piatto»: il blu dietro cominciava alla stessa altezza su tutta la larghezza,
+   quindi i fianchi del disco finivano sul nero e si vedeva solo il fondo dell'arco. Ora il blu sale
+   fin sopra ai fianchi (sfumando piano nel nero), e il disco e' piu' stretto: la curva si legge tutta. */
+.apertura {
+  background: linear-gradient(to top,
+    var(--fondoPagina) 0,
+    #dbe6ff calc(var(--coda) * .1),
+    #7d9dff calc(var(--coda) * .24),
+    #3350f2 calc(var(--coda) * .4),
+    #1a24b8 calc(var(--coda) * .62),
+    #0c1150 calc(var(--coda) * .9),
+    var(--notte) calc(var(--coda) * 1.2),
+    var(--notte) 100%);
+}
+.luna { width: 120vw; bottom: calc(var(--coda) * .26); }
+@media (max-width: 860px) { .luna { width: 125vw; bottom: calc(var(--coda) * .3); } }

@@ -29,6 +29,17 @@ const CITTA = [
   ['München', 48.14, 11.58, 2], ['Wien', 48.21, 16.37, 1], ['Zürich', 47.37, 8.54, 2], ['London', 51.51, -0.13, 2],
   ['Amsterdam', 52.37, 4.9, 1], ['Bruxelles', 50.85, 4.35, 1], ['Lisboa', 38.72, -9.14, 1], ['New York', 40.71, -74.0, 1],
   ['Dubai', 25.2, 55.27, 1],
+  // Dal 29 set (Marino: «piu' sessioni da piu' paesi»): il resto d'Europa e gli altri continenti.
+  ['Dublin', 53.35, -6.26, 1], ['Manchester', 53.48, -2.24, 1], ['Lyon', 45.76, 4.84, 1], ['Marseille', 43.3, 5.37, 1],
+  ['Hamburg', 53.55, 9.99, 1], ['Frankfurt', 50.11, 8.68, 1], ['Rotterdam', 51.92, 4.48, 1], ['Porto', 41.15, -8.61, 1],
+  ['Sevilla', 37.39, -5.98, 1], ['Genève', 46.2, 6.14, 1], ['Stockholm', 59.33, 18.07, 1], ['København', 55.68, 12.57, 1],
+  ['Oslo', 59.91, 10.75, 1], ['Warszawa', 52.23, 21.01, 1], ['Praha', 50.08, 14.44, 1], ['Budapest', 47.5, 19.04, 1],
+  ['Athína', 37.98, 23.73, 1], ['Istanbul', 41.01, 28.98, 1], ['Tel Aviv', 32.09, 34.78, 1], ['Doha', 25.29, 51.53, 1],
+  ['Riyadh', 24.71, 46.68, 1], ['Cape Town', -33.92, 18.42, 1], ['Mumbai', 19.08, 72.88, 1], ['Singapore', 1.35, 103.82, 1],
+  ['Hong Kong', 22.32, 114.17, 1], ['Tokyo', 35.68, 139.69, 1], ['Seoul', 37.57, 126.98, 1], ['Sydney', -33.87, 151.21, 1],
+  ['Melbourne', -37.81, 144.96, 1], ['Boston', 42.36, -71.06, 1], ['Chicago', 41.88, -87.63, 1], ['Los Angeles', 34.05, -118.24, 1],
+  ['Miami', 25.76, -80.19, 1], ['Toronto', 43.65, -79.38, 1], ['Montréal', 45.5, -73.57, 1], ['Ciudad de México', 19.43, -99.13, 1],
+  ['São Paulo', -23.55, -46.63, 1], ['Buenos Aires', -34.6, -58.38, 1],
 ]
 const PESO = CITTA.reduce((a, c) => a + c[3], 0)
 function unaCitta() {
@@ -44,7 +55,9 @@ export default function GloboLanding({ testi, lingua }) {
   const globeRef = useRef(null)
   const [lato, setLato] = useState(0)
   const [paesi, setPaesi] = useState([])
-  const [sessioni, setSessioni] = useState(() => Array.from({ length: 34 }, () => ({ ...vicino(unaCitta()), count: 1 })))
+  const [sessioni, setSessioni] = useState(() => Array.from({ length: 70 }, () => ({ ...vicino(unaCitta()), count: 1 })))
+  const sessioniRef = useRef(sessioni)
+  sessioniRef.current = sessioni
   const [ordini, setOrdini] = useState([])
   const [ordiniOggi, setOrdiniOggi] = useState(27)
   const [ultimo, setUltimo] = useState(null)
@@ -71,18 +84,20 @@ export default function GloboLanding({ testi, lingua }) {
     const visite = setInterval(() => {
       setSessioni(s => {
         const resta = s.filter(() => Math.random() > 0.12)
-        const nuove = Array.from({ length: 2 + Math.floor(Math.random() * 4) }, () => ({ ...vicino(unaCitta()), count: 1 }))
-        return [...resta, ...nuove].slice(-44)
+        const nuove = Array.from({ length: 4 + Math.floor(Math.random() * 6) }, () => ({ ...vicino(unaCitta()), count: 1 }))
+        return [...resta, ...nuove].slice(-90)
       })
     }, 1600)
     const acquisti = setInterval(() => {
-      const c = unaCitta()
-      const o = { ...vicino(c), lat: c[1], lng: c[2], euro: 38 + Math.round(Math.random() * 140), t: Date.now() }
+      // Chi compra e' una delle sessioni sul globo in quel momento: da li' parte la scia verso il negozio.
+      const lista = sessioniRef.current
+      const s0 = lista[Math.floor(Math.random() * lista.length)] || { ...vicino(unaCitta()) }
+      const o = { lat: s0.lat, lng: s0.lng, citta: s0.citta, euro: 38 + Math.round(Math.random() * 140), t: Date.now() }
       // Gli ultimi ordini restano sul globo (spillo, etichetta, arco) per una ventina di secondi.
-      setOrdini(v => [...v.filter(x => Date.now() - x.t < 20000), o].slice(-7))
+      setOrdini(v => [...v.filter(x => Date.now() - x.t < 16000), o].slice(-8))
       setOrdiniOggi(n => n + 1)
       setUltimo(o)
-    }, 3800)
+    }, 2600)
     return () => { clearInterval(visite); clearInterval(acquisti) }
   }, [calmo])
 
@@ -104,7 +119,10 @@ export default function GloboLanding({ testi, lingua }) {
     if (!g) return
     try {
       const c = g.controls()
-      c.enableZoom = false; c.enablePan = false; c.enableRotate = false
+      // Si gira tenendo premuto (Marino, 29 set), solo col mouse: sul telefono il dito scorre la pagina.
+      const mouse = !!window.matchMedia?.('(pointer: fine)').matches
+      c.enableZoom = false; c.enablePan = false; c.enableRotate = mouse; c.rotateSpeed = 0.55
+      c.enableDamping = true; c.dampingFactor = 0.08
       c.autoRotate = !calmo; c.autoRotateSpeed = 0.35
     } catch {}
     // Le luci dell'esempio: il sole arancio dell'alba da dietro, in alto a destra (accende il bordo
@@ -144,6 +162,7 @@ export default function GloboLanding({ testi, lingua }) {
       }))
       scena.add(bordo); scena.add(alone)
     } catch {}
+    setPronto(true)
     // Il globo e' largo quasi tutto lo schermo: sui Mac retina (densita' 2) sarebbero 4 volte i
     // pixel da ridisegnare a ogni fotogramma. A 1,25 i puntini restano nitidi e la pagina scorre.
     try { g.renderer().setPixelRatio(Math.min(1.25, window.devicePixelRatio || 1)) } catch {}
@@ -166,6 +185,65 @@ export default function GloboLanding({ testi, lingua }) {
     return new THREE.MeshBasicMaterial({ map: mappa })
   }, [])
 
+  // I paesi fatti di puntini luminosi, come nell'esempio (Marino, 29 set: «devono sembrare 3D»):
+  // punti sparsi a caso sulle terre, piu' grandi e accesi quelli vicini a chi guarda, che si spengono
+  // verso il bordo della sfera. Sono una sola nuvola di punti (un solo disegno per fotogramma).
+  const [pronto, setPronto] = useState(false)
+  useEffect(() => {
+    const g = globeRef.current
+    if (!pronto || !g || !paesi.length) return
+    const poligoni = []
+    for (const f of paesi) {
+      const geo = f.geometry; if (!geo) continue
+      const gruppi = geo.type === 'Polygon' ? [geo.coordinates] : geo.type === 'MultiPolygon' ? geo.coordinates : []
+      for (const p of gruppi) {
+        const anello = p[0]; let a = 180, b = -180, c = 90, d = -90
+        for (const [x, y] of anello) { if (x < a) a = x; if (x > b) b = x; if (y < c) c = y; if (y > d) d = y }
+        poligoni.push({ anello, a, b, c, d })
+      }
+    }
+    const dentro = (x, y, an) => { let k = false; for (let i = 0, j = an.length - 1; i < an.length; j = i++) { const [xi, yi] = an[i], [xj, yj] = an[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) k = !k } return k }
+    const pos = [], vari = []
+    const passo = 0.95
+    for (let lat = -56; lat <= 78; lat += passo) {
+      const pl = passo / Math.max(0.2, Math.cos(lat * Math.PI / 180))
+      for (let lng = -180; lng < 180; lng += pl) {
+        const y = lat + (Math.random() - 0.5) * passo * 0.8, x = lng + (Math.random() - 0.5) * pl * 0.8
+        if (Math.random() < 0.3) continue
+        let si = false
+        for (const p of poligoni) if (x >= p.a && x <= p.b && y >= p.c && y <= p.d && dentro(x, y, p.anello)) { si = true; break }
+        if (!si) continue
+        const q = g.getCoords(y, x, 0.006)
+        pos.push(q.x, q.y, q.z); vari.push(0.55 + Math.random() * 0.9)
+      }
+    }
+    const geo = new THREE.BufferGeometry()
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3))
+    geo.setAttribute('vari', new THREE.Float32BufferAttribute(vari, 1))
+    const R = g.getGlobeRadius ? g.getGlobeRadius() : 100
+    const mat = new THREE.ShaderMaterial({
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+      // uLato: i puntini crescono e calano con il globo (a 1200 px di lato = misura piena).
+      uniforms: { uPx: { value: Math.min(1.25, window.devicePixelRatio || 1) }, uR: { value: R }, uLato: { value: Math.max(0.55, Math.min(1.2, lato / 1200)) } },
+      vertexShader: `attribute float vari; uniform float uPx; uniform float uR; uniform float uLato; varying float vA; varying float vY;
+        void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0);
+          vec3 n = normalize(normalMatrix * position); float verso = dot(n, normalize(-mv.xyz));
+          vA = smoothstep(-0.02, 0.45, verso) * (0.4 + 0.5 * vari); vY = n.y;
+          gl_PointSize = max(1.2, uPx * 2.6 * uLato * vari * (uR * 3.1 / -mv.z)); gl_Position = projectionMatrix * mv; }`,
+      fragmentShader: `varying float vA; varying float vY;
+        void main(){ float d = length(gl_PointCoord - 0.5); float a = smoothstep(0.5, 0.08, d) * vA; if (a < 0.01) discard;
+          vec3 c = mix(vec3(0.78, 0.84, 1.0), vec3(1.0, 0.93, 0.86), smoothstep(-0.2, 0.9, vY));
+          gl_FragColor = vec4(c * a, a); }`,
+    })
+    const nuvola = new THREE.Points(geo, mat)
+    // Dentro all'oggetto del globo, non nella scena: il globo ha una sua rotazione, e getCoords
+    // restituisce le coordinate nel SUO spazio (appesi alla scena, i puntini cadevano nel mare).
+    let padre = g.scene()
+    g.scene().traverse(o => { if (padre === g.scene() && typeof o.getCoords === 'function') padre = o })
+    padre.add(nuvola)
+    return () => { padre.remove(nuvola); geo.dispose(); mat.dispose() }
+  }, [pronto, paesi, lato])
+
   const intero = (n) => new Intl.NumberFormat(lingua).format(n)
   const freschi = ordini.filter(o => Date.now() - o.t < 4500)
 
@@ -181,7 +259,7 @@ export default function GloboLanding({ testi, lingua }) {
     <div className={st.globo}>
       <div className={st.globoTela}>
         {/* Il sole dell'alba dietro al bordo in alto a destra, come nell'esempio. */}
-        <div ref={wrapRef} aria-hidden="true" style={{ width: '100%', aspectRatio: '1 / 1', pointerEvents: 'none' }}>
+        <div ref={wrapRef} aria-hidden="true" className={st.globoPresa}>
           <Globe
             ref={globeRef}
             onGlobeReady={avvia}
@@ -190,7 +268,7 @@ export default function GloboLanding({ testi, lingua }) {
             backgroundColor="rgba(0,0,0,0)"
             globeMaterial={sfera}
             showAtmosphere={false}
-            hexPolygonsData={paesi}
+            hexPolygonsData={[]}
             hexPolygonResolution={3}
             hexPolygonMargin={0.66}
             hexPolygonColor={() => 'rgba(236,238,242,.92)'}
@@ -208,8 +286,8 @@ export default function GloboLanding({ testi, lingua }) {
             pointsData={ordini}
             pointLat="lat"
             pointLng="lng"
-            pointAltitude={0.09}
-            pointRadius={0.42}
+            pointAltitude={0.025}
+            pointRadius={0.3}
             pointColor={() => ARANCIO}
             ringsData={freschi}
             ringLat="lat"
@@ -219,16 +297,17 @@ export default function GloboLanding({ testi, lingua }) {
             ringPropagationSpeed={2.2}
             ringRepeatPeriod={1100}
             arcsData={ordini}
-            arcStartLat={() => NEGOZIO.lat}
-            arcStartLng={() => NEGOZIO.lng}
-            arcEndLat="lat"
-            arcEndLng="lng"
-            arcColor={() => ['rgba(255,85,0,0)', 'rgba(255,120,40,.95)']}
-            arcStroke={0.35}
-            arcAltitudeAutoScale={0.32}
-            arcDashLength={0.55}
-            arcDashGap={0.2}
-            arcDashAnimateTime={1900}
+            arcStartLat="lat"
+            arcStartLng="lng"
+            arcEndLat={() => NEGOZIO.lat}
+            arcEndLng={() => NEGOZIO.lng}
+            arcColor={() => ['rgba(255,90,20,.05)', 'rgba(255,130,50,.95)', 'rgba(255,200,150,1)']}
+            arcStroke={0.42}
+            arcAltitudeAutoScale={0.42}
+            arcDashLength={0.45}
+            arcDashGap={0.9}
+            arcDashInitialGap={() => Math.random()}
+            arcDashAnimateTime={2600}
             arcsTransitionDuration={0}
             htmlElementsData={ordini}
             htmlLat="lat"

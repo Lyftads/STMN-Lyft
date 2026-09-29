@@ -942,3 +942,12 @@
   .globoNota { left: 23%; right: auto; bottom: 21%; }
 }
 .globoSole { display: none; }
+
+/* Il globo si gira tenendo premuto (solo col mouse); il blocco del testo non deve coprirlo. */
+.globoPresa { width: 100%; aspect-ratio: 1 / 1; pointer-events: none; }
+@media (pointer: fine) {
+  .globoPresa { pointer-events: auto; cursor: grab; }
+  .globoPresa:active { cursor: grabbing; }
+  .aperturaTesto { pointer-events: none; }
+  .aperturaTesto > * { pointer-events: auto; }
+}

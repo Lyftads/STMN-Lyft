@@ -1074,3 +1074,23 @@
   .globoNumeri { left: 21%; }
   .globoNota { left: 21%; }
 }
+/* (29 set) Anche la sezione blu del Cervello entra sfumata: il bianco della pagina si scioglie nel
+   blu in alto, senza il bordo netto. Sotto resta com'era. */
+.buio::before {
+  background:
+    linear-gradient(to bottom, var(--fondoPagina) 0, color-mix(in srgb, var(--fondoPagina) 55%, transparent) 90px, transparent 260px),
+    radial-gradient(ellipse at 50% 30%, #1d3a7a 0%, #0b1636 55%, #060c1f 100%);
+}
+.buio { padding-top: 200px; }
+@media (max-width: 860px) { .buio { padding-top: 140px; } }
+/* Il bianco che svaniva dritto sul blu scuro faceva una fascia grigia: passa per l'azzurro. */
+.buio::before {
+  background:
+    linear-gradient(to bottom, var(--fondoPagina) 0, #b7c6f2 110px, rgba(90, 120, 220, .45) 210px, transparent 340px),
+    radial-gradient(ellipse at 50% 30%, #1d3a7a 0%, #0b1636 55%, #060c1f 100%);
+}
+:global(:root[data-theme='dark']) .buio::before {
+  background:
+    linear-gradient(to bottom, var(--fondoPagina) 0, rgba(20, 30, 70, .6) 140px, transparent 320px),
+    radial-gradient(ellipse at 50% 30%, #1d3a7a 0%, #0b1636 55%, #060c1f 100%);
+}

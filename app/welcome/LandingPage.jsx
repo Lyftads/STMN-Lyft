@@ -455,28 +455,47 @@ function Fonti({ t }) {
 }
 
 
-// ── Il viaggio di un ordine — versione FILM (Marino, 29 set: «deve sembrare un film come United
-// Carriers, effetto wow»). La meta' bassa dello schermo e' una fascia scura, la strada: il logo
-// Shopify sgancia il pacco sul nastro, il pacco corre con le scie, le stazioni-widget si accendono
-// al passaggio, le etichette coi loghi veri si attaccano sotto, un contatore live scala il margine
-// come il loro contachilometri, e in fondo il pacco entra nel portale LyftAI. Tutto HTML e CSS,
-// comandato da --vp; l'unico numero scritto dal JavaScript e' il contatore.
-const CONTI_ETICHETTA = (t) => (t.blocchi.find(b => b.id === 'pnl') || {}).etichetta || 'P&L'
-const VIAGGIO_TAPPE = [
-  { id: 'shopify', chip: '€96', logo: 'Shopify' },
-  { id: 'margine', chip: null, logo: null },
-  { id: 'meta', chip: 'ROAS 3,1×', logo: 'Meta' },
-  { id: 'google', chip: 'PMax 4,2×', logo: 'Google Ads' },
-  { id: 'conti', chip: 'EBIT €19k', logo: null },
-  { id: 'ai', chip: null, logo: null },
+// ── IL FILM (29 set, v3) — «deve sembrare un vero film... si deve avvolgere all'indietro».
+// Tre ATTI a tutto schermo, girati con Higgsfield e SCRUBBATI dalla rotella: il video non va in
+// play, e' la rotella che lo fa scorrere (currentTime ∝ --vp), avanti e indietro come una moviola.
+//   Atto 1 · CIELO: nuvole dall'alto (video), l'aereo (foto ritagliata) attraversa col fascio arancio.
+//   Atto 2 · STRADA: il camion viaggia visto dall'alto (video) — l'ordine e' a bordo.
+//   Atto 3 · MAGAZZINO: il nastro trasportatore vero (video), il pacco (foto) trascinato sul nastro.
+// Le stazioni del software sono un HUD in spazio-schermo (mai coperte, per costruzione): dentro ci
+// sono il video-ad Meta VERO che gira e le foto prodotto vere del catalogo PMax. Le etichette dei
+// conti si accumulano in una fila in basso. Il contatore del margine scala in corsa.
+// Telefono: niente video scrubbati (batteria): gli atti sono le foto, il resto e' identico.
+const VIAGGIO_ATTI = [
+  { id: 'cielo', da: 0, a: 0.26 },
+  { id: 'strada', da: 0.24, a: 0.5 },
+  { id: 'magazzino', da: 0.48, a: 1.001 },
 ]
+const VIAGGIO_DOCK = [
+  { id: 'ordine', testo: '€96', logo: 'Shopify', at: 0.38 },
+  { id: 'margine', testo: null, logo: null, at: 0.5 },
+  { id: 'meta', testo: 'ROAS 3,1×', logo: 'Meta', at: 0.62 },
+  { id: 'pmax', testo: 'PMax 4,2×', logo: 'Google Ads', at: 0.73 },
+  { id: 'ebit', testo: 'EBIT €19k', logo: null, at: 0.83 },
+]
+const CONTI_ETICHETTA = (t) => (t.blocchi.find(b => b.id === 'pnl') || {}).etichetta || 'P&L'
 function Viaggio({ t }) {
   const sez = useRef(null)
   const conta = useRef(null)
+  const video = useRef([])
+  const caricato = useRef(false)
   useEffect(() => {
     const el = sez.current
     if (!el) return
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+    const mobile = !window.matchMedia('(min-width: 861px)').matches
+    // I video si caricano solo quando il film si avvicina (250% di schermo prima).
+    const io = new IntersectionObserver(([v]) => {
+      if (!v.isIntersecting || caricato.current) return
+      caricato.current = true
+      video.current.forEach(vd => { if (vd && vd.dataset.src) { vd.preload = 'auto'; vd.src = vd.dataset.src; vd.load() } })
+      io.disconnect()
+    }, { rootMargin: '250% 0px' })
+    if (!mobile) io.observe(el)
     let raf = 0
     const aggiorna = () => {
       raf = 0
@@ -484,131 +503,104 @@ function Viaggio({ t }) {
       const tot = el.offsetHeight - window.innerHeight
       const p = tot > 0 ? Math.min(1, Math.max(0, -r.top / tot)) : 0
       el.style.setProperty('--vp', p.toFixed(4))
-      // il contatore: €96 che scala fino a €38 mentre il pacco attraversa il conto del margine
       if (conta.current) {
-        const q = Math.min(1, Math.max(0, (p - 0.21) / 0.15))
+        const q = Math.min(1, Math.max(0, (p - 0.42) / 0.12))
         conta.current.textContent = '€' + Math.round(96 - q * 58)
       }
+      // la moviola: ogni atto scorre il SUO video, avanti e indietro con la rotella
+      if (!mobile) VIAGGIO_ATTI.forEach((a, i) => {
+        const vd = video.current[i]
+        if (!vd || !vd.duration || p < a.da - 0.06 || p > a.a + 0.06) return
+        const q = Math.min(1, Math.max(0, (p - a.da) / (a.a - a.da)))
+        const tempo = q * (vd.duration - 0.08)
+        if (Math.abs((vd.currentTime || 0) - tempo) > 0.02) { try { vd.currentTime = tempo } catch {} }
+      })
     }
     const chiedi = () => { if (!raf) raf = requestAnimationFrame(aggiorna) }
     aggiorna()
     window.addEventListener('scroll', chiedi, { passive: true })
     window.addEventListener('resize', chiedi)
-    return () => { window.removeEventListener('scroll', chiedi); window.removeEventListener('resize', chiedi); if (raf) cancelAnimationFrame(raf) }
+    return () => { window.removeEventListener('scroll', chiedi); window.removeEventListener('resize', chiedi); io.disconnect(); if (raf) cancelAnimationFrame(raf) }
   }, [])
   const v = t.viaggio
-  const chips = [null, v.margine, null, null, null, null]
   return (
     <section ref={sez} className={s.viaggio}>
       <div className={s.viaggioFermo}>
-        <div className={s.viaggioParola} aria-hidden="true">{v.parola}</div>
-        <div className={`${s.largo}`}>
-          <div className={s.viaggioTesta}>
+        {/* Gli atti: video scrubbati (desktop) con la foto come poster e ripiego (telefono). */}
+        {VIAGGIO_ATTI.map((a, i) => (
+          <div key={a.id} className={`${s.atto} ${s['atto_' + a.id]}`} aria-hidden="true">
+            <video ref={el => { video.current[i] = el }} data-src={`/landing/scena/${a.id}.mp4`}
+              poster={`/landing/scena/${a.id === 'cielo' ? 'nuvole' : a.id}.webp`} muted playsInline preload="none" tabIndex={-1} />
+            <img className={s.attoPoster} src={`/landing/scena/${a.id === 'cielo' ? 'nuvole' : a.id}.webp`} alt="" loading="lazy" decoding="async" />
+          </div>
+        ))}
+        {/* L'aereo vero attraversa il cielo col fascio arancio degli ordini del globo. */}
+        <div className={s.aereoProp} aria-hidden="true">
+          <i className={s.aereoFascio} />
+          <img src="/landing/scena/aereo.webp" alt="" loading="lazy" decoding="async" />
+        </div>
+        {/* Il pacco vero, trascinato sul nastro del magazzino. */}
+        <img className={s.paccoProp} src="/landing/scena/pacco.webp" alt="" aria-hidden="true" loading="lazy" decoding="async" />
+        {/* Il velo in alto: il titolo si legge su qualunque atto. */}
+        {/* Il grading da pellicola: grana e vignettatura sul mondo, MAI sull'interfaccia. */}
+        <div className={s.veloFilm} aria-hidden="true" />
+        <div className={s.scrimFilm} aria-hidden="true" />
+        <div className={s.largo}>
+          <div className={`${s.viaggioTesta} ${s.testaFilm}`}>
             <p className={s.etichetta}>{t.nav.prodotto}</p>
             <h2 className={s.h2}>{v.titolo}</h2>
             <p className={s.sotto}>{v.sotto}</p>
           </div>
         </div>
-        {/* La fascia scura: la loro strada. */}
-        <div className={s.viaggioBanda} aria-hidden="true" />
-        <div className={s.nastroCorsa} aria-hidden="true">
-          {/* Il contatore, come il loro contachilometri: il margine che si calcola in corsa. */}
-          <div className={s.viaggioContatore}>
-            <span>{v.margineP}</span>
-            <strong ref={conta}>€96</strong>
+        {/* L'HUD: contatore, stazioni, etichette. Spazio-schermo: niente puo' coprirlo. */}
+        <div className={s.hud} aria-hidden="true">
+          <div className={s.viaggioContatore}><span>{v.margineP}</span><strong ref={conta}>€96</strong></div>
+          <div className={`${s.hudScheda} ${s.stazioneScheda}`} style={{ '--at': 0.3, '--lato': 0 }}>
+            <p className={s.stazioneTitolo}><svg viewBox="0 0 24 24" width="13" height="13" fill="#95bf47" aria-hidden="true"><path d={LOGHI['Shopify']} /></svg> {t.apertura.globo.nuovo}</p>
+            <div className={s.stazioneRiga}><span>ORDINE #4126</span><strong>€96</strong></div>
+            <div className={s.stazioneRiga}><span>{t.apertura.globo.ordini}</span><strong>27 → 28</strong></div>
           </div>
-          {/* Le stazioni: pezzi di interfaccia veri, non immagini. */}
-          {/* Atto 1: Shopify riceve l'ordine sganciato dall'aereo. */}
-          <div className={s.stazione} style={{ '--i': 0 }}>
-            <div className={s.stazioneScheda}>
-              <p className={s.stazioneTitolo}><svg viewBox="0 0 24 24" width="13" height="13" fill="#95bf47" aria-hidden="true"><path d={LOGHI['Shopify']} /></svg> {t.apertura.globo.nuovo}</p>
-              <div className={s.stazioneRiga}><span>ORDINE #4126</span><strong>€96</strong></div>
-              <div className={s.stazioneRiga}><span>{t.apertura.globo.ordini}</span><strong>27 → 28</strong></div>
+          <div className={`${s.hudScheda} ${s.stazioneScheda}`} style={{ '--at': 0.42, '--lato': 1 }}>
+            <p className={s.stazioneTitolo}><Icon name="euro" size={13} /> {t.filo.productPerformance}</p>
+            <div className={s.stazioneRiga}><span>{v.prezzo}</span><strong>€96</strong></div>
+            <div className={s.stazioneRiga}><span>{v.iva}</span><strong>−€17</strong></div>
+            <div className={s.stazioneRiga}><span>{v.costo} + Ads</span><strong>−€41</strong></div>
+            <div className={s.stazioneRiga + ' ' + s.stazioneTotale}><span>{v.margineP}</span><strong>€38</strong></div>
+          </div>
+          <div className={`${s.hudScheda} ${s.stazioneScheda} ${s.schedaAnnuncio}`} style={{ '--at': 0.55, '--lato': 0 }}>
+            <p className={s.stazioneTitolo}><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><path d={LOGHI['Meta']} /></svg> {t.filo.attribution}</p>
+            {/* il video-ad VERO: questo gira da solo, e' un contenuto dentro al film */}
+            <div className={s.adVideo}><video src="/landing/scena/meta-ad.mp4" poster="/landing/scena/meta-creative.webp" muted playsInline autoPlay loop preload="metadata" tabIndex={-1} /><span>Prospecting – Video</span></div>
+            <div className={s.stazioneRiga}><span>ROAS</span><strong className={s.su}>3,1×</strong></div>
+            <div className={s.stazioneRiga}><span>CPC</span><strong>€0,42</strong></div>
+          </div>
+          <div className={`${s.hudScheda} ${s.stazioneScheda} ${s.schedaAnnuncio}`} style={{ '--at': 0.66, '--lato': 1 }}>
+            <p className={s.stazioneTitolo}><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true"><path d={LOGHI['Google Ads']} /></svg> {v.google}</p>
+            <div className={s.adCatalogo}>
+              <i style={{ backgroundImage: 'url(/landing/scena/prod-scarpe.webp)' }}><b>€96</b></i>
+              <i style={{ backgroundImage: 'url(/landing/scena/prod-borsone.webp)' }}><b>€59</b></i>
+              <i style={{ backgroundImage: 'url(/landing/scena/prod-felpa.webp)' }}><b>€120</b></i>
             </div>
-            <i className={s.stazionePalo} />
+            <div className={s.stazioneRiga}><span>ROAS</span><strong className={s.su}>4,2×</strong></div>
           </div>
-          {/* Atto 2: la marginalita' dell'ordine, riga per riga. */}
-          <div className={s.stazione} style={{ '--i': 1 }}>
-            <div className={s.stazioneScheda}>
-              <p className={s.stazioneTitolo}><Icon name="euro" size={13} /> {t.filo.productPerformance}</p>
-              <div className={s.stazioneRiga}><span>{t.viaggio.prezzo}</span><strong>€96</strong></div>
-              <div className={s.stazioneRiga}><span>{t.viaggio.iva}</span><strong>−€17</strong></div>
-              <div className={s.stazioneRiga}><span>{t.viaggio.costo} + Ads</span><strong>−€41</strong></div>
-              <div className={s.stazioneRiga + ' ' + s.stazioneTotale}><span>{t.viaggio.margineP}</span><strong>€38</strong></div>
-            </div>
-            <i className={s.stazionePalo} />
+          <div className={`${s.hudScheda} ${s.stazioneScheda}`} style={{ '--at': 0.76, '--lato': 0 }}>
+            <p className={s.stazioneTitolo}><Icon name="file" size={13} /> {CONTI_ETICHETTA(t)}</p>
+            <div className={s.stazioneRiga}><span>{v.ricavi}</span><strong>€55.298</strong></div>
+            <div className={s.stazioneRiga}><span>COGS + Ads</span><strong>−€35.983</strong></div>
+            <div className={s.stazioneRiga + ' ' + s.stazioneTotale}><span>EBIT</span><strong className={s.su}>€19.315</strong></div>
           </div>
-          {/* Atto 3: la campagna Meta che ha generato l'ordine — il VIDEO, e dal video ROAS e CPC. */}
-          <div className={s.stazione} style={{ '--i': 2 }}>
-            <div className={s.stazioneScheda + ' ' + s.schedaAnnuncio}>
-              <p className={s.stazioneTitolo}><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><path d={LOGHI['Meta']} /></svg> {t.filo.attribution}</p>
-              <div className={s.adCreative}><Icon name="play" size={16} /><span>Prospecting – Video</span></div>
-              <div className={s.stazioneRiga}><span>ROAS</span><strong className={s.su}>3,1×</strong></div>
-              <div className={s.stazioneRiga}><span>CPC</span><strong>€0,42</strong></div>
-            </div>
-            <i className={s.stazionePalo} />
+          <div className={`${s.hudScheda} ${s.stazioneScheda}`} style={{ '--at': 0.87, '--lato': 1, '--resta': 1 }}>
+            <p className={s.stazioneTitolo}><Icon name="chat" size={13} /> {t.filo.ai}</p>
+            <div className={s.stazioneChat}>«{v.margineP} €38 · MER 3,6×»</div>
+            <div className={s.stazioneRiga}><span>{t.ai.etichetta}</span><strong>online</strong></div>
           </div>
-          {/* Atto 4: la campagna Google col catalogo prodotti (PMax). */}
-          <div className={s.stazione} style={{ '--i': 3 }}>
-            <div className={s.stazioneScheda + ' ' + s.schedaAnnuncio}>
-              <p className={s.stazioneTitolo}><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true"><path d={LOGHI['Google Ads']} /></svg> {t.viaggio.google}</p>
-              <div className={s.adCatalogo}>
-                <i>€96</i><i>€59</i><i>€120</i>
-              </div>
-              <div className={s.stazioneRiga}><span>ROAS</span><strong className={s.su}>4,2×</strong></div>
-            </div>
-            <i className={s.stazionePalo} />
-          </div>
-          {/* Atto 5: il conto economico. */}
-          <div className={s.stazione} style={{ '--i': 4 }}>
-            <div className={s.stazioneScheda}>
-              <p className={s.stazioneTitolo}><Icon name="file" size={13} /> {CONTI_ETICHETTA(t)}</p>
-              <div className={s.stazioneRiga}><span>{t.viaggio.ricavi}</span><strong>€55.298</strong></div>
-              <div className={s.stazioneRiga}><span>COGS + Ads</span><strong>−€35.983</strong></div>
-              <div className={s.stazioneRiga + ' ' + s.stazioneTotale}><span>EBIT</span><strong className={s.su}>€19.315</strong></div>
-            </div>
-            <i className={s.stazionePalo} />
-          </div>
-          {/* Atto 6: dal conto economico parte la chat col Cervello (la sezione dopo). */}
-          <div className={s.stazione} style={{ '--i': 5 }}>
-            <div className={s.stazioneScheda}>
-              <p className={s.stazioneTitolo}><Icon name="chat" size={13} /> {t.filo.ai}</p>
-              <div className={s.stazioneChat}>«{v.margineP} €38 · MER 3,6×»</div>
-              <div className={s.stazioneRiga}><span>{t.ai.etichetta}</span><strong>online</strong></div>
-            </div>
-            <i className={s.stazionePalo} />
-          </div>
-          {/* Il pacco, con le scie e le etichette coi loghi. */}
-          <div className={s.pacco}>
-            <div className={s.paccoScia} />
-            <div className={s.paccoScatola}><span>ORDINE</span><strong>#4126</strong></div>
-            <div className={s.paccoChip}>
-              {VIAGGIO_TAPPE.map((tp, i) => (
-                <em key={tp.id} style={{ '--i': i }}>
-                  {tp.logo && <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" aria-hidden="true"><path d={LOGHI[tp.logo]} /></svg>}
-                  {tp.chip || chips[i]}
-                </em>
-              ))}
-            </div>
-          </div>
-          {/* Il portale: il pacco entra in LyftAI. */}
-          <div className={s.viaggioPorta}>
-            <LogoMark size={30} withGlow={false} />
-            <i />
-          </div>
-          <div className={s.viaggioStrada} />
-          <div className={s.nastroBinario} />
-          {/* L'aereo: arriva DAL MONDO all'inizio, col fascio di luce arancio degli ordini del globo,
-              e sgancia il pacco sul nastro. */}
-          <div className={s.aereo}>
-            <svg viewBox="0 0 120 44" width="132" height="48" aria-hidden="true">
-              <path d="M4 30 L44 26 L62 12 Q65 9 69 9 L74 9 L66 26 L96 24 Q106 24 112 28 L116 31 L108 34 L14 36 Q7 36 4 30 Z" fill="currentColor" />
-              <path d="M56 34 L70 33 L60 42 L52 42 Z" fill="currentColor" opacity=".85" />
-              <circle cx="99" cy="29" r="1.6" fill="#fff" opacity=".9" />
-              <circle cx="92" cy="29.5" r="1.6" fill="#fff" opacity=".9" />
-              <circle cx="85" cy="30" r="1.6" fill="#fff" opacity=".9" />
-            </svg>
-            <i className={s.aereoScia} />
+          <div className={s.dock}>
+            {VIAGGIO_DOCK.map(c => (
+              <em key={c.id} style={{ '--at': c.at }}>
+                {c.logo && <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" aria-hidden="true"><path d={LOGHI[c.logo]} /></svg>}
+                {c.testo || v.margine}
+              </em>
+            ))}
           </div>
         </div>
       </div>

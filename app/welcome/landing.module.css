@@ -1564,3 +1564,122 @@
   .paccoChip em { --via: calc((var(--vp, 0) - (0.16 + var(--i) * 0.132)) / 0.05); }
 }
 @media (max-width: 860px) { .pacco { z-index: 2; } }
+
+/* ════════════════════════════════════════════════════════════════════════
+   IL FILM v3 (29 set) — atti video a tutto schermo scrubbati dalla rotella + HUD.
+   Questo blocco e' ULTIMO e vince su tutti i blocchi FILM precedenti.
+   ════════════════════════════════════════════════════════════════════════ */
+.viaggio { height: 560vh; }
+.viaggioFermo { background: #06070b; }
+/* le vecchie parti di scena non esistono piu' nel film v3 */
+.viaggioBanda, .nastroCorsa, .viaggioParola { display: none; }
+
+/* ── Gli atti: pieno schermo, dissolvenza incrociata comandata da --vp ── */
+.atto { position: absolute; inset: 0; overflow: hidden; }
+.atto video, .atto .attoPoster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+/* il poster sta SOTTO il video: si vede finche' il video non e' pronto, e sempre sul telefono */
+.atto video { z-index: 1; }
+.atto_cielo { opacity: clamp(0, calc((0.28 - var(--vp, 0)) / 0.04), 1); }
+.atto_strada { opacity: calc(clamp(0, calc((var(--vp, 0) - 0.24) / 0.04), 1) * clamp(0, calc((0.52 - var(--vp, 0)) / 0.04), 1)); }
+.atto_magazzino { opacity: clamp(0, calc((var(--vp, 0) - 0.48) / 0.04), 1); }
+/* un filo di parallasse verticale: gli atti respirano mentre scorri */
+.atto_cielo video, .atto_cielo .attoPoster { transform: scale(1.06) translateY(calc(var(--vp, 0) * -3%)); }
+.atto_strada video, .atto_strada .attoPoster { transform: scale(1.08) translateY(calc((var(--vp, 0) - 0.37) * -6%)); }
+.atto_magazzino video, .atto_magazzino .attoPoster { transform: scale(1.06) translateY(calc((var(--vp, 0) - 0.74) * -4%)); }
+
+/* ── L'aereo: attraversa il cielo col fascio arancio, poi lascia la scena ── */
+.aereoProp {
+  position: absolute; z-index: 2; left: 0; top: 0; pointer-events: none;
+  --volo: clamp(0, calc(var(--vp, 0) / 0.26), 1);
+  opacity: clamp(0, calc((0.27 - var(--vp, 0)) / 0.03), 1);
+  transform: translate3d(calc(-24vw + var(--volo) * 120vw), calc(16vh + var(--volo) * 34vh), 0) rotate(24deg);
+}
+.aereoProp img { width: clamp(180px, 22vw, 360px); height: auto; filter: drop-shadow(0 30px 40px rgba(0, 0, 30, .45)); }
+.aereoFascio {
+  position: absolute; right: 82%; top: 46%; width: 60vw; height: 3px; border-radius: 3px;
+  background: linear-gradient(90deg, transparent, rgba(255, 90, 20, .8));
+  box-shadow: 0 0 18px rgba(255, 90, 20, .55); transform: rotate(24deg); transform-origin: 100% 50%;
+}
+/* niente aereo/scena vecchia */
+.aereo { display: none; }
+
+/* ── Il pacco: trascinato sul nastro del magazzino (la cinghia nel video corre a meta' quadro) ── */
+.paccoProp {
+  position: absolute; z-index: 2; left: 0; top: 44.5%; width: clamp(64px, 6.4vw, 104px); height: auto; pointer-events: none;
+  --corsa: clamp(0, calc((var(--vp, 0) - 0.5) / 0.48), 1);
+  opacity: calc(clamp(0, calc((var(--vp, 0) - 0.49) / 0.03), 1) * (1 - clamp(0, calc((var(--vp, 0) - 0.96) / 0.03), 1)));
+  transform: translate3d(calc(-10vw + var(--corsa) * 116vw), calc(sin(var(--corsa) * 9rad) * 3px), 0) rotate(calc(6deg + var(--corsa) * -9deg));
+  filter: drop-shadow(0 16px 18px rgba(0, 0, 0, .55));
+}
+.pacco { display: none; }
+
+/* ── Il velo alto e il titolo in bianco da film ── */
+.scrimFilm { position: absolute; inset: 0 0 auto 0; height: 46%; z-index: 3; pointer-events: none; background: linear-gradient(rgba(3, 5, 10, .78), rgba(3, 5, 10, .42) 46%, transparent); }
+.testaFilm { position: relative; z-index: 4; padding-top: 96px; max-width: 640px; }
+.testaFilm .etichetta { color: rgba(255, 255, 255, .6); }
+.testaFilm .h2 { color: #ffffff; text-shadow: 0 2px 24px rgba(0, 0, 0, .45); }
+.testaFilm .sotto { color: rgba(255, 255, 255, .78); }
+
+/* ── L'HUD: sopra tutto, per costruzione ── */
+.hud { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+.hud .viaggioContatore { position: absolute; right: clamp(24px, 4vw, 64px); top: 96px; }
+.hudScheda, .hud .stazioneScheda {
+  position: absolute; bottom: 24vh; transform: none; min-width: 210px; max-width: 300px;
+  --fin: clamp(0, calc((var(--vp, 0) - var(--at)) / 0.04), 1);
+  --out: clamp(0, calc((var(--vp, 0) - var(--at) - 0.13) / 0.05), 1);
+  opacity: calc(var(--fin) * (1 - var(--out) * (1 - var(--resta, 0))));
+  translate: 0 calc((1 - var(--fin)) * 18px);
+}
+.hud .stazioneScheda { left: auto; right: auto; }
+.hudScheda[style*='--lato: 0'], .hudScheda[style*='--lato:0'] { left: clamp(24px, 4vw, 64px); }
+.hudScheda[style*='--lato: 1'], .hudScheda[style*='--lato:1'] { right: clamp(24px, 4vw, 64px); }
+/* il video-ad Meta vero e il catalogo con le foto vere */
+.adVideo { position: relative; height: 150px; border-radius: 10px; overflow: hidden; background: #0b1030; }
+.adVideo video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.adVideo span { position: absolute; left: 8px; bottom: 6px; font-family: var(--mono); font-size: 9px; letter-spacing: .05em; color: rgba(255, 255, 255, .85); text-transform: uppercase; text-shadow: 0 1px 6px rgba(0, 0, 0, .8); }
+.adCatalogo i { height: 64px; background-size: cover; background-position: center; position: relative; border: 1px solid var(--bordo); }
+.adCatalogo i b { position: absolute; right: 3px; bottom: 3px; font-family: var(--mono); font-weight: 500; font-size: 9px; background: rgba(255, 255, 255, .92); color: #111; padding: 1px 5px; border-radius: 4px; }
+/* la fila delle etichette, in basso al centro: si accumulano e restano */
+.dock { position: absolute; left: 50%; bottom: 6vh; transform: translateX(-50%); display: flex; gap: 8px; white-space: nowrap; }
+.dock em {
+  font-style: normal; display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 11px; letter-spacing: .03em; padding: 7px 13px; border-radius: 999px;
+  background: rgba(10, 12, 18, .78); color: #ffffff; border: 1px solid rgba(255, 255, 255, .22); backdrop-filter: blur(8px);
+  --fin: clamp(0, calc((var(--vp, 0) - var(--at)) / 0.04), 1);
+  opacity: var(--fin); scale: calc(.7 + var(--fin) * .3);
+}
+.paccoChip { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .viaggio { height: auto; }
+  .viaggioFermo { position: static; height: auto; min-height: 100vh; }
+  .atto_magazzino, .atto_cielo { opacity: 1; }
+  .atto_strada { opacity: 0; }
+  .atto video { display: none; }
+  .aereoProp, .paccoProp { display: none; }
+  .hudScheda, .hud .stazioneScheda, .dock em { opacity: 1; translate: none; scale: none; position: static; }
+  .hud { position: static; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; padding: 40vh clamp(24px, 4vw, 64px) 60px; }
+  .hud .viaggioContatore, .dock { position: static; transform: none; }
+}
+@media (max-width: 860px) {
+  .viaggio { height: 460vh; }
+  .atto video { display: none; } /* sul telefono comandano le foto: niente scrubbing video */
+  .aereoProp img { width: 132px; }
+  .aereoProp { transform: translate3d(calc(-40vw + var(--volo) * 150vw), calc(12vh + var(--volo) * 20vh), 0) rotate(18deg); }
+  .paccoProp { top: 47%; width: 64px; }
+  .testaFilm { padding-top: 76px; }
+  .hud .viaggioContatore { top: auto; bottom: 14vh; right: 20px; }
+  .hudScheda, .hud .stazioneScheda { bottom: auto; top: 40vh; left: 50% !important; right: auto !important; translate: -50% calc((1 - var(--fin)) * 14px); width: 80vw; max-width: 340px; --out: clamp(0, calc((var(--vp, 0) - var(--at) - 0.1) / 0.04), 1); }
+  .dock { bottom: 5vh; max-width: 94vw; flex-wrap: wrap; justify-content: center; }
+  .scrimFilm { height: 52%; }
+}
+/* Il grading (dal panel di regia): grana 5% + vignettatura, sotto scrim e HUD. */
+.veloFilm {
+  position: absolute; inset: 0; z-index: 3; pointer-events: none;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)' opacity='0.5'/%3E%3C/svg%3E") repeat,
+    radial-gradient(120% 90% at 50% 42%, transparent 55%, rgba(0, 0, 5, .38) 100%);
+  opacity: .55; mix-blend-mode: overlay;
+}
+.viaggioFermo { height: 100svh; }
+.hudScheda, .hud .stazioneScheda { box-shadow: 0 30px 50px -22px rgba(0, 0, 0, .55), var(--ombra); scale: calc(.96 + var(--fin) * .04); }

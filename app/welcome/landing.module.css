@@ -1011,3 +1011,12 @@
    farebbe in tempo a leggerli (restava uno schermo nero). Li lascio scorrere via e basta. */
 @media (max-width: 860px) { .aperturaTesto { opacity: 1; transform: none; } }
 @media (max-width: 860px) { .pagina[data-scuro='1'] .barra { background: rgba(6, 7, 11, .72); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); } }
+/* (29 set) «Deve essere sfumato, cosi' e' netto»: la luna non ha piu' un bordo. Il disco e' un
+   gradiente che si scioglie nel blu su una fascia larga (l'ultimo 14% del raggio); niente linee ne'
+   ombre. Il globo resta visibile piu' a lungo, e svanisce dentro al buio come nell'esempio. */
+.luna {
+  box-shadow: none;
+  background: radial-gradient(closest-side, var(--notte) 0, var(--notte) 84%, color-mix(in srgb, var(--notte) 55%, transparent) 92%, transparent 100%);
+  bottom: calc(var(--coda) * .36);
+}
+.aperturaGlobo { opacity: clamp(0, calc(1 - var(--alba) * 1.05), 1); }

@@ -951,3 +951,63 @@
   .aperturaTesto { pointer-events: none; }
   .aperturaTesto > * { pointer-events: auto; }
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+   SESTO GIRO (29 set sera): la mezza luna e meno spazio vuoto.
+   ════════════════════════════════════════════════════════════════════════ */
+/* La coda dell'apertura: il cielo nero finisce sul bordo curvo della luna; sotto, l'atmosfera blu che
+   scende verso il bianco. Tutto fermo (niente animazioni): sale da solo mentre si scorre. */
+.apertura {
+  --coda: 72vh;
+  background: linear-gradient(to top,
+    var(--fondoPagina) 0,
+    #d9e5ff calc(var(--coda) * .14),
+    #6f95ff calc(var(--coda) * .3),
+    #2d45f0 calc(var(--coda) * .44),
+    #10178a calc(var(--coda) * .56),
+    var(--notte) calc(var(--coda) * .66),
+    var(--notte) 100%);
+}
+:global(:root[data-theme='dark']) .apertura { background: linear-gradient(to top, var(--fondoPagina) 0, #16224f calc(var(--coda) * .2), #1f35c9 calc(var(--coda) * .42), #0d1470 calc(var(--coda) * .56), var(--notte) calc(var(--coda) * .66), var(--notte) 100%); }
+.luna {
+  position: absolute; z-index: 1; pointer-events: none;
+  left: 50%; width: 260vw; aspect-ratio: 1; transform: translateX(-50%);
+  bottom: calc(var(--coda) * .44);
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 100%, #0b0f24 0%, var(--notte) 12%, var(--notte) 100%);
+  box-shadow:
+    0 -1px 0 0 rgba(255, 150, 90, .18),
+    0 2px 2px rgba(150, 180, 255, .55),
+    0 14px 50px 4px rgba(70, 110, 255, .7); /* niente ombre giganti: sui retina il browser le taglia di netto */
+}
+/* Il globo si fa da parte mentre sorge la luna. */
+.aperturaGlobo { opacity: clamp(0, calc(1 - var(--alba) * 1.6), 1); }
+
+/* ── Meno spazio vuoto (Marino: «c'e' troppo spazio vuoto») ─────────────── */
+.sezione { padding: 96px 0; }
+.intro { padding: 24px 0 64px; }
+.introSinistra { padding-top: 16px; }
+.introVista { margin-bottom: 36px; }
+.introNota { margin-top: 36px; }
+.stat { padding: 30px 0; }
+.fonti { padding: 24px 0 32px; }
+.parola.largo { padding-top: 48px; padding-bottom: 20px; }
+.passi { padding: 8vh 0 18vh; }
+.passi .passo { min-height: 30vh; }
+.buio, .nero { padding: 104px 0; }
+.buio .testaSezione { margin-bottom: 48px; }
+.chiusura { padding: 140px 0; }
+.testaSezione { margin-bottom: 40px; }
+@media (prefers-reduced-motion: reduce) { .luna { display: none; } .apertura { background: var(--notte); } }
+@media (max-width: 860px) {
+  .apertura { --coda: 48vh; }
+  .luna { width: 420vw; }
+  .sezione { padding: 64px 0; }
+  .buio, .nero { padding: 72px 0; }
+  .chiusura { padding: 96px 0; }
+  .passi .passo { min-height: 38vh; }
+}
+/* Sul telefono il titolo e i bottoni stanno in fondo all'apertura: se svanissero con l'alba non si
+   farebbe in tempo a leggerli (restava uno schermo nero). Li lascio scorrere via e basta. */
+@media (max-width: 860px) { .aperturaTesto { opacity: 1; transform: none; } }
+@media (max-width: 860px) { .pagina[data-scuro='1'] .barra { background: rgba(6, 7, 11, .72); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); } }

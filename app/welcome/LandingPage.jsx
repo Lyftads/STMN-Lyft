@@ -361,6 +361,9 @@ function Apertura({ t, lang, pagina }) {
   return (
     <section id="inizio" ref={sezione} className={s.apertura}>
       <Costellazione />
+      {/* La mezza luna (unitedcarriers.com, 29 set): il bordo del pianeta, enorme e curvo, con
+          l'atmosfera blu sotto. Sta ferma nella coda della sezione: scorrendo sale e porta il giorno. */}
+      <div className={s.luna} aria-hidden="true" />
       <Nastro t={t} />
       <div className={`${s.largo} ${s.aperturaGriglia}`}>
         <div className={s.aperturaTesto}>

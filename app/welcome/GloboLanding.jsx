@@ -3,9 +3,10 @@
 // Il globo dell'apertura della landing (Marino, 21 set 2026: «sotto a quello che hai scritto,
 // spostato verso destra, il mondo che gira con le sessioni e gli ordini»).
 //
-// Lo stesso aspetto del globo della Dashboard (DashboardGlobe.jsx): sfera pastello dal menta
-// all'azzurro, terre a esagoni color acqua, celle blu dove c'e' qualcuno sul sito, un punto nero
-// con un'onda dove arriva un ordine. Ma NON legge dati: e' pubblico, quindi gira su un negozio
+// Dal 29 set 2026 e' un globo di NOTTE (da unitedcarriers.com, che Marino ha portato come modello):
+// sfera scura, terre a puntini bianchi, celle nell'unico accento della pagina dove c'e' qualcuno sul
+// sito, un punto bianco con un'onda dove arriva un ordine, e un'atmosfera dello stesso accento che
+// scorrendo diventa l'alba (vedi useAlba). Ma NON legge dati: e' pubblico, quindi gira su un negozio
 // d'esempio generato qui, e la didascalia lo dice.
 //
 // E' solo da guardare: niente trascinamenti (sul telefono il dito deve poter scorrere la pagina),
@@ -109,12 +110,13 @@ export default function GloboLanding({ testi, lingua }) {
   }
 
   const sfera = useMemo(() => {
-    if (typeof document === 'undefined') return new THREE.MeshBasicMaterial({ color: '#dfeef2' })
+    if (typeof document === 'undefined') return new THREE.MeshBasicMaterial({ color: '#0b0e15' })
     const tela = document.createElement('canvas')
     tela.width = 8; tela.height = 512
     const ctx = tela.getContext('2d')
     const g = ctx.createLinearGradient(0, 0, 0, 512)
-    g.addColorStop(0, '#eaf6ee'); g.addColorStop(0.45, '#e2f0f1'); g.addColorStop(1, '#cbdff7')
+    // Notte: quasi nero in alto, un filo di blu verso sud, dove sotto c'e' il bagliore dell'alba.
+    g.addColorStop(0, '#0d1017'); g.addColorStop(0.55, '#0b0e15'); g.addColorStop(1, '#0c1a3d')
     ctx.fillStyle = g; ctx.fillRect(0, 0, 8, 512)
     const mappa = new THREE.CanvasTexture(tela)
     mappa.colorSpace = THREE.SRGBColorSpace
@@ -123,7 +125,8 @@ export default function GloboLanding({ testi, lingua }) {
 
   const coloreTerre = useMemo(() => {
     const mischia = (a, b, t) => a.map((x, i) => Math.round(x + (b[i] - x) * t))
-    const NORD = [132, 219, 198], CENTRO = [127, 208, 203], SUD = [142, 178, 230]
+    // Bianchi a puntini, appena piu' freddi verso sud: sul nero si legge la forma dei continenti.
+    const NORD = [236, 238, 242], CENTRO = [214, 219, 228], SUD = [178, 190, 214]
     const m = new Map()
     for (const f of paesi) {
       let somma = 0, n = 0
@@ -131,7 +134,7 @@ export default function GloboLanding({ testi, lingua }) {
       try { scendi(f.geometry.coordinates) } catch {}
       const t = Math.min(1, Math.max(0, (70 - (n ? somma / n : 20)) / 110))
       const c = t < 0.5 ? mischia(NORD, CENTRO, t / 0.5) : mischia(CENTRO, SUD, (t - 0.5) / 0.5)
-      m.set(f, `rgb(${c[0]},${c[1]},${c[2]})`)
+      m.set(f, `rgba(${c[0]},${c[1]},${c[2]},.82)`)
     }
     return m
   }, [paesi])
@@ -150,12 +153,12 @@ export default function GloboLanding({ testi, lingua }) {
           backgroundColor="rgba(0,0,0,0)"
           globeMaterial={sfera}
           showAtmosphere
-          atmosphereColor="#dbe7f6"
-          atmosphereAltitude={0.1}
+          atmosphereColor="#2997ff"
+          atmosphereAltitude={0.16}
           hexPolygonsData={paesi}
           hexPolygonResolution={3}
-          hexPolygonMargin={0.22}
-          hexPolygonColor={f => coloreTerre.get(f) || 'rgb(127,208,203)'}
+          hexPolygonMargin={0.42}
+          hexPolygonColor={f => coloreTerre.get(f) || 'rgba(214,219,228,.82)'}
           hexPolygonAltitude={0.003}
           hexBinPointsData={sessioni}
           hexBinPointLat="lat"
@@ -164,26 +167,26 @@ export default function GloboLanding({ testi, lingua }) {
           hexBinResolution={3}
           hexMargin={0.22}
           hexAltitude={0.006}
-          hexTopColor={() => '#3d8fe3'}
-          hexSideColor={() => '#3d8fe3'}
+          hexTopColor={() => '#2997ff'}
+          hexSideColor={() => '#2997ff'}
           hexTransitionDuration={600}
           pointsData={ordini}
           pointLat="lat"
           pointLng="lng"
           pointAltitude={0.012}
           pointRadius={0.34}
-          pointColor={() => '#1d1d1d'}
+          pointColor={() => '#ffffff'}
           ringsData={freschi}
           ringLat="lat"
           ringLng="lng"
-          ringColor={() => (t) => `rgba(29,29,31,${1 - t})`}
+          ringColor={() => (t) => `rgba(255,255,255,${1 - t})`}
           ringMaxRadius={3.4}
           ringPropagationSpeed={2.2}
           ringRepeatPeriod={1100}
         />
       </div>
       {/* I due numeri, come nella Dashboard: chi c'e' adesso e quanti hanno comprato oggi. */}
-      <div className={st.globoNumeri}>
+      <div className={st.globoNumeri} data-tappa="inizio">
         <div><span>{testi.sessioni}</span><strong>{intero(sessioni.length)}</strong></div>
         <div><span>{testi.ordini}</span><strong>{intero(ordiniOggi)}</strong></div>
         {ultimo && <p key={ultimo.t} className={st.globoUltimo}>{testi.nuovo} · {ultimo.citta} · €{intero(ultimo.euro)}</p>}

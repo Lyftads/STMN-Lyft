@@ -29,6 +29,7 @@ import { LOGHI } from './loghi'
 import Immagini from './Immagini'
 import { Produttivita, TempoReale } from './Squadra'
 import s from './landing.module.css'
+import Lenis from 'lenis'
 
 // Il globo (three.js, ~1,8 MB non compressi) arriva in un pezzo a parte e dopo il testo: la pagina
 // si legge subito, il mondo compare appena pronto. Al suo posto, intanto, un riquadro vuoto della
@@ -153,10 +154,53 @@ function Macchina({ prima, oggetti }) {
   )
 }
 
-function Apertura({ t, lang }) {
+// ── L'alba (Marino, 29 set 2026, da unitedcarriers.com: «quell'effetto sul blu mi piace molto»).
+// L'apertura e' SEMPRE notte — spazio nero, il globo, gli ordini che si accendono — e scorrendo il
+// bagliore del globo si gonfia e sbianca fino al fondo della pagina (bianco di giorno, grigio scuro
+// di notte). Un numero solo, --alba da 0 a 1, letto dal CSS; qui si aggiorna una volta per
+// fotogramma. Fino a meta' alba la barra in alto e' scura (data-scuro sulla pagina). Con "riduci
+// movimento" niente alba: la notte finisce dove finisce la sezione, e la barra segue.
+function useAlba(sezione, pagina) {
+  useEffect(() => {
+    const el = sezione.current, pg = pagina.current
+    if (!el || !pg) return
+    const calmo = !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    let raf = 0
+    const aggiorna = () => {
+      raf = 0
+      const h = el.offsetHeight || 1
+      const y = window.scrollY || 0
+      // L'alba avviene nella CODA della sezione (il padding in fondo, il "cielo"): comincia quando
+      // il contenuto sta uscendo e finisce esatta quando il fondo della sezione tocca il fondo
+      // dello schermo — cosi' il bordo fra la notte e la pagina non si vede mai.
+      const coda = parseFloat(getComputedStyle(el).paddingBottom) || 1
+      const inizio = Math.max(0, h - window.innerHeight - coda)
+      const p = calmo ? 0 : Math.min(1, Math.max(0, (y - inizio) / coda))
+      el.style.setProperty('--alba', p.toFixed(3))
+      const scuro = calmo ? y < h - 60 : p < 0.6
+      const era = pg.dataset.scuro === '1'
+      if (era !== scuro) pg.dataset.scuro = scuro ? '1' : '0'
+    }
+    const chiedi = () => { if (!raf) raf = requestAnimationFrame(aggiorna) }
+    aggiorna()
+    window.addEventListener('scroll', chiedi, { passive: true })
+    window.addEventListener('resize', chiedi)
+    return () => {
+      window.removeEventListener('scroll', chiedi); window.removeEventListener('resize', chiedi)
+      if (raf) cancelAnimationFrame(raf)
+      delete pg.dataset.scuro
+    }
+  }, [sezione, pagina])
+}
+
+function Apertura({ t, lang, pagina }) {
   const a = t.apertura
+  const sezione = useRef(null)
+  useAlba(sezione, pagina)
   return (
-    <section id="inizio" className={s.apertura}>
+    <section id="inizio" ref={sezione} className={s.apertura}>
+      <div className={s.stelle} aria-hidden="true" />
+      <div className={s.alba} aria-hidden="true" />
       <div className={`${s.largo} ${s.aperturaGriglia}`}>
         <div className={s.aperturaTesto}>
           <p className={s.etichetta}>{a.etichetta}</p>
@@ -173,6 +217,8 @@ function Apertura({ t, lang }) {
         {/* A destra, grande e alla stessa altezza della scritta: il mondo che gira, con le sessioni e gli ordini. */}
         <div className={s.aperturaGlobo}><Globo testi={a.globo} lingua={INTL[lang]} /></div>
       </div>
+      {/* Il velo: il fondo della pagina che sale sopra a tutto quando l'alba e' compiuta. */}
+      <div className={s.albaVelo} aria-hidden="true" />
     </section>
   )
 }
@@ -181,7 +227,7 @@ function Apertura({ t, lang }) {
 function Vetrina({ t, lang }) {
   return (
     <section className={s.vetrina}>
-      <div className={`${s.cornice} ${s.siApre}`}>
+      <div className={`${s.cornice} ${s.siApre}`} data-tappa="dashboard">
         <Immagini lang={lang} id="dashboard" alt={t.apertura.alt} />
       </div>
     </section>
@@ -189,16 +235,15 @@ function Vetrina({ t, lang }) {
 }
 
 function Fonti({ t }) {
-  // Il nastro che scorre (come i marchi su shopify.com): la fila e' scritta due volte e si sposta
-  // di mezza lunghezza, cosi' il giro non ha stacchi. Si ferma sotto il puntatore; con "riduci
-  // movimento" resta ferma e la copia sparisce.
+  // La griglia con le crocette agli angoli (come i partner di unitedcarriers.com), al posto del
+  // nastro che scorreva: otto caselle ferme, i marchi si leggono tutti in una volta.
   return (
     <section className={s.fonti} aria-label={t.fonti.etichetta}>
-      <p className={`${s.etichetta} ${s.centro}`}>{t.fonti.etichetta}</p>
-      <div className={s.nastro}>
-        <div className={s.nastroScorre}>
-          {[...FONTI, ...FONTI].map((f, i) => (
-            <span key={i} className={`${s.fonte} ${i >= FONTI.length ? s.copia : ''}`} aria-hidden={i >= FONTI.length || undefined}>
+      <div className={s.largo}>
+        <p className={s.etichetta}>{t.fonti.etichetta}</p>
+        <div className={s.fontiGriglia}>
+          {FONTI.map(f => (
+            <span key={f} className={s.fonte}>
               <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="currentColor" fillRule="evenodd"><path d={LOGHI[f]} /></svg>{f}
             </span>
           ))}
@@ -229,7 +274,7 @@ function Blocchi({ t, lang }) {
         <div>
           {t.blocchi.map((b, i) => (
             <div key={b.id} ref={el => { passi.current[i] = el }} data-i={i} className={`${s.passo} ${i === attivo ? s.passoAttivo : ''}`}>
-              <p className={s.etichetta}><span className={s.numero}>{String(i + 1).padStart(2, '0')}</span>{b.etichetta}</p>
+              <p className={s.etichetta} data-tappa={b.id}><span className={s.numero}>{String(i + 1).padStart(2, '0')}</span>{b.etichetta}</p>
               <h2 className={s.h2}>{b.titolo}</h2>
               <p className={s.testo}>{b.testo}</p>
               <ul className={s.punti}>
@@ -299,7 +344,7 @@ function ChatDemo({ t }) {
   const testo = sc.r.split(' ').slice(0, parole).join(' ')
   return (
     <div ref={radice} className={s.chat} aria-live="off">
-      <div className={s.chatTesta}><span className={s.chatPunto} />{t.ai.etichetta} · {c.negozio}</div>
+      <div className={s.chatTesta} data-tappa="ai"><span className={s.chatPunto} />{t.ai.etichetta} · {c.negozio}</div>
       <div className={s.chatCorpo}>
         <p key={'d' + n} className={s.chatDomanda}>{sc.d}</p>
         {fase === 'scrive' && <p className={s.chatScrive}>{c.scrive}</p>}
@@ -316,7 +361,7 @@ function Cervello({ t }) {
       <div className={`${s.largo} ${s.divisa}`}>
         <div data-compare>
           <p className={s.etichetta}>{a.etichetta}</p>
-          <h2 className={s.h2}>{a.titolo}</h2>
+          <h2 className={`${s.h2} ${s.acceso}`}>{a.titolo}</h2>
           <p className={s.sotto}>{a.sotto}</p>
           <ul className={`${s.voceElenco} ${s.cascata}`} data-compare>
             {a.voci.map((v, i) => (
@@ -340,7 +385,7 @@ function Tutto({ t }) {
       <div className={s.largo}>
         <div className={s.testaSezione} data-compare>
           <p className={s.etichetta}>{a.etichetta}</p>
-          <h2 className={s.h2}>{a.titolo}</h2>
+          <h2 className={`${s.h2} ${s.acceso}`}>{a.titolo}</h2>
           <p className={s.sotto}>{a.sotto}</p>
         </div>
         <div className={`${s.griglia} ${s.cascata}`} data-compare>
@@ -366,7 +411,7 @@ function Agenzie({ t, vai }) {
       <div className={s.largo}>
         <div className={s.testaSezione} data-compare>
           <p className={s.etichetta}>{a.etichetta}</p>
-          <h2 className={s.h2}>{a.titolo}</h2>
+          <h2 className={`${s.h2} ${s.acceso}`}>{a.titolo}</h2>
           <p className={s.sotto}>{a.sotto}</p>
         </div>
         <div className={`${s.duo} ${s.cascata}`} data-compare>
@@ -396,7 +441,7 @@ function Prezzi({ t, lang, pubblico, setPubblico }) {
       <div className={s.largo}>
         <div className={s.testaSezione}>
           <p className={s.etichetta}>{p.etichetta}</p>
-          <h2 className={s.h2}>{p.titolo}</h2>
+          <h2 className={`${s.h2} ${s.acceso}`}>{p.titolo}</h2>
           <p className={s.sotto}>{pubblico === 'agenzie' ? p.agenzieSotto : p.sotto}</p>
         </div>
         <div className={s.comandi}>
@@ -454,12 +499,12 @@ function Domande({ t }) {
       <div className={`${s.largo} ${s.divisa}`}>
         <div className={`${s.testaSezione} ${s.testaFerma}`}>
           <p className={s.etichetta}>{d.etichetta}</p>
-          <h2 className={s.h2}>{d.titolo}</h2>
+          <h2 className={`${s.h2} ${s.acceso}`}>{d.titolo}</h2>
         </div>
         <div className={s.domande}>
-          {d.voci.map(v => (
+          {d.voci.map((v, i) => (
             <details key={v.q} className={s.domanda}>
-              <summary>{v.q}<Icon name="plus" size={18} /></summary>
+              <summary><span className={s.domandaNumero}>{String(i + 1).padStart(2, '0')}</span><span className={s.domandaTesto}>{v.q}</span><Icon name="plus" size={18} /></summary>
               <p>{v.a}</p>
             </details>
           ))}
@@ -499,7 +544,7 @@ function Contatti({ t, lang }) {
       <div className={`${s.largo} ${s.divisa}`}>
         <div className={`${s.testaSezione} ${s.testaFerma}`}>
           <p className={s.etichetta}>{c.etichetta}</p>
-          <h2 className={s.h2}>{c.titolo}</h2>
+          <h2 className={`${s.h2} ${s.acceso}`}>{c.titolo}</h2>
           <p className={s.sotto}>{c.sotto}</p>
         </div>
         {fatto ? (
@@ -543,8 +588,10 @@ function Chiusura({ t }) {
   const c = t.chiusura
   return (
     <section className={s.chiusura}>
-      <div className={s.largo} data-compare>
-        <h2 className={s.h2}>{c.titolo}</h2>
+      {/* Gli anelli concentrici (come la chiusura di unitedcarriers.com): richiamano le orbite del globo dell'apertura. */}
+      <div className={s.anelli} aria-hidden="true" />
+      <div className={`${s.largo} ${s.chiusuraDentro}`} data-compare>
+        <h2 className={`${s.h2} ${s.acceso}`}>{c.titolo}</h2>
         <p className={s.sotto}>{c.sotto}</p>
         <div className={s.azioni}>
           <Link href="/register" className={s.btn}>{c.prova}</Link>
@@ -600,6 +647,152 @@ function Piede({ t }) {
   )
 }
 
+// ── Il filo dell'ordine (da unitedcarriers.com, dove il carico attraversa tutta la pagina: carrello,
+// camion, nave). Qui l'oggetto e' un ORDINE. Nasce accanto ai numeri del globo e, scorrendo, vola di
+// tappa in tappa — entra nella Dashboard, gli si calcola il margine, viene contato nel MER,
+// attribuito alla campagna, finisce nella scheda cliente e nella risposta dell'AI. Le tappe sono
+// elementi gia' in pagina segnati con data-tappa; la posizione si legge a ogni fotogramma dai loro
+// rettangoli, cosi' regge alle immagini che arrivano dopo e alle finestre ridimensionate. Fra una
+// tappa e l'altra la pillola sta ferma sulla tappa raggiunta finche' la prossima non si avvicina,
+// poi vola ad arco. Solo da desktop con il mouse, e mai per chi ha chiesto meno movimento.
+const TAPPE = ['inizio', 'dashboard', 'productPerformance', 'kpiBrain', 'attribution', 'clienti', 'ai']
+function FiloOrdine({ t, lingua }) {
+  const el = useRef(null)
+  const [tappa, setTappa] = useState(0)
+  const [acceso, setAcceso] = useState(false)
+  useEffect(() => {
+    const pill = el.current
+    if (!pill) return
+    if (!window.matchMedia('(min-width: 861px) and (pointer: fine) and (prefers-reduced-motion: no-preference)').matches) return
+    let raf = 0, ultima = -1, vis = false
+    const liscia = x => x * x * (3 - 2 * x)
+    // Dove si posa a ogni tappa: sui numeri del globo a destra; dentro la Dashboard in alto a destra;
+    // sui passi del racconto SOPRA l'etichetta (nel bianco, senza coprire lo schermo); nella chat
+    // dentro l'intestazione, a destra.
+    const posto = (id, r, w, h) => {
+      if (id === 'inizio') return [r.right + 16, r.top]
+      if (id === 'dashboard') return [r.right - w - 14, r.top + 14]
+      if (id === 'ai') return [r.right - w - 12, r.top + (r.height - h) / 2]
+      return [r.left, r.top - h - 14]
+    }
+    const aggiorna = () => {
+      raf = 0
+      const H = window.innerHeight
+      const nodi = TAPPE.map(id => document.querySelector(`[data-tappa="${id}"]`))
+      if (nodi.some(n => !n)) return
+      const rett = nodi.map(n => n.getBoundingClientRect())
+      const w = pill.offsetWidth, hp = pill.offsetHeight
+      const linea = H * 0.55
+      let i = -1
+      for (let k = 0; k < rett.length; k++) if (rett[k].top <= linea) i = k
+      const partito = (window.scrollY || 0) > 40
+      let x, y, k = Math.max(0, i), mostra = partito
+      if (i < 0) {
+        [x, y] = posto('inizio', rett[0], w, hp)
+      } else if (i >= rett.length - 1) {
+        [x, y] = posto(TAPPE[i], rett[i], w, hp)
+        mostra = partito && rett[i].top > -H * 0.6
+      } else {
+        const a = rett[i], b = rett[i + 1]
+        const tt = liscia(Math.min(1, Math.max(0, (linea - a.top) / Math.max(1, b.top - a.top))))
+        const [ax, ay] = posto(TAPPE[i], a, w, hp)
+        const [bx, by] = posto(TAPPE[i + 1], b, w, hp)
+        x = ax + (bx - ax) * tt
+        y = ay + (by - ay) * tt - Math.sin(tt * Math.PI) * 28
+        if (tt > 0.5) k = i + 1
+      }
+      pill.style.transform = `translate3d(${Math.round(x)}px, ${Math.round(y)}px, 0)`
+      if (k !== ultima) { ultima = k; setTappa(k) }
+      if (mostra !== vis) { vis = mostra; setAcceso(mostra) }
+    }
+    const chiedi = () => { if (!raf) raf = requestAnimationFrame(aggiorna) }
+    aggiorna()
+    window.addEventListener('scroll', chiedi, { passive: true })
+    window.addEventListener('resize', chiedi)
+    return () => { window.removeEventListener('scroll', chiedi); window.removeEventListener('resize', chiedi); if (raf) cancelAnimationFrame(raf) }
+  }, [t])
+  const id = TAPPE[tappa]
+  const euro = '€' + new Intl.NumberFormat(lingua, { maximumFractionDigits: 0 }).format(96)
+  return (
+    <div ref={el} className={`${s.filo} ${acceso ? s.filoAcceso : ''}`} aria-hidden="true">
+      <span key={id} className={s.filoTappa}>{id === 'inizio' ? t.apertura.globo.nuovo : t.filo[id]}</span>
+      <strong>Milano · {euro}</strong>
+    </div>
+  )
+}
+
+// ── Il cursore (Marino, 29 set 2026: «voglio anche il cursore custom», come su unitedcarriers.com):
+// un punto e un anello che seguono il mouse con un po' di ritardo; l'anello si riempie con
+// l'avanzamento della pagina e si allarga sopra a link e bottoni, sui campi di testo diventa un
+// trattino. E' in differenza di colore: bianco sul nero e nero sul bianco senza saperlo. Solo con
+// il mouse, mai sul tocco, mai per chi ha chiesto meno movimento.
+function Cursore({ pagina }) {
+  const el = useRef(null)
+  const anello = useRef(null)
+  useEffect(() => {
+    const c = el.current, pg = pagina.current, cerchio = anello.current
+    if (!c || !pg || !cerchio) return
+    if (!window.matchMedia('(min-width: 861px) and (pointer: fine) and (prefers-reduced-motion: no-preference)').matches) return
+    pg.dataset.cursore = '1'
+    const giro = 2 * Math.PI * 20
+    cerchio.style.strokeDasharray = String(giro)
+    cerchio.style.strokeDashoffset = String(giro)
+    let mx = -100, my = -100, x = -100, y = -100, raf = 0, visto = false
+    const passo = () => {
+      raf = 0
+      x += (mx - x) * 0.18; y += (my - y) * 0.18
+      c.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`
+      const max = document.documentElement.scrollHeight - window.innerHeight
+      const p = max > 0 ? Math.min(1, (window.scrollY || 0) / max) : 0
+      cerchio.style.strokeDashoffset = String(giro * (1 - p))
+      if (Math.abs(mx - x) > 0.1 || Math.abs(my - y) > 0.1) raf = requestAnimationFrame(passo)
+    }
+    const chiedi = () => { if (!raf) raf = requestAnimationFrame(passo) }
+    const muove = e => {
+      mx = e.clientX; my = e.clientY
+      if (!visto) { visto = true; x = mx; y = my; c.dataset.visto = '1' }
+      chiedi()
+    }
+    const sopra = e => {
+      const su = e.target.closest?.('a, button, summary, select, label, [role="button"], input, textarea')
+      c.dataset.su = su ? '1' : '0'
+      c.dataset.testo = su && su.matches('input, textarea') ? '1' : '0'
+    }
+    const esce = () => { visto = false; c.dataset.visto = '0' }
+    window.addEventListener('mousemove', muove, { passive: true })
+    document.addEventListener('mouseover', sopra)
+    document.documentElement.addEventListener('mouseleave', esce)
+    window.addEventListener('scroll', chiedi, { passive: true })
+    return () => {
+      window.removeEventListener('mousemove', muove); document.removeEventListener('mouseover', sopra)
+      document.documentElement.removeEventListener('mouseleave', esce); window.removeEventListener('scroll', chiedi)
+      if (raf) cancelAnimationFrame(raf)
+      delete pg.dataset.cursore
+    }
+  }, [pagina])
+  return (
+    <div ref={el} className={s.curs} aria-hidden="true">
+      <span className={s.cursPunto} />
+      <svg className={s.cursAnello} viewBox="0 0 44 44" width="44" height="44">
+        <circle cx="22" cy="22" r="20" fill="none" stroke="currentColor" strokeOpacity=".3" strokeWidth="1" />
+        <circle ref={anello} cx="22" cy="22" r="20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" transform="rotate(-90 22 22)" />
+      </svg>
+    </div>
+  )
+}
+
+// ── Lo scorrimento morbido (Lenis, come unitedcarriers.com): solo da desktop con il mouse; sul
+// tocco e per chi ha chiesto meno movimento resta quello del sistema, che e' gia' giusto. I link
+// #ancora passano da qui e scivolano invece di saltare.
+function useLenis() {
+  useEffect(() => {
+    if (!window.matchMedia('(min-width: 861px) and (pointer: fine) and (prefers-reduced-motion: no-preference)').matches) return
+    const lenis = new Lenis({ lerp: 0.1, anchors: true })
+    let raf = requestAnimationFrame(function ciclo(t) { lenis.raf(t); raf = requestAnimationFrame(ciclo) })
+    return () => { cancelAnimationFrame(raf); lenis.destroy() }
+  }, [])
+}
+
 // La lingua arriva dalla ROTTA (/welcome = it, /en, /es, /fr, /de): cosi' l'HTML servito a chi
 // indicizza e' gia' nella lingua giusta. Su /welcome senza scelta si rileva: ?lang= → scelta
 // salvata su questo dispositivo → lingua del browser → paese.
@@ -609,6 +802,7 @@ export default function LandingPage({ initialLang = null }) {
   const scelta = useRef(false)
   const radice = useRef(null)
   useComparsa(radice)
+  useLenis()
 
   useEffect(() => {
     if (initialLang) return
@@ -651,7 +845,7 @@ export default function LandingPage({ initialLang = null }) {
     <div ref={radice} className={`${s.pagina} landing-pagina`}>
       <Barra t={t} lang={lang} scegli={scegli} />
       <main>
-        <Apertura t={t} lang={lang} />
+        <Apertura t={t} lang={lang} pagina={radice} />
         <Fonti t={t} />
         <Vetrina t={t} lang={lang} />
         <Blocchi t={t} lang={lang} />
@@ -666,6 +860,8 @@ export default function LandingPage({ initialLang = null }) {
         <Chiusura t={t} />
       </main>
       <Piede t={t} />
+      <FiloOrdine t={t} lingua={INTL[lang]} />
+      <Cursore pagina={radice} />
     </div>
   )
 }

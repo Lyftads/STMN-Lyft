@@ -1041,3 +1041,10 @@ input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
     font-size: 16px !important;
   }
 }
+
+/* Lenis (lo scorrimento morbido della landing, solo desktop col mouse): mette le sue classi su
+   <html>, quindi le regole devono stare qui e non in un CSS module. Senza «scroll-behavior: auto»
+   il browser animerebbe di suo quello che Lenis sta gia' animando. */
+html.lenis, html.lenis body { height: auto; }
+html.lenis.lenis-smooth { scroll-behavior: auto !important; }
+html.lenis.lenis-smooth iframe { pointer-events: none; }

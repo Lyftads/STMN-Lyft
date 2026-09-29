@@ -27,6 +27,8 @@ const it = {
     globo: { sessioni: 'Sul sito adesso', ordini: 'Ordini oggi', nuovo: 'Nuovo ordine', nota: 'Negozio d’esempio, dati simulati' },
   },
   fonti: { etichetta: 'Legge i dati da' },
+  // Il filo dell'ordine: le tappe che la pillola attraversa scorrendo (vedi FiloOrdine in LandingPage.jsx).
+  filo: { dashboard: 'Entra nella Dashboard', productPerformance: 'Margine calcolato', kpiBrain: 'Contato nel MER', attribution: 'Attribuito alla campagna', clienti: 'Nella scheda cliente', ai: 'Nella risposta dell’AI' },
   blocchi: [
     {
       id: 'productPerformance',
@@ -307,6 +309,8 @@ const en = {
     globo: { sessioni: 'On the site now', ordini: 'Orders today', nuovo: 'New order', nota: 'Sample store, simulated data' },
   },
   fonti: { etichetta: 'Reads data from' },
+  // Il filo dell'ordine: le tappe che la pillola attraversa scorrendo (vedi FiloOrdine in LandingPage.jsx).
+  filo: { dashboard: 'Into the Dashboard', productPerformance: 'Margin calculated', kpiBrain: 'Counted in MER', attribution: 'Attributed to the campaign', clienti: 'In the customer record', ai: 'In the AI’s answer' },
   blocchi: [
     {
       id: 'productPerformance',
@@ -613,6 +617,8 @@ const es = {
     globo: { sessioni: 'En la web ahora', ordini: 'Pedidos hoy', nuovo: 'Nuevo pedido', nota: 'Tienda de ejemplo, datos simulados' },
   },
   fonti: { etichetta: 'Lee los datos de' },
+  // Il filo dell'ordine: le tappe che la pillola attraversa scorrendo (vedi FiloOrdine in LandingPage.jsx).
+  filo: { dashboard: 'Entra en el Dashboard', productPerformance: 'Margen calculado', kpiBrain: 'Contado en el MER', attribution: 'Atribuido a la campaña', clienti: 'En la ficha del cliente', ai: 'En la respuesta de la IA' },
   blocchi: [
     {
       id: 'productPerformance',
@@ -923,6 +929,8 @@ const fr = {
     globo: { sessioni: 'Sur le site en ce moment', ordini: 'Commandes aujourd’hui', nuovo: 'Nouvelle commande', nota: 'Boutique d’exemple, données simulées' },
   },
   fonti: { etichetta: 'Lit les données de' },
+  // Il filo dell'ordine: le tappe che la pillola attraversa scorrendo (vedi FiloOrdine in LandingPage.jsx).
+  filo: { dashboard: 'Entre dans le Dashboard', productPerformance: 'Marge calculée', kpiBrain: 'Compté dans le MER', attribution: 'Attribué à la campagne', clienti: 'Dans la fiche client', ai: 'Dans la réponse de l’IA' },
   blocchi: [
     {
       id: 'productPerformance',
@@ -1241,6 +1249,8 @@ const de = {
     globo: { sessioni: 'Gerade im Shop', ordini: 'Bestellungen heute', nuovo: 'Neue Bestellung', nota: 'Beispielshop, simulierte Daten' },
   },
   fonti: { etichetta: 'Liest die Daten aus' },
+  // Il filo dell'ordine: le tappe che la pillola attraversa scorrendo (vedi FiloOrdine in LandingPage.jsx).
+  filo: { dashboard: 'Ins Dashboard', productPerformance: 'Marge berechnet', kpiBrain: 'Im MER gezählt', attribution: 'Der Kampagne zugeordnet', clienti: 'In der Kundenakte', ai: 'In der Antwort der KI' },
   blocchi: [
     {
       id: 'productPerformance',

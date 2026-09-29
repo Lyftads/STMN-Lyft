@@ -13,10 +13,14 @@
      neutri del prodotto.
    - SEI misure di testo in tutta la pagina. Il prodotto ne ha sei (10 · 11,5 · 13 · 15 · 20 ·
      22); una pagina pubblica ne ha bisogno di piu' grandi per il titolo, ma resta SEI:
-     56 (solo il titolo principale) · 36 (titoli di sezione) · 21 · 17 · 14 · 12.
+     84 (solo il titolo principale) · 36 (titoli di sezione) · 21 · 17 · 14 · 12.
      La gerarchia la fa il peso, non un'altra misura.
    - Nessun colore decorativo. Il colore compare solo DENTRO le immagini del prodotto.
    - Movimento poco e breve, e niente del tutto per chi l'ha chiesto al sistema.
+   - DAL 29 SET 2026 (da unitedcarriers.com, che Marino ha portato come modello): l'apertura e la
+     chiusura sono di NOTTE anche di giorno; scorrendo, l'apertura fa l'alba; le etichette sono in
+     mono; un solo colore (--accento) e solo sul globo e nell'alba; da desktop col mouse: scorrimento
+     morbido (Lenis), cursore proprio, e l'ordine che viaggia di sezione in sezione.
    ════════════════════════════════════════════════════════════════════════ */
 
 .pagina {
@@ -34,8 +38,11 @@
   --barra: rgba(255, 255, 255, .82);
   --ombra: 0 1px 2px rgba(29, 29, 29, .04), 0 8px 32px rgba(29, 29, 29, .07);
   --ease: cubic-bezier(.2, .8, .2, 1);
+  --fondoPagina: #ffffff; /* il fondo VERO della pagina: dentro all'apertura (notte) --fondo cambia, questo no */
+  --accento: #2997ff;     /* l'unico colore della pagina: dove c'e' qualcuno sul globo, e l'alba */
+  --mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
 
-  --t-1: 56px;   /* il titolo principale, e basta */
+  --t-1: 84px;   /* il titolo principale, e basta (29 set: da 56 a 84; il contrasto con le etichette mono e' la gerarchia) */
   --t-2: 36px;   /* titoli di sezione */
   --t-3: 21px;   /* il sottotitolo sotto a un titolo */
   --t-4: 17px;   /* il testo */
@@ -77,6 +84,7 @@
   --btn-testo: #141414;
   --barra: rgba(12, 12, 12, .78);
   --ombra: 0 1px 2px rgba(0, 0, 0, .4), 0 12px 40px rgba(0, 0, 0, .45);
+  --fondoPagina: #0c0c0c;
   --text: #f5f5f5; --text2: #d1d1d1; --text3: #989898;
   --border: rgba(255, 255, 255, .09); --border2: rgba(255, 255, 255, .15); --border3: rgba(255, 255, 255, .24);
   --glass: #1c1c1c; --glass2: #2c2c2c; --card: #1c1c1c;
@@ -108,6 +116,19 @@
   border-bottom: 1px solid var(--bordo);
 }
 .barraDentro { display: flex; align-items: center; gap: 28px; height: 60px; }
+/* Sopra all'apertura (notte) la barra e' trasparente e bianca; a meta' alba torna di vetro.
+   data-scuro lo mette useAlba, una volta per fotogramma. */
+.barra { transition: background-color .35s var(--ease), border-color .35s var(--ease); }
+.pagina[data-scuro='1'] .barra {
+  background: transparent; border-color: transparent; backdrop-filter: none; -webkit-backdrop-filter: none;
+  --testo: #f5f5f7; --testo2: rgba(255, 255, 255, .78); --testo3: rgba(255, 255, 255, .55); --text: #f5f5f7;
+  --scheda: rgba(14, 16, 22, .55); --bordo: rgba(255, 255, 255, .16); --nero: #f5f5f7; --nero-hover: #ffffff; --btn-testo: #111111;
+  color: var(--testo); color-scheme: dark;
+}
+/* Il tema chiaro dell'app impone «select { background: #fff !important }» a tutta la pagina (due regole,
+   la piu' forte e' «body :is(input:not():not():not(), select…)», specificita' 0,5,2): sulla barra scura il
+   selettore lingua diventava bianco su bianco. Questo selettore vale 0,7,1 e vince. */
+:global(:root[data-theme='light']) .pagina[data-scuro='1'] .barra select.lingua.linguaBarra { background-color: var(--scheda) !important; border-color: var(--bordo) !important; color: var(--testo) !important; }
 .marchio { display: inline-flex; align-items: center; gap: 9px; text-decoration: none; font-size: var(--t-4); font-weight: 680; letter-spacing: -.01em; color: var(--testo); }
 .voci { display: flex; align-items: center; gap: 26px; margin-left: 12px; }
 .voce { font-size: var(--t-5); color: var(--testo2); text-decoration: none; transition: color .15s var(--ease); }
@@ -154,10 +175,23 @@
 .link:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 /* ── Titoli e testi ───────────────────────────────────────────────────── */
-.etichetta { font-size: var(--t-6); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--testo3); margin: 0 0 14px; }
+/* Le etichette in mono (da unitedcarriers.com): piccole, maiuscole, tecniche; col titolo grande sopra fanno il contrasto. */
+.etichetta { font-family: var(--mono); font-size: var(--t-6); font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--testo3); margin: 0 0 14px; }
 .h1 { font-size: var(--t-1); line-height: 1.05; font-weight: 700; letter-spacing: -.035em; margin: 0; }
 .h2 { font-size: var(--t-2); line-height: 1.12; font-weight: 700; letter-spacing: -.028em; margin: 0; }
 .h3 { font-size: var(--t-4); line-height: 1.3; font-weight: 650; letter-spacing: -.01em; margin: 0; }
+/* Il titolo che si accende (da unitedcarriers.com): entra grigio e diventa del colore del testo
+   mentre sale, legato allo scorrimento. Solo dove il browser sa farlo da solo; altrove e' acceso subito. */
+.acceso {
+  -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent;
+  background-image: linear-gradient(90deg, var(--testo) 0 50%, var(--testo3) 50% 100%); background-size: 200% 100%; background-position: 0 0;
+}
+@keyframes accendi { from { background-position: 100% 0; } to { background-position: 0 0; } }
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .acceso { animation: accendi linear both; animation-timeline: view(); animation-range: entry 25% cover 45%; }
+  }
+}
 .sotto { font-size: var(--t-3); line-height: 1.45; color: var(--testo2); margin: 18px 0 0; letter-spacing: -.01em; }
 .testo { font-size: var(--t-4); line-height: 1.55; color: var(--testo2); margin: 0; }
 .nota { font-size: var(--t-5); color: var(--testo3); margin: 0; }
@@ -179,7 +213,45 @@
 .voceElenco li svg { margin-top: 2px; }
 
 /* ── Apertura ─────────────────────────────────────────────────────────── */
-.apertura { overflow: hidden; }
+/* ── Apertura: NOTTE, anche di giorno (29 set 2026, da unitedcarriers.com) ──────────────
+   Spazio nero, stelle appena accennate, il globo con gli ordini. Scorrendo, --alba (0→1, da useAlba
+   in LandingPage.jsx) gonfia il bagliore dietro al globo e alla fine alza il velo col fondo VERO
+   della pagina: dalla notte al giorno senza uno stacco. La sezione scivola sotto la barra, che qui
+   e' trasparente (data-scuro). I colori qui dentro sono quelli della notte, qualunque sia il tema. */
+.apertura {
+  --fondo: #08090c; --fondo2: #111318; --scheda: rgba(14, 16, 22, .72); --bordo: rgba(255, 255, 255, .12); --bordo2: rgba(255, 255, 255, .22);
+  --testo: #f5f5f7; --testo2: rgba(255, 255, 255, .74); --testo3: rgba(255, 255, 255, .52);
+  --nero: #f5f5f7; --nero-hover: #ffffff; --btn-testo: #111111; --ombra: 0 12px 40px rgba(0, 0, 0, .45);
+  --alba: 0;
+  position: relative; overflow: hidden; margin-top: -60px; padding: 60px 0 60vh; /* in fondo, la coda di cielo dove avviene l'alba */
+  background: var(--fondo); color: var(--testo); color-scheme: dark;
+}
+.stelle {
+  position: absolute; inset: 0; z-index: 0; pointer-events: none; opacity: .5;
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, .55) .6px, transparent 1.3px),
+    radial-gradient(circle, rgba(255, 255, 255, .35) .5px, transparent 1.1px),
+    radial-gradient(circle, rgba(255, 255, 255, .25) .5px, transparent 1px);
+  background-size: 190px 190px, 260px 260px, 340px 340px;
+  background-position: 0 0, 70px 110px, 140px 40px;
+  -webkit-mask-image: linear-gradient(#000 60%, transparent 100%); mask-image: linear-gradient(#000 60%, transparent 100%);
+}
+/* Il bagliore: un cerchio enorme dietro al globo, dell'unico colore della pagina, che cresce con l'alba. */
+.alba {
+  position: absolute; z-index: 0; left: 70%; top: 62%; width: 150vmax; height: 150vmax; margin: -75vmax 0 0 -75vmax;
+  border-radius: 50%; pointer-events: none; will-change: transform;
+  background: radial-gradient(circle closest-side,
+    var(--accento) 0%,
+    color-mix(in srgb, var(--accento) 72%, transparent) 24%,
+    color-mix(in srgb, var(--accento) 26%, transparent) 46%,
+    transparent 66%);
+  transform: scale(calc(.34 + var(--alba) * 1.5));
+  opacity: calc(.7 + var(--alba) * .3);
+}
+.albaVelo { position: absolute; inset: 0; z-index: 3; pointer-events: none; background: var(--fondoPagina); opacity: clamp(0, calc((var(--alba) - .6) / .4), 1); }
+.aperturaGriglia { position: relative; z-index: 2; }
+.aperturaTesto { opacity: clamp(0, calc(1 - var(--alba) * 1.7), 1); transform: translateY(calc(var(--alba) * -48px)); }
+.aperturaGlobo { transform: scale(calc(1 + var(--alba) * .3)); transform-origin: 60% 60%; opacity: clamp(0, calc(1.4 - var(--alba) * 1.6), 1); }
 .azioni { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 32px; }
 .promesse { display: flex; justify-content: center; gap: 22px; flex-wrap: wrap; margin-top: 18px; font-size: var(--t-5); color: var(--testo3); }
 .promesse span { display: inline-flex; align-items: center; gap: 6px; }
@@ -211,15 +283,15 @@
   display: grid; gap: 2px; min-width: 164px; padding: 10px 14px;
   background: var(--scheda); border: 1px solid var(--bordo); border-radius: 14px; box-shadow: var(--ombra);
 }
-.globoNumeri span { font-size: var(--t-6); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--testo3); }
+.globoNumeri span { font-family: var(--mono); font-size: var(--t-6); font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--testo3); }
 .globoNumeri strong { font-size: var(--t-3); font-weight: 650; letter-spacing: -.01em; color: var(--testo); font-variant-numeric: tabular-nums; }
 .globoUltimo {
   margin: 0; padding: 6px 12px; border-radius: 999px; white-space: nowrap;
-  background: var(--scheda); border: 1px solid var(--bordo); font-size: var(--t-6); color: var(--testo2);
+  background: var(--scheda); border: 1px solid var(--bordo); font-family: var(--mono); font-size: var(--t-6); color: var(--testo2);
   animation: globoEntra .5s var(--ease);
 }
 @keyframes globoEntra { from { opacity: 0; transform: translateY(6px); } }
-.globoNota { position: absolute; right: 4px; bottom: 0; margin: 0; font-size: var(--t-6); color: var(--testo3); }
+.globoNota { position: absolute; right: 4px; bottom: 0; margin: 0; font-family: var(--mono); font-size: var(--t-6); color: var(--testo3); }
 
 /* La cornice di un'immagine del prodotto: come una finestra, niente di piu'. */
 .cornice {
@@ -228,16 +300,29 @@
 }
 .cornice img { width: 100%; }
 
-/* ── Da dove vengono i numeri ─────────────────────────────────────────── */
-.fonti { padding: 44px 0; border-bottom: 1px solid var(--bordo); }
-.fonte { display: inline-flex; align-items: center; gap: 10px; font-size: var(--t-4); font-weight: 600; color: var(--testo3); letter-spacing: -.01em; white-space: nowrap; margin-right: 56px; }
+/* ── Da dove vengono i numeri: la griglia con le crocette agli angoli ───────────────────
+   (come i partner di unitedcarriers.com). Al posto del nastro che scorreva: otto caselle ferme,
+   e a ogni incrocio della griglia una crocetta di 1 px, come su un disegno tecnico. */
+.fonti { padding: 44px 0 56px; }
+.fonti .etichetta { margin-bottom: 18px; }
+.fontiGriglia { position: relative; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); border-top: 1px solid var(--bordo); border-left: 1px solid var(--bordo); }
+.fonte {
+  position: relative; display: flex; align-items: center; justify-content: center; gap: 10px; height: 92px; padding: 0 8px;
+  border-right: 1px solid var(--bordo); border-bottom: 1px solid var(--bordo);
+  font-size: var(--t-5); font-weight: 600; color: var(--testo2); letter-spacing: -.01em; white-space: nowrap;
+}
 .fonte svg { flex-shrink: 0; opacity: .85; }
-
-/* Il nastro che scorre: la fila e' scritta due volte, si sposta di meta' e ricomincia senza stacchi. */
-.nastro { overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }
-.nastroScorre { display: flex; width: max-content; animation: scorri 38s linear infinite; }
-.nastro:hover .nastroScorre { animation-play-state: paused; }
-@keyframes scorri { to { transform: translateX(-50%); } }
+/* Ogni casella mette la crocetta in alto a sinistra e in basso a destra: cosi' ogni incrocio ne ha una. */
+.fonte::before, .fonte::after, .fontiGriglia::before, .fontiGriglia::after {
+  content: ''; position: absolute; width: 9px; height: 9px; z-index: 1; pointer-events: none;
+  background:
+    linear-gradient(var(--testo3), var(--testo3)) center / 9px 1px no-repeat,
+    linear-gradient(var(--testo3), var(--testo3)) center / 1px 9px no-repeat;
+}
+.fonte::before { left: -5px; top: -5px; }
+.fonte::after { right: -5px; bottom: -5px; }
+.fontiGriglia::before { right: -4px; top: -5px; }
+.fontiGriglia::after { left: -5px; bottom: -4px; }
 
 /* ── Il prodotto, passo per passo ─────────────────────────────────────── */
 /* Il racconto a scorrimento: passi a sinistra, lo schermo fermo a destra che cambia immagine. */
@@ -253,7 +338,7 @@
 .pagina .schermoFoto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transform: scale(1.015); transition: opacity .5s var(--ease), transform .7s var(--ease); }
 .pagina .schermoFoto img.fotoAttiva { opacity: 1; transform: none; }
 .avanzamento { display: flex; gap: 10px; margin-top: 18px; }
-.avanzamento span { flex: 1; display: grid; gap: 8px; font-size: var(--t-6); font-weight: 600; letter-spacing: .06em; color: var(--testo3); font-variant-numeric: tabular-nums; transition: color .3s var(--ease); }
+.avanzamento span { flex: 1; display: grid; gap: 8px; font-family: var(--mono); font-size: var(--t-6); font-weight: 500; letter-spacing: .06em; color: var(--testo3); font-variant-numeric: tabular-nums; transition: color .3s var(--ease); }
 .avanzamento i { display: block; height: 2px; border-radius: 2px; background: var(--bordo2); transition: background-color .3s var(--ease); }
 .avanzamento .tappaAttiva, .avanzamento .tappaFatta { color: var(--testo); }
 .avanzamento .tappaAttiva i, .avanzamento .tappaFatta i { background: var(--testo); }
@@ -363,14 +448,16 @@
 .domande { border-top: 1px solid var(--bordo); }
 .domanda { border-bottom: 1px solid var(--bordo); }
 .domanda summary {
-  list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  list-style: none; cursor: pointer; display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; align-items: center; gap: 12px;
   padding: 22px 0; font-size: var(--t-4); font-weight: 600; color: var(--testo);
 }
 .domanda summary::-webkit-details-marker { display: none; }
 .domanda summary:focus-visible { outline: 2px solid var(--nero); outline-offset: 4px; border-radius: 4px; }
 .domanda summary svg { flex-shrink: 0; color: var(--testo3); transition: transform .2s var(--ease); }
 .domanda[open] summary svg { transform: rotate(45deg); }
-.domanda p { margin: 0 0 22px; font-size: var(--t-5); line-height: 1.6; color: var(--testo2); max-width: 720px; }
+/* Numerate 01, 02… (da unitedcarriers.com): il numero in mono, la risposta allineata alla domanda. */
+.domandaNumero { font-family: var(--mono); font-size: var(--t-6); font-weight: 500; letter-spacing: .06em; color: var(--testo3); }
+.domanda p { margin: 0 0 22px 60px; font-size: var(--t-5); line-height: 1.6; color: var(--testo2); max-width: 720px; }
 
 /* ── Contatti ────────────────────────────────────────────────────────── */
 .modulo { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -388,7 +475,20 @@
 .fatto { text-align: center; padding: 48px 24px; border: 1px solid var(--bordo); border-radius: 16px; background: var(--scheda); }
 
 /* ── Chiusura e piede ─────────────────────────────────────────────────── */
-.chiusura { padding: 120px 0; text-align: center; }
+/* ── Chiusura: di nuovo notte, con gli anelli concentrici (da unitedcarriers.com) ────────
+   Richiamano le orbite del globo dell'apertura: la pagina si chiude come si e' aperta. */
+.chiusura {
+  --testo: #f5f5f7; --testo2: rgba(255, 255, 255, .72); --testo3: rgba(255, 255, 255, .52);
+  --nero: #f5f5f7; --nero-hover: #ffffff; --btn-testo: #111111; --scheda: rgba(14, 16, 22, .72); --bordo2: rgba(255, 255, 255, .22);
+  position: relative; overflow: hidden; margin: 0 16px; padding: 140px 0; border-radius: 32px; text-align: center;
+  background: #08090c; color: var(--testo); color-scheme: dark;
+}
+.chiusuraDentro { position: relative; z-index: 1; }
+.anelli {
+  position: absolute; left: 50%; top: 50%; width: 1800px; height: 1800px; margin: -900px 0 0 -900px; border-radius: 50%; pointer-events: none;
+  background: repeating-radial-gradient(circle, transparent 0 104px, rgba(255, 255, 255, .09) 104px 105px);
+  -webkit-mask-image: radial-gradient(circle, #000 12%, transparent 62%); mask-image: radial-gradient(circle, #000 12%, transparent 62%);
+}
 .piede { border-top: 1px solid var(--bordo); padding: 56px 0 40px; background: var(--fondo2); }
 .piedeGriglia { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 32px; }
 .piedeTitolo { font-size: var(--t-6); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--testo3); margin: 0 0 14px; }
@@ -396,6 +496,31 @@
 .piede li a { font-size: var(--t-5); color: var(--testo2); text-decoration: none; }
 .piede li a:hover { color: var(--testo); }
 .piedeSotto { margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--bordo); display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+/* ── Il filo dell'ordine (FiloOrdine in LandingPage.jsx): una targhetta nera con testo in mono,
+   come le etichette sul globo di unitedcarriers.com; e' fissa e la muove il JavaScript. ─────── */
+.filo {
+  position: fixed; left: 0; top: 0; z-index: 45; display: none; gap: 2px; pointer-events: none;
+  padding: 8px 12px 9px; border-radius: 12px; background: #111111; color: #f5f5f7; border: 1px solid rgba(255, 255, 255, .22);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .28); opacity: 0; transition: opacity .35s var(--ease); will-change: transform;
+}
+.filoAcceso { opacity: 1; }
+.filoTappa { display: block; font-family: var(--mono); font-size: var(--t-6); letter-spacing: .06em; text-transform: uppercase; opacity: .72; animation: globoEntra .35s var(--ease); }
+.filo strong { display: block; font-size: var(--t-5); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (min-width: 861px) and (pointer: fine) { .filo { display: grid; } }
+
+/* ── Il cursore (Cursore in LandingPage.jsx): punto + anello, in differenza di colore ────── */
+.curs { position: fixed; left: 0; top: 0; z-index: 9999; display: none; pointer-events: none; mix-blend-mode: difference; color: #ffffff; opacity: 0; transition: opacity .25s var(--ease); }
+@media (min-width: 861px) and (pointer: fine) { .curs { display: block; } }
+.curs[data-visto='1'] { opacity: 1; }
+.cursPunto { position: absolute; left: -3px; top: -3px; width: 6px; height: 6px; border-radius: 50%; background: #ffffff; transition: transform .25s var(--ease); }
+.cursAnello { position: absolute; left: -22px; top: -22px; transition: transform .35s var(--ease), opacity .25s var(--ease); }
+.curs[data-su='1'] .cursAnello { transform: scale(1.55); }
+.curs[data-su='1'] .cursPunto { transform: scale(.6); }
+.curs[data-testo='1'] .cursAnello { opacity: 0; }
+.curs[data-testo='1'] .cursPunto { transform: scaleX(.35) scaleY(2.8); border-radius: 1px; }
+.pagina[data-cursore='1'], .pagina[data-cursore='1'] :is(a, button, summary, select, label, [role='button']) { cursor: none; }
+.pagina[data-cursore='1'] :is(input, textarea) { cursor: text; }
 
 /* ── Comparsa: breve, e mai per chi ha chiesto meno movimento ──────────── */
 .compare { opacity: 0; transform: translateY(14px); transition: opacity .6s var(--ease), transform .6s var(--ease); }
@@ -424,9 +549,11 @@
 @keyframes pulsa { from { opacity: .35; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
   .compare { opacity: 1; transform: none; transition: none; }
-  .nastroScorre { animation: none; flex-wrap: wrap; justify-content: center; width: auto; row-gap: 14px; }
-  .nastro { -webkit-mask-image: none; mask-image: none; }
-  .copia { display: none; }
+  .apertura { padding-bottom: 0; }
+  .alba { transform: scale(.34); }
+  .aperturaTesto, .aperturaGlobo { opacity: 1; transform: none; }
+  .albaVelo, .filo, .curs { display: none; }
+  .filoTappa { animation: none; }
   .passo, .pagina .schermoFoto img, .avanzamento span, .avanzamento i { transition: none; }
   .chatScrive { animation: none; }
   .cursore { animation: none; opacity: 0; }
@@ -442,9 +569,10 @@
   .griglia { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .piani { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .racconto { gap: 48px; }
+  .fontiGriglia { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 @media (max-width: 860px) {
-  .pagina { --t-1: 40px; --t-2: 28px; --t-3: 19px; --t-4: 16px; }
+  .pagina { --t-1: 44px; --t-2: 28px; --t-3: 19px; --t-4: 16px; }
   .voci { display: none; }
   .menuBtn {
     display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px;
@@ -480,12 +608,19 @@
   .chatCorpo { min-height: 340px; }
   .duo { grid-template-columns: 1fr; }
   .piedeGriglia { grid-template-columns: 1fr 1fr; }
-  .chiusura { padding: 88px 0; }
+  .chiusura { padding: 88px 0; margin: 0 8px; border-radius: 24px; }
+  .apertura { padding-bottom: 26vh; } /* sul telefono il cielo e' piu' corto: l'alba comincia quando il globo sta uscendo */
+  .alba { left: 50%; top: 72%; }
+  .aperturaGlobo { transform-origin: 50% 50%; }
+  .fonte { height: 76px; }
+  .domanda summary { grid-template-columns: 36px minmax(0, 1fr) auto; }
+  .domanda p { margin-left: 48px; }
 }
 @media (max-width: 560px) {
   .linguaBarra { display: none; }
   .linguaMenu { display: block; justify-self: start; margin: 8px 0 4px; }
   .griglia, .piani, .modulo { grid-template-columns: 1fr; }
+  .fontiGriglia { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .azioni .btn, .azioni .btnVuoto { width: 100%; }
   .piedeGriglia { grid-template-columns: 1fr; }
 }

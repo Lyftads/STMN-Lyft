@@ -113,30 +113,57 @@ export default function GloboLanding({ testi, lingua }) {
       // (29 set sera: prima il sole stava davanti e il mondo veniva tutto arancio; Marino vuole le
       // terre bianche come nell'esempio. Ora la luce piena e' bianca, il sole arancio sta DIETRO e
       // tocca solo il bordo; l'arancio grande del bordo lo fa .globoSole in CSS.)
-      const ambiente = new THREE.AmbientLight(0xffffff, 1.35)
-      const sole = new THREE.DirectionalLight(0xff6a2a, 2.4); sole.position.set(180, 160, -220)
-      const blu = new THREE.DirectionalLight(0x3a6bff, 1.1); blu.position.set(-40, -180, 60)
-      g.lights([ambiente, sole, blu])
+      g.lights([new THREE.AmbientLight(0xffffff, 1.6)])
+    } catch {}
+    // La luce come su unitedcarriers.com (Marino, 29 set: «l'arancione e' impostato diversamente,
+    // deve essere identico»): non una lampada, ma un BORDO acceso — arancio in cima, che scende nel
+    // blu verso il basso — e sotto un bagliore blu che bagna la parte bassa della sfera. E' calcolato
+    // rispetto a chi guarda, quindi resta fermo mentre il mondo gira.
+    try {
+      const scena = g.scene()
+      const R = g.getGlobeRadius ? g.getGlobeRadius() : 100
+      const vert = `varying vec3 vN; varying vec3 vV;
+        void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`
+      const tinta = `vec3 tinta(vec3 n){ float t = smoothstep(-0.15, 0.75, n.y * 0.9 - n.x * 0.25); return mix(vec3(0.16, 0.34, 1.0), vec3(1.0, 0.42, 0.1), t); }`
+      // il bordo sulla sfera: fresnel stretto, piu' la luce blu che sale dal basso
+      const bordo = new THREE.Mesh(new THREE.SphereGeometry(R * 1.004, 96, 96), new THREE.ShaderMaterial({
+        vertexShader: vert, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+        fragmentShader: `varying vec3 vN; varying vec3 vV; ${tinta}
+          void main(){ float f = pow(1.0 - max(dot(vN, vV), 0.0), 5.0);
+            float basso = smoothstep(-0.1, -0.95, vN.y) * pow(1.0 - max(dot(vN, vV), 0.0), 1.6) * 0.5;
+            vec3 c = tinta(vN) * f * 1.9 + vec3(0.13, 0.3, 1.0) * basso;
+            gl_FragColor = vec4(c, 1.0); }`,
+      }))
+      // l'alone fuori dal bordo, dello stesso colore, che sfuma nel cielo
+      const alone = new THREE.Mesh(new THREE.SphereGeometry(R * 1.16, 96, 96), new THREE.ShaderMaterial({
+        vertexShader: vert, side: THREE.BackSide, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+        fragmentShader: `varying vec3 vN; varying vec3 vV; ${tinta}
+          // d = 0 sul contorno dell'alone, 0.51 sul bordo del mondo (1/1.16): piu' luce attaccata al
+          // mondo, niente verso fuori — cosi' l'alone parte dal bordo e sfuma, senza stacchi.
+          void main(){ float d = max(0.0, dot(-vN, vV)); float f = pow(clamp(d / 0.51, 0.0, 1.0), 3.0) * 0.85; gl_FragColor = vec4(tinta(vN) * f, 1.0); }`,
+      }))
+      scena.add(bordo); scena.add(alone)
     } catch {}
     // Il globo e' largo quasi tutto lo schermo: sui Mac retina (densita' 2) sarebbero 4 volte i
     // pixel da ridisegnare a ogni fotogramma. A 1,25 i puntini restano nitidi e la pagina scorre.
     try { g.renderer().setPixelRatio(Math.min(1.25, window.devicePixelRatio || 1)) } catch {}
     // L'Italia al centro della vista, vicino: il globo e' tagliato dal bordo destro dello schermo.
-    try { g.pointOfView({ lat: 34, lng: 14, altitude: 1.55 }, 0) } catch {}
+    // La sfera occupa il 72% della tela: il resto e' spazio per l'alone, che cosi' non viene tagliato.
+    try { g.pointOfView({ lat: 34, lng: 14, altitude: 2.14 }, 0) } catch {}
   }
 
   // La sfera: nera, un filo di blu verso sud. Phong e non Basic: cosi' le luci la scolpiscono.
   const sfera = useMemo(() => {
-    if (typeof document === 'undefined') return new THREE.MeshPhongMaterial({ color: '#0b0e15' })
+    if (typeof document === 'undefined') return new THREE.MeshBasicMaterial({ color: '#07080d' })
     const tela = document.createElement('canvas')
     tela.width = 8; tela.height = 512
     const ctx = tela.getContext('2d')
     const g = ctx.createLinearGradient(0, 0, 0, 512)
-    g.addColorStop(0, '#171b24'); g.addColorStop(0.55, '#10131a'); g.addColorStop(1, '#0d1a3a')
+    g.addColorStop(0, '#08090e'); g.addColorStop(0.6, '#07080d'); g.addColorStop(1, '#0a1230')
     ctx.fillStyle = g; ctx.fillRect(0, 0, 8, 512)
     const mappa = new THREE.CanvasTexture(tela)
     mappa.colorSpace = THREE.SRGBColorSpace
-    return new THREE.MeshPhongMaterial({ map: mappa, shininess: 6, specular: new THREE.Color('#1a2033') })
+    return new THREE.MeshBasicMaterial({ map: mappa })
   }, [])
 
   const intero = (n) => new Intl.NumberFormat(lingua).format(n)
@@ -154,7 +181,6 @@ export default function GloboLanding({ testi, lingua }) {
     <div className={st.globo}>
       <div className={st.globoTela}>
         {/* Il sole dell'alba dietro al bordo in alto a destra, come nell'esempio. */}
-        <div className={st.globoSole} aria-hidden="true" />
         <div ref={wrapRef} aria-hidden="true" style={{ width: '100%', aspectRatio: '1 / 1', pointerEvents: 'none' }}>
           <Globe
             ref={globeRef}
@@ -163,21 +189,19 @@ export default function GloboLanding({ testi, lingua }) {
             height={lato}
             backgroundColor="rgba(0,0,0,0)"
             globeMaterial={sfera}
-            showAtmosphere
-            atmosphereColor="#2b6cff"
-            atmosphereAltitude={0.19}
+            showAtmosphere={false}
             hexPolygonsData={paesi}
             hexPolygonResolution={3}
-            hexPolygonMargin={0.4}
+            hexPolygonMargin={0.66}
             hexPolygonColor={() => 'rgba(236,238,242,.92)'}
             hexPolygonAltitude={0.004}
             hexBinPointsData={sessioni}
             hexBinPointLat="lat"
             hexBinPointLng="lng"
             hexBinPointWeight="count"
-            hexBinResolution={3}
-            hexMargin={0.18}
-            hexAltitude={d => 0.02 + Math.min(4, d.sumWeight) * 0.018}
+            hexBinResolution={4}
+            hexMargin={0.2}
+            hexAltitude={d => 0.012 + Math.min(4, d.sumWeight) * 0.01}
             hexTopColor={() => '#5aa2ff'}
             hexSideColor={() => 'rgba(41,151,255,.75)'}
             hexTransitionDuration={600}

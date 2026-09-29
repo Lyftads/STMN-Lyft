@@ -921,3 +921,23 @@
   .parola.largo { padding-top: 56px; padding-bottom: 20px; }
   .piedeLogo { margin-top: 32px; }
 }
+
+/* ── QUARTO GIRO (29 set notte): il banner con le proporzioni di unitedcarriers.com ─────────
+   Il testo parte ESATTAMENTE dalla stessa linea del menu (la stessa formula per tutti e due: il
+   margine della pagina + il 28% della colonna); titolo grande, appoggiato in basso; il globo alto
+   quanto lo schermo, col centro all'89% della larghezza, tagliato dal bordo destro. */
+@media (min-width: 861px) {
+  .pagina { --pad: clamp(24px, 4vw, 64px); } /* sulla pagina: la usano sia la barra sia l'apertura */
+  .barraDentro { position: relative; }
+  .pagina[data-scuro='1'] .voci { left: calc(var(--pad) + (100% - 2 * var(--pad)) * .28); top: 22px; gap: 16px; }
+  .aperturaGriglia { min-height: 100svh; align-items: end; padding-block: 0 5vh; }
+  .aperturaTesto { padding-left: 28%; padding-top: 0; }
+  .aperturaTesto .etichetta { font-size: clamp(18px, 1.6vw, 26px); margin-bottom: 14px; }
+  .aperturaTesto .h1 { font-size: min(6.2vw, 9.4vh); line-height: .96; max-width: 40vw; }
+  .aperturaTesto .sotto { margin-top: 5vh; max-width: 400px; font-size: 18px; }
+  .aperturaTesto .azioni { margin-top: 6vh; }
+  .aperturaGlobo { position: absolute; right: auto; width: 139vh; left: calc(89.7vw - 69.5vh); top: calc(50vh - 69.5vh); max-width: none; transform: translate3d(0, calc(var(--alba) * -22vh), 0); }
+  .globoNumeri { left: 15%; bottom: 21%; }
+  .globoNota { left: 15%; right: auto; bottom: 17%; }
+}
+.globoSole { display: none; }

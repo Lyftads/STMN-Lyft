@@ -481,6 +481,8 @@ const CONTI_ETICHETTA = (t) => (t.blocchi.find(b => b.id === 'pnl') || {}).etich
 function Viaggio({ t }) {
   const sez = useRef(null)
   const conta = useRef(null)
+  const contaLbl = useRef(null)
+  const margineTxt = useRef('')
   const video = useRef([])
   const caricato = useRef(false)
   useEffect(() => {
@@ -504,8 +506,10 @@ function Viaggio({ t }) {
       const p = tot > 0 ? Math.min(1, Math.max(0, -r.top / tot)) : 0
       el.style.setProperty('--vp', p.toFixed(4))
       if (conta.current) {
-        const q = Math.min(1, Math.max(0, (p - 0.42) / 0.12))
+        // fino alla strada e' il valore dell'ORDINE; nel magazzino diventa il margine e scala
+        const q = Math.min(1, Math.max(0, (p - 0.5) / 0.1))
         conta.current.textContent = '€' + Math.round(96 - q * 58)
+        if (contaLbl.current) contaLbl.current.textContent = p < 0.5 ? 'ORDINE #4126' : margineTxt.current
       }
       // la moviola: ogni atto scorre il SUO video, avanti e indietro con la rotella
       if (!mobile) VIAGGIO_ATTI.forEach((a, i) => {
@@ -523,6 +527,7 @@ function Viaggio({ t }) {
     return () => { window.removeEventListener('scroll', chiedi); window.removeEventListener('resize', chiedi); io.disconnect(); if (raf) cancelAnimationFrame(raf) }
   }, [])
   const v = t.viaggio
+  margineTxt.current = v.margineP
   return (
     <section ref={sez} className={s.viaggio}>
       <div className={s.viaggioFermo}>
@@ -554,7 +559,7 @@ function Viaggio({ t }) {
         </div>
         {/* L'HUD: contatore, stazioni, etichette. Spazio-schermo: niente puo' coprirlo. */}
         <div className={s.hud} aria-hidden="true">
-          <div className={s.viaggioContatore}><span>{v.margineP}</span><strong ref={conta}>€96</strong></div>
+          <div className={s.viaggioContatore}><span ref={contaLbl}>ORDINE #4126</span><strong ref={conta}>€96</strong></div>
           <div className={`${s.hudScheda} ${s.stazioneScheda}`} style={{ '--at': 0.3, '--lato': 0 }}>
             <p className={s.stazioneTitolo}><svg viewBox="0 0 24 24" width="13" height="13" fill="#95bf47" aria-hidden="true"><path d={LOGHI['Shopify']} /></svg> {t.apertura.globo.nuovo}</p>
             <div className={s.stazioneRiga}><span>ORDINE #4126</span><strong>€96</strong></div>

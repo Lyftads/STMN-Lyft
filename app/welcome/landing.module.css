@@ -1683,3 +1683,53 @@
 }
 .viaggioFermo { height: 100svh; }
 .hudScheda, .hud .stazioneScheda { box-shadow: 0 30px 50px -22px rgba(0, 0, 0, .55), var(--ombra); scale: calc(.96 + var(--fin) * .04); }
+
+/* ── I ritocchi dei critici (29 set, tre lenti indipendenti + verifica sugli screenshot) ── */
+/* 1) Le schede HUD vivono PIENE nella loro scena: dissolvenze rapide, tenuta lunga. */
+.hudScheda, .hud .stazioneScheda {
+  --fin: clamp(0, calc((var(--vp, 0) - var(--at)) / 0.025), 1);
+  --out: clamp(0, calc((var(--vp, 0) - var(--at) - 0.12) / 0.02), 1);
+}
+/* 2) Leggibilita' sull'atto cielo: scrim piu' alto e denso, testi con l'ombra, contatore incluso. */
+.scrimFilm { height: 62%; background: linear-gradient(rgba(3, 5, 10, .82), rgba(3, 5, 10, .5) 55%, transparent); }
+.testaFilm .etichetta { color: rgba(255, 255, 255, .85); text-shadow: 0 1px 10px rgba(0, 0, 0, .6); }
+.testaFilm .sotto { color: rgba(255, 255, 255, .92); text-shadow: 0 1px 16px rgba(0, 0, 0, .55); }
+.hud .viaggioContatore span { color: rgba(255, 255, 255, .85); text-shadow: 0 1px 10px rgba(0, 0, 0, .55); }
+.hud .viaggioContatore strong { text-shadow: 0 2px 20px rgba(0, 0, 0, .5); }
+/* 3) Dopo l'apertura il racconto si fa da parte: sottotitolo via, titolo in trasparenza. */
+.testaFilm .sotto { opacity: calc(1 - clamp(0, calc((var(--vp, 0) - 0.28) / 0.08), 1)); }
+.testaFilm .etichetta { opacity: calc(1 - clamp(0, calc((var(--vp, 0) - 0.28) / 0.08), 1) * 0.9); }
+.testaFilm .h2 { opacity: calc(1 - clamp(0, calc((var(--vp, 0) - 0.3) / 0.1), 1) * 0.62); }
+/* 4) L'aereo entra in dissolvenza (mai mutilato dal bordo) e il fascio ha la coda, non un moncone. */
+.aereoProp { opacity: calc(clamp(0, calc(var(--volo) / 0.12), 1) * clamp(0, calc((0.27 - var(--vp, 0)) / 0.03), 1)); }
+.aereoFascio { width: 36vw; background: linear-gradient(90deg, transparent 0 15%, rgba(255, 90, 20, .8)); box-shadow: 0 9px 0 rgba(255, 90, 20, .22); }
+/* 5) Le etichette del dock collassano finche' non nascono: il gruppo visibile resta centrato. */
+.dock { gap: 0; }
+.dock em { overflow: hidden; max-width: calc(var(--fin, 0) * 260px); padding-inline: calc(var(--fin, 0) * 13px); margin-right: calc(var(--fin, 0) * 8px); }
+.dock em { --fin: clamp(0, calc((var(--vp, 0) - var(--at)) / 0.03), 1); opacity: var(--fin); }
+@media (max-width: 860px) {
+  /* 6) Telefono: una scheda alla volta DAVVERO (l'uscita finisce prima dell'ingresso della prossima). */
+  .hudScheda, .hud .stazioneScheda {
+    --fin: clamp(0, calc((var(--vp, 0) - var(--at)) / 0.025), 1);
+    --out: clamp(0, calc((var(--vp, 0) - var(--at) - 0.05) / 0.02), 1);
+  }
+  /* 7) Dock in una riga sola, chip piu' piccoli; l'aereo parte piu' fuori e piu' in basso. */
+  .dock { flex-wrap: nowrap; bottom: 3vh; padding: 0 12px; max-width: 100vw; justify-content: center; }
+  .dock em { font-size: 10px; padding-block: 5px; }
+  .aereoProp { transform: translate3d(calc(-64vw + var(--volo) * 174vw), calc(14vh + var(--volo) * 20vh), 0) rotate(18deg); }
+}
+/* Ultimi innesti della sintesi dei critici. */
+.hudScheda, .hud .stazioneScheda {
+  background: rgba(255, 255, 255, .97);
+  z-index: calc(var(--at) * 100);
+  translate: 0 calc((1 - var(--fin)) * 18px - var(--out) * 10px);
+}
+@media (max-width: 860px) {
+  .dock em svg { display: none; }
+  .dock em { padding-inline: calc(var(--fin, 0) * 9px); }
+  .hud .viaggioContatore { bottom: 11vh; }
+}
+/* (regressione da sistemare: il translate della sintesi scavalcava il centraggio mobile) */
+@media (max-width: 860px) {
+  .hudScheda, .hud .stazioneScheda { translate: -50% calc((1 - var(--fin)) * 14px - var(--out) * 8px); }
+}

@@ -124,14 +124,14 @@ export default function GloboLanding({ testi, lingua }) {
       const R = g.getGlobeRadius ? g.getGlobeRadius() : 100
       const vert = `varying vec3 vN; varying vec3 vV;
         void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`
-      const tinta = `vec3 tinta(vec3 n){ float t = smoothstep(-0.15, 0.75, n.y * 0.9 - n.x * 0.25); return mix(vec3(0.16, 0.34, 1.0), vec3(1.0, 0.42, 0.1), t); }`
+      const tinta = `vec3 tinta(vec3 n){ float t = smoothstep(-0.15, 0.75, n.y * 0.9 - n.x * 0.25); return mix(vec3(0.2, 0.33, 0.78), vec3(0.85, 0.42, 0.2), t); }`
       // il bordo sulla sfera: fresnel stretto, piu' la luce blu che sale dal basso
       const bordo = new THREE.Mesh(new THREE.SphereGeometry(R * 1.004, 96, 96), new THREE.ShaderMaterial({
         vertexShader: vert, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
         fragmentShader: `varying vec3 vN; varying vec3 vV; ${tinta}
-          void main(){ float f = pow(1.0 - max(dot(vN, vV), 0.0), 5.0);
+          void main(){ float f = pow(1.0 - max(dot(vN, vV), 0.0), 3.6);
             float basso = smoothstep(-0.1, -0.95, vN.y) * pow(1.0 - max(dot(vN, vV), 0.0), 1.6) * 0.5;
-            vec3 c = tinta(vN) * f * 1.9 + vec3(0.13, 0.3, 1.0) * basso;
+            vec3 c = tinta(vN) * f * 0.75 + vec3(0.1, 0.2, 0.6) * basso * 0.6;
             gl_FragColor = vec4(c, 1.0); }`,
       }))
       // l'alone fuori dal bordo, dello stesso colore, che sfuma nel cielo
@@ -140,7 +140,7 @@ export default function GloboLanding({ testi, lingua }) {
         fragmentShader: `varying vec3 vN; varying vec3 vV; ${tinta}
           // d = 0 sul contorno dell'alone, 0.51 sul bordo del mondo (1/1.16): piu' luce attaccata al
           // mondo, niente verso fuori — cosi' l'alone parte dal bordo e sfuma, senza stacchi.
-          void main(){ float d = max(0.0, dot(-vN, vV)); float f = pow(clamp(d / 0.51, 0.0, 1.0), 3.0) * 0.85; gl_FragColor = vec4(tinta(vN) * f, 1.0); }`,
+          void main(){ float d = max(0.0, dot(-vN, vV)); float f = pow(clamp(d / 0.51, 0.0, 1.0), 2.2) * 0.32; gl_FragColor = vec4(tinta(vN) * f, 1.0); }`,
       }))
       scena.add(bordo); scena.add(alone)
     } catch {}

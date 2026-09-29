@@ -454,6 +454,104 @@ function Fonti({ t }) {
   )
 }
 
+
+// ── Il viaggio di un ordine (dall'ultima registrazione di unitedcarriers.com, 29 set: il carrello
+// carica il container, il camion parte sulla strada con la parola gigante dietro e le tappe che si
+// accendono). La nostra versione: un PACCO — l'ordine — che corre su un nastro attraverso le
+// stazioni del software (Dashboard, margine, MER, attribuzione) e accumula le etichette dei conti.
+// La scena e' inchiodata: scorre solo l'avanzamento (--vp 0..1, scritto una volta per fotogramma).
+const VIAGGIO_TAPPE = [
+  { id: 'dashboard', chip: '€96' },
+  { id: 'margine', chip: null },
+  { id: 'mer', chip: 'MER 3,6×' },
+  { id: 'attr', chip: 'Meta · Prospecting' },
+]
+function Viaggio({ t }) {
+  const sez = useRef(null)
+  useEffect(() => {
+    const el = sez.current
+    if (!el) return
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+    let raf = 0
+    const aggiorna = () => {
+      raf = 0
+      const r = el.getBoundingClientRect()
+      const tot = el.offsetHeight - window.innerHeight
+      const p = tot > 0 ? Math.min(1, Math.max(0, -r.top / tot)) : 0
+      el.style.setProperty('--vp', p.toFixed(4))
+    }
+    const chiedi = () => { if (!raf) raf = requestAnimationFrame(aggiorna) }
+    aggiorna()
+    window.addEventListener('scroll', chiedi, { passive: true })
+    window.addEventListener('resize', chiedi)
+    return () => { window.removeEventListener('scroll', chiedi); window.removeEventListener('resize', chiedi); if (raf) cancelAnimationFrame(raf) }
+  }, [])
+  const v = t.viaggio
+  const chips = [null, v.margine, null, null]
+  return (
+    <section ref={sez} className={s.viaggio}>
+      <div className={s.viaggioFermo}>
+        <div className={s.viaggioParola} aria-hidden="true">{v.parola}</div>
+        <div className={`${s.largo}`}>
+          <div className={s.viaggioTesta}>
+            <p className={s.etichetta}>{t.nav.prodotto}</p>
+            <h2 className={s.h2}>{v.titolo}</h2>
+            <p className={s.sotto}>{v.sotto}</p>
+          </div>
+        </div>
+        <div className={s.nastroCorsa} aria-hidden="true">
+          {/* Le stazioni NON sono immagini (Marino, 29 set): sono pezzi di interfaccia veri, in HTML —
+              la scheda KPI, il conto del margine riga per riga, il MER, la campagna. */}
+          <div className={s.stazione} style={{ '--i': 0 }}>
+            <div className={s.stazioneScheda}>
+              <p className={s.stazioneTitolo}>{t.filo.dashboard}</p>
+              <div className={s.stazioneRiga}><span>{t.apertura.globo.ordini}</span><strong>27 → 28</strong></div>
+              <div className={s.stazioneRiga}><span>{t.viaggio.ricavi}</span><strong>€2.140 <em className={s.su}>▲ 12%</em></strong></div>
+            </div>
+            <i className={s.stazionePalo} />
+          </div>
+          <div className={s.stazione} style={{ '--i': 1 }}>
+            <div className={s.stazioneScheda}>
+              <p className={s.stazioneTitolo}>{t.filo.productPerformance}</p>
+              <div className={s.stazioneRiga}><span>{t.viaggio.prezzo}</span><strong>€96</strong></div>
+              <div className={s.stazioneRiga}><span>{t.viaggio.iva}</span><strong>−€17</strong></div>
+              <div className={s.stazioneRiga}><span>{t.viaggio.costo} + Ads</span><strong>−€41</strong></div>
+              <div className={s.stazioneRiga + ' ' + s.stazioneTotale}><span>{t.viaggio.margineP}</span><strong>€38</strong></div>
+            </div>
+            <i className={s.stazionePalo} />
+          </div>
+          <div className={s.stazione} style={{ '--i': 2 }}>
+            <div className={s.stazioneScheda}>
+              <p className={s.stazioneTitolo}>{t.filo.kpiBrain}</p>
+              <div className={s.stazioneCifra}>3,6×</div>
+              <div className={s.stazioneRiga}><span>{t.viaggio.spesa}</span><strong>€612</strong></div>
+              <div className={s.stazioneRiga}><span>{t.viaggio.ricavi}</span><strong>€2.204</strong></div>
+            </div>
+            <i className={s.stazionePalo} />
+          </div>
+          <div className={s.stazione} style={{ '--i': 3 }}>
+            <div className={s.stazioneScheda}>
+              <p className={s.stazioneTitolo}>{t.filo.attribution}</p>
+              <div className={s.stazioneRiga}><span>Meta</span><strong>Prospecting – Video</strong></div>
+              <div className={s.stazioneRiga}><span>{t.apertura.globo.ordini}</span><strong className={s.su}>+1</strong></div>
+            </div>
+            <i className={s.stazionePalo} />
+          </div>
+          <div className={s.pacco}>
+            <div className={s.paccoScatola}><span>ORDINE</span><strong>#4126</strong></div>
+            <div className={s.paccoChip}>
+              {VIAGGIO_TAPPE.map((tp, i) => (
+                <em key={tp.id} style={{ '--i': i }}>{tp.chip || chips[i]}</em>
+              ))}
+            </div>
+          </div>
+          <div className={s.nastroBinario} />
+        </div>
+      </div>
+    </section>
+  )
+}
+
 // Il prodotto (loro: la parola SERVICES gigante, poi la scena inchiodata col titolo a sinistra, la
 // strada al centro e le schede a destra): qui la parola e' PRODOTTO, al centro c'e' lo schermo del
 // software che cambia foto, a destra i nove passi con l'icona, il nome e una riga.
@@ -984,6 +1082,7 @@ export default function LandingPage({ initialLang = null }) {
         <Apertura t={t} lang={lang} pagina={radice} />
         <Intro t={t} lang={lang} />
         <Fonti t={t} />
+        <Viaggio t={t} />
         <Prodotto t={t} lang={lang} />
         <Cervello t={t} />
         <Produttivita t={t} lang={lang} />

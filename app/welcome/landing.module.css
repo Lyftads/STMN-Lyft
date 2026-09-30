@@ -2861,3 +2861,32 @@
    basso mostra sempre la coda. */
 .ltMain { min-height: 0; }
 .ltMessaggi { min-height: 0; }
+
+/* (30 set) Tema NOTTE: la mezzaluna in fondo all'apertura non si vedeva — la
+   regola dark era rimasta al sesto giro (blu basso: il disco incontrava solo
+   nero e la curva spariva). Stesse fermate del chiaro, scala notturna: il blu
+   sale fin sopra i fianchi del disco e la mezzaluna si legge anche di notte. */
+:global(:root[data-theme='dark']) .apertura {
+  background: linear-gradient(to top,
+    var(--fondoPagina) 0,
+    #1a2558 calc(var(--coda) * .1),
+    #2b46d8 calc(var(--coda) * .24),
+    #2036c4 calc(var(--coda) * .4),
+    #141c86 calc(var(--coda) * .62),
+    #090d3c calc(var(--coda) * .9),
+    var(--notte) calc(var(--coda) * 1.2),
+    var(--notte) 100%);
+}
+
+/* (30 set) Telefono + tema NOTTE: via la macchia bianca dietro il contatore del
+   film (il velo serviva al tema chiaro su pannello e scaffali). Di notte la scena
+   e' scura: testo chiaro con l'ombra, nessun velo. */
+@media (max-width: 860px) {
+  :global(:root[data-theme='dark']) .pagina .hud .viaggioContatore { background: none; padding: 0; }
+  :global(:root[data-theme='dark']) .pagina .hud .viaggioContatore span { color: rgba(255, 255, 255, .82); text-shadow: 0 1px 10px rgba(0, 0, 0, .65); }
+  :global(:root[data-theme='dark']) .pagina .hud .viaggioContatore strong { color: #ffffff; text-shadow: 0 2px 18px rgba(0, 0, 0, .6); }
+}
+
+/* (30 set) Tema NOTTE: la scritta a pallini PRODOTTO era al 16% del testo —
+   invisibile sul nero. Di notte ha la stessa forza del LYFTAI nel piede. */
+:global(:root[data-theme='dark']) .pagina .parola .puntini { color: var(--testo); }

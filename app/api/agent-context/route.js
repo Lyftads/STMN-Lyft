@@ -76,7 +76,7 @@ export async function GET(request) {
   // sarebbe un modo per farsi dire il nome di un'azienda qualsiasi.
   let brandName = null
   try {
-    const cronOk = !!process.env.CRON_SECRET && cron === process.env.CRON_SECRET
+    const cronOk = !!cron && [process.env.CRON_SECRET, process.env.JARVIS_SECRET].filter(Boolean).includes(cron)
     const wsId = (cronOk && request.headers.get('x-lyft-workspace')) || await getEffectiveTenantId()
     const admin = getAdminSupabase()
     if (wsId && admin) {

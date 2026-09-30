@@ -467,15 +467,15 @@ function Fonti({ t }) {
 // Telefono: niente video scrubbati (batteria): gli atti sono le foto, il resto e' identico.
 const VIAGGIO_ATTI = [
   { id: 'cielo', da: 0, a: 0.21 },
-  { id: 'flip', da: 0.352, a: 0.415 },
+  { id: 'flip', da: 0.34, a: 0.52 },
   { id: 'magazzino', da: 0.48, a: 1.001 },
 ]
 const VIAGGIO_DOCK = [
-  { id: 'ordine', testo: '€96', logo: 'Shopify', at: 0.44 },
-  { id: 'margine', testo: null, logo: null, at: 0.56 },
-  { id: 'meta', testo: 'ROAS 3,1×', logo: 'Meta', at: 0.78 },
-  { id: 'pmax', testo: 'PMax 4,2×', logo: 'Google Ads', at: 0.86 },
-  { id: 'ebit', testo: 'EBIT €19k', logo: null, at: 0.92 },
+  { id: 'ordine', testo: '€96', logo: 'Shopify', at: 0.57 },
+  { id: 'margine', testo: null, logo: null, at: 0.655 },
+  { id: 'meta', testo: 'ROAS 3,1×', logo: 'Meta', at: 0.82 },
+  { id: 'pmax', testo: 'PMax 4,2×', logo: 'Google Ads', at: 0.885 },
+  { id: 'ebit', testo: 'EBIT €19k', logo: null, at: 0.935 },
 ]
 const CONTI_ETICHETTA = (t) => (t.blocchi.find(b => b.id === 'pnl') || {}).etichetta || 'P&L'
 function Viaggio({ t }) {
@@ -507,9 +507,9 @@ function Viaggio({ t }) {
       el.style.setProperty('--vp', p.toFixed(4))
       if (conta.current) {
         // fino alla strada e' il valore dell'ORDINE; nel magazzino diventa il margine e scala
-        const q = Math.min(1, Math.max(0, (p - 0.56) / 0.1))
+        const q = Math.min(1, Math.max(0, (p - 0.655) / 0.09))
         conta.current.textContent = '€' + Math.round(96 - q * 58)
-        if (contaLbl.current) contaLbl.current.textContent = p < 0.56 ? 'ORDINE #4126' : margineTxt.current
+        if (contaLbl.current) contaLbl.current.textContent = p < 0.655 ? 'ORDINE #4126' : margineTxt.current
       }
       // la moviola: ogni atto scorre il SUO video, avanti e indietro con la rotella
       if (!mobile) VIAGGIO_ATTI.forEach((a, i) => {
@@ -590,9 +590,9 @@ function Viaggio({ t }) {
             titolo grande, testo e punti — non solo i popup): sono i blocchi del racconto, gia'
             tradotti in 5 lingue. Una per il camion, due per il nastro. */}
         {[
-          { id: 'productPerformance', da: 0.39, a: 0.53, destra: true },
-          { id: 'attribution', da: 0.68, a: 0.82, destra: false },
-          { id: 'pnl', da: 0.86, a: 0.94, destra: true },
+          { id: 'productPerformance', da: 0.545, a: 0.63, destra: true },
+          { id: 'attribution', da: 0.76, a: 0.86, destra: false },
+          { id: 'pnl', da: 0.88, a: 0.955, destra: true },
         ].map(d => {
           const b = t.blocchi.find(x => x.id === d.id)
           if (!b) return null
@@ -610,8 +610,8 @@ function Viaggio({ t }) {
         {/* ── I servizi che escono nella parte BIANCA ai lati della corsia, uno a ogni
             scroll, mentre il camion scende (come i pannelli laterali di UC). ── */}
         {[
-          { id: 'kpiBrain', da: 0.55, a: 0.65, destra: false },
-          { id: 'inventory', da: 0.6, a: 0.7, destra: true },
+          { id: 'kpiBrain', da: 0.665, a: 0.755, destra: false },
+          { id: 'inventory', da: 0.7, a: 0.79, destra: true },
         ].map(d => {
           const b = t.blocchi.find(x => x.id === d.id)
           if (!b) return null
@@ -626,26 +626,26 @@ function Viaggio({ t }) {
         {/* L'HUD: contatore, stazioni, etichette. Spazio-schermo: niente puo' coprirlo. */}
         <div className={s.hud} aria-hidden="true">
           <div className={s.viaggioContatore}><span ref={contaLbl}>ORDINE #4126</span><strong ref={conta}>€96</strong></div>
-          <div className={`${s.hudScheda} ${s.stazioneScheda}`} style={{ '--at': 0.41, '--lato': 0 }}>
+          <div className={`${s.hudScheda} ${s.stazioneScheda}`} style={{ '--at': 0.54, '--lato': 0 }}>
             <p className={s.stazioneTitolo}><svg viewBox="0 0 24 24" width="13" height="13" fill="#95bf47" aria-hidden="true"><path d={LOGHI['Shopify']} /></svg> {t.apertura.globo.nuovo}</p>
             <div className={s.stazioneRiga}><span>ORDINE #4126</span><strong>€96</strong></div>
             <div className={s.stazioneRiga}><span>{t.apertura.globo.ordini}</span><strong>27 → 28</strong></div>
           </div>
-          <div className={`${s.hudScheda} ${s.stazioneScheda}`} style={{ '--at': 0.53, '--lato': 1 }}>
+          <div className={`${s.hudScheda} ${s.stazioneScheda}`} style={{ '--at': 0.63, '--lato': 1 }}>
             <p className={s.stazioneTitolo}><Icon name="euro" size={13} /> {t.filo.productPerformance}</p>
             <div className={s.stazioneRiga}><span>{v.prezzo}</span><strong>€96</strong></div>
             <div className={s.stazioneRiga}><span>{v.iva}</span><strong>−€17</strong></div>
             <div className={s.stazioneRiga}><span>{v.costo} + Ads</span><strong>−€41</strong></div>
             <div className={s.stazioneRiga + ' ' + s.stazioneTotale}><span>{v.margineP}</span><strong>€38</strong></div>
           </div>
-          <div className={`${s.hudScheda} ${s.stazioneScheda} ${s.schedaAnnuncio}`} style={{ '--at': 0.75, '--lato': 1 }}>
+          <div className={`${s.hudScheda} ${s.stazioneScheda} ${s.schedaAnnuncio}`} style={{ '--at': 0.8, '--lato': 1 }}>
             <p className={s.stazioneTitolo}><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><path d={LOGHI['Meta']} /></svg> {t.filo.attribution}</p>
             {/* il video-ad VERO: questo gira da solo, e' un contenuto dentro al film */}
             <div className={s.adVideo}><video src="/landing/scena/meta-ad.mp4" poster="/landing/scena/meta-creative.webp" muted playsInline autoPlay loop preload="metadata" tabIndex={-1} /><span>Prospecting – Video</span></div>
             <div className={s.stazioneRiga}><span>ROAS</span><strong className={s.su}>3,1×</strong></div>
             <div className={s.stazioneRiga}><span>CPC</span><strong>€0,42</strong></div>
           </div>
-          <div className={`${s.hudScheda} ${s.stazioneScheda} ${s.schedaAnnuncio}`} style={{ '--at': 0.84, '--lato': 1, '--fuori': 0.94 }}>
+          <div className={`${s.hudScheda} ${s.stazioneScheda} ${s.schedaAnnuncio}`} style={{ '--at': 0.87, '--lato': 1, '--fuori': 0.955 }}>
             <p className={s.stazioneTitolo}><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true"><path d={LOGHI['Google Ads']} /></svg> {v.google}</p>
             <div className={s.adCatalogo}>
               <i style={{ backgroundImage: 'url(/landing/scena/prod-scarpe.webp)' }}><b>€96</b></i>
@@ -654,13 +654,13 @@ function Viaggio({ t }) {
             </div>
             <div className={s.stazioneRiga}><span>ROAS</span><strong className={s.su}>4,2×</strong></div>
           </div>
-          <div className={`${s.hudScheda} ${s.stazioneScheda}`} style={{ '--at': 0.9, '--lato': 0 }}>
+          <div className={`${s.hudScheda} ${s.stazioneScheda}`} style={{ '--at': 0.92, '--lato': 0 }}>
             <p className={s.stazioneTitolo}><Icon name="file" size={13} /> {CONTI_ETICHETTA(t)}</p>
             <div className={s.stazioneRiga}><span>{v.ricavi}</span><strong>€55.298</strong></div>
             <div className={s.stazioneRiga}><span>COGS + Ads</span><strong>−€35.983</strong></div>
             <div className={s.stazioneRiga + ' ' + s.stazioneTotale}><span>EBIT</span><strong className={s.su}>€19.315</strong></div>
           </div>
-          <div className={`${s.hudScheda} ${s.stazioneScheda}`} style={{ '--at': 0.95, '--lato': 1, '--resta': 1 }}>
+          <div className={`${s.hudScheda} ${s.stazioneScheda}`} style={{ '--at': 0.965, '--lato': 1, '--resta': 1 }}>
             <p className={s.stazioneTitolo}><Icon name="chat" size={13} /> {t.filo.ai}</p>
             <div className={s.stazioneChat}>«{v.margineP} €38 · MER 3,6×»</div>
             <div className={s.stazioneRiga}><span>{t.ai.etichetta}</span><strong>online</strong></div>

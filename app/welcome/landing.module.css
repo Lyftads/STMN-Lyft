@@ -2588,3 +2588,76 @@
     rotate(calc(var(--tB) * 90deg))
     scale(calc(1.9 - var(--lontano) * 0.9));
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+   v11 — L'ORBITA LENTA (30 set: «troppo veloce, per farlo bene deve essere
+   lenta»). Il cambio di inquadratura occupa il TRIPLO della timeline (.34-.52,
+   ~160vh di scroll) e la sezione sale a 900vh; tutto cio' che segue slitta.
+   Ultimo blocco: vince su tutto.
+   ════════════════════════════════════════════════════════════════════════ */
+.viaggio { height: 900vh; }
+
+/* il laterale arriva al punto del flip e consegna all'orbita */
+.camionLato {
+  --corsaA: clamp(0, calc((var(--vp, 0) - 0.17) / 0.13), 1);
+  --corsaB: clamp(0, calc((var(--vp, 0) - 0.3) / 0.05), 1);
+  --ribalta: clamp(0, calc((var(--vp, 0) - 0.335) / 0.045), 1);
+  opacity: calc(clamp(0, calc((var(--vp, 0) - 0.17) / 0.04), 1) * clamp(0, calc((0.38 - var(--vp, 0)) / 0.03), 1));
+}
+.pannelloServizi { opacity: calc(var(--fin) * clamp(0, calc((0.36 - var(--vp, 0)) / 0.04), 1)); }
+.pannelloGriglia { --treno: clamp(0, calc((var(--vp, 0) - 0.175) / 0.165), 1); }
+.stradaCurva { opacity: calc(clamp(0, calc((var(--vp, 0) - 0.33) / 0.04), 1) * clamp(0, calc((0.85 - var(--vp, 0)) / 0.05), 1)); }
+
+/* l'orbita: lenta, contro-rotazione spalmata sulla nuova finestra */
+.flipVid {
+  rotate: calc(clamp(0, calc((var(--vp, 0) - 0.41) / 0.105), 1) * 62deg);
+  opacity: calc(clamp(0, calc((var(--vp, 0) - 0.345) / 0.03), 1) * clamp(0, calc((0.55 - var(--vp, 0)) / 0.03), 1));
+}
+
+/* il camion dall'alto: nasce allo zenit dell'orbita, poi guida, curva, discesa */
+.camionTop {
+  --tA: clamp(0, calc((var(--vp, 0) - 0.515) / 0.1), 1);
+  --tB: clamp(0, calc((var(--vp, 0) - 0.62) / 0.045), 1);
+  --tC: clamp(0, calc((var(--vp, 0) - 0.665) / 0.115), 1);
+  --tD: clamp(0, calc((var(--vp, 0) - 0.78) / 0.04), 1);
+  --lontano: clamp(0, calc((var(--vp, 0) - 0.54) / 0.06), 1);
+  opacity: calc(clamp(0, calc((var(--vp, 0) - 0.512) / 0.03), 1) * clamp(0, calc((0.81 - var(--vp, 0)) / 0.04), 1));
+}
+
+/* il magazzino slitta in coda */
+.nastroVert { opacity: clamp(0, calc((var(--vp, 0) - 0.78) / 0.05), 1); }
+.paccoProp {
+  --corsa: clamp(0, calc((var(--vp, 0) - 0.81) / 0.11), 1);
+  opacity: clamp(0, calc((var(--vp, 0) - 0.81) / 0.03), 1);
+}
+.zoomScena, .nastroVert, .paccoProp, .rackProp { --zoom: clamp(0, calc((var(--vp, 0) - 0.89) / 0.11), 1); }
+.rack1 { --nasce: 0.81; }
+.rack2 { --nasce: 0.83; }
+.rack3 { --nasce: 0.85; }
+.rack4 { --nasce: 0.84; }
+.rack1, .rack3 { transform: translate3d(calc(var(--zoom) * -8vw), calc((var(--vp, 0) - 0.92) * -4vh), 0); }
+.rack2, .rack4 { transform: translate3d(calc(var(--zoom) * 8vw), calc((var(--vp, 0) - 0.92) * -4vh), 0); }
+
+@media (max-width: 860px) {
+  .viaggio { height: 760vh; }
+  /* niente orbita sul telefono: dissolvenza, e il camion dall'alto arriva prima */
+  .camionLato { opacity: calc(clamp(0, calc((var(--vp, 0) - 0.17) / 0.04), 1) * clamp(0, calc((0.42 - var(--vp, 0)) / 0.04), 1)); }
+  .camionTop { opacity: calc(clamp(0, calc((var(--vp, 0) - 0.47) / 0.04), 1) * clamp(0, calc((0.81 - var(--vp, 0)) / 0.04), 1)); }
+}
+
+/* v11.1 — il crossfade strada→nastro torna STRETTO e dentro la banda (la lezione
+   del v7.2): il nastro entra solo quando il camion e' uscito, la strada cede
+   subito dopo. */
+.stradaCurva { opacity: calc(clamp(0, calc((var(--vp, 0) - 0.33) / 0.04), 1) * clamp(0, calc((0.84 - var(--vp, 0)) / 0.04), 1)); }
+.nastroVert { opacity: clamp(0, calc((var(--vp, 0) - 0.8) / 0.04), 1); }
+.paccoProp {
+  --corsa: clamp(0, calc((var(--vp, 0) - 0.83) / 0.1), 1);
+  opacity: clamp(0, calc((var(--vp, 0) - 0.83) / 0.03), 1);
+}
+.rack1 { --nasce: 0.83; }
+.rack2 { --nasce: 0.85; }
+.rack3 { --nasce: 0.87; }
+.rack4 { --nasce: 0.86; }
+@media (max-width: 860px) {
+  .paccoProp { --corsa: clamp(0, calc((var(--vp, 0) - 0.83) / 0.1), 1); }
+}

@@ -2890,3 +2890,24 @@
 /* (30 set) Tema NOTTE: la scritta a pallini PRODOTTO era al 16% del testo —
    invisibile sul nero. Di notte ha la stessa forza del LYFTAI nel piede. */
 :global(:root[data-theme='dark']) .pagina .parola .puntini { color: var(--testo); }
+
+/* (30 set) «La mezzaluna falla + sfumata e tenue» (versione notte): blu meno
+   accesi e piu' graduali, e il bordo del disco si scioglie su una fascia doppia. */
+:global(:root[data-theme='dark']) .apertura {
+  background: linear-gradient(to top,
+    var(--fondoPagina) 0,
+    #161f4a calc(var(--coda) * .12),
+    #1f2f96 calc(var(--coda) * .28),
+    #1a2a85 calc(var(--coda) * .44),
+    #111a63 calc(var(--coda) * .66),
+    #080c30 calc(var(--coda) * .95),
+    var(--notte) calc(var(--coda) * 1.25),
+    var(--notte) 100%);
+}
+:global(:root[data-theme='dark']) .luna {
+  background: radial-gradient(closest-side,
+    var(--notte) 0 68%,
+    color-mix(in srgb, var(--notte) 72%, transparent) 82%,
+    color-mix(in srgb, var(--notte) 34%, transparent) 92%,
+    transparent 100%);
+}

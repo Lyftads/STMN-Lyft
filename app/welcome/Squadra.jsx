@@ -114,116 +114,127 @@ function Avatar({ m }) {
 }
 
 export function TempoReale({ t, lang }) {
+  // 30 set 2026: anche la chat va A SCROLL, come le schede sopra. La sezione si
+  // appunta e ogni scroll fa comparire un messaggio: prima meta' dello step il
+  // "sta scrivendo...", seconda meta' il messaggio; la reazione spunta poco dopo.
+  // Finita la conversazione la pagina continua. Tutto reversibile con la rotella.
+  // Chi ha JavaScript spento o chiede meno movimento legge la conversazione intera.
   const c = t.tempoReale
-  const radice = useRef(null)
-  const visibile = useVisibile(radice, 0.35)
-  const [n, setN] = useState(c.messaggi.length)           // quanti messaggi si vedono
-  const [scrive, setScrive] = useState(null)               // chi sta scrivendo
-  const [reazioni, setReazioni] = useState(() => new Set(c.messaggi.map((_, i) => i)))
-  const [giro, setGiro] = useState(0)
-  const [ore, setOre] = useState(null)                     // gli orari: solo nel browser, niente differenze col server
+  const N = c.messaggi.length
+  const sez = useRef(null)
   const corpo = useRef(null)
-
+  const [st, setSt] = useState({ vis: N, typing: -1, reag: N })
+  const [fermo, setFermo] = useState(false)
+  const [ore, setOre] = useState(null)                     // gli orari: solo nel browser, niente differenze col server
+  useEffect(() => { setFermo(calmo()) }, [])
   useEffect(() => {
     const adesso = Date.now()
     const f = new Intl.DateTimeFormat(lang, { hour: '2-digit', minute: '2-digit' })
     setOre(c.messaggi.map((_, i) => f.format(new Date(adesso - (c.messaggi.length - i) * 60000))))
   }, [c, lang])
-
   useEffect(() => {
-    if (!visibile || calmo()) return
-    let vivo = true
-    const timer = []
-    const dopo = (ms, fn) => timer.push(setTimeout(() => { if (vivo) fn() }, ms))
-    setN(0); setScrive(null); setReazioni(new Set())
-    let tempo = 700
-    c.messaggi.forEach((m, i) => {
-      dopo(tempo, () => setScrive(m))
-      tempo += m.ai ? 1900 : 1200
-      dopo(tempo, () => { setScrive(null); setN(i + 1) })
-      if (m.reazioni) dopo(tempo + 1000, () => setReazioni(r => new Set(r).add(i)))
-      tempo += 1400 + Math.min(2600, m.testo.length * 16)
-    })
-    dopo(tempo + 5500, () => setGiro(g => g + 1))
-    return () => { vivo = false; timer.forEach(clearTimeout) }
-  }, [visibile, giro, c])
+    if (fermo) return
+    const el = sez.current
+    if (!el) return
+    let raf = 0
+    const aggiorna = () => {
+      raf = 0
+      const r = el.getBoundingClientRect()
+      const tot = el.offsetHeight - window.innerHeight
+      const p = tot > 0 ? Math.min(1, Math.max(0, -r.top / tot)) : 0
+      const k = p * (N + 0.6)
+      const vis = Math.min(N, Math.floor(k + 0.5))
+      const j = Math.floor(k)
+      const typing = j < N && j >= vis ? j : -1
+      const reag = Math.max(0, Math.floor(k + 0.15))
+      setSt(prev => (prev.vis === vis && prev.typing === typing && prev.reag === reag ? prev : { vis, typing, reag }))
+    }
+    const chiedi = () => { if (!raf) raf = requestAnimationFrame(aggiorna) }
+    aggiorna()
+    window.addEventListener('scroll', chiedi, { passive: true })
+    window.addEventListener('resize', chiedi)
+    return () => { window.removeEventListener('scroll', chiedi); window.removeEventListener('resize', chiedi); if (raf) cancelAnimationFrame(raf) }
+  }, [fermo, N])
 
   // l'ultimo messaggio sempre in vista, come in una chat vera
-  useEffect(() => { const el = corpo.current; if (el) el.scrollTop = el.scrollHeight }, [n, scrive, reazioni])
+  useEffect(() => { const el = corpo.current; if (el) el.scrollTop = el.scrollHeight }, [st])
 
+  const scrive = st.typing >= 0 ? c.messaggi[st.typing] : null
   const persone = [...new Set(c.messaggi.filter(m => !m.ai).map(m => m.chi))]
   const ai = c.messaggi.find(m => m.ai)
   return (
-    <section id="tempo-reale" className={`${s.sezione} ${s.sezioneGrigia}`}>
-      <div className={s.largo}>
-        <div className={s.testaSezione} data-compare>
-          <p className={s.etichetta}>{c.etichetta}</p>
-          <h2 className={s.h2}>{c.titolo}</h2>
-          <p className={s.sotto}>{c.sotto}</p>
-        </div>
-        <div ref={radice} className={s.lt}>
-          <aside className={s.ltLato} aria-hidden="true">
-            <p className={s.ltLatoTitolo}>LyftTalk</p>
-            {c.canali.map(k => <span key={k} className={`${s.ltCanale} ${k === c.canale ? s.ltCanaleAttivo : ''}`}># {k}</span>)}
-            <p className={s.ltLatoTitolo} style={{ marginTop: 18 }}>{c.online}</p>
-            {ai && <span className={s.ltPersona}><span className={`${s.ltPallino} ${s.ltPallinoAi}`} />{ai.chi}</span>}
-            {persone.map(p => <span key={p} className={s.ltPersona}><span className={s.ltPallino} />{p}</span>)}
-          </aside>
-          <div className={s.ltMain}>
-            <div className={s.ltTesta}>
-              <strong># {c.canale}</strong>
-              <span className={s.ltOnline}><span className={s.ltPallino} />{persone.length + 1} {c.online}</span>
-            </div>
-            <div ref={corpo} className={s.ltMessaggi} aria-live="off">
-              <p className={s.ltGiorno}><span>{c.oggi}</span></p>
-              {c.messaggi.slice(0, n).map((m, i) => (
-                <div key={`${giro}-${i}`} className={s.ltMsg}>
-                  <Avatar m={m} />
-                  <div className={s.ltMsgCorpo}>
-                    <p className={s.ltIntestazione}>
-                      <strong>{m.chi}</strong>
-                      {m.ai ? <span className={s.ltBadge}>{c.ai}</span> : <span className={s.ltRuolo}>{m.ruolo}</span>}
-                      {ore && <span className={s.ltOra}>{ore[i]}</span>}
-                    </p>
-                    <p className={s.ltTesto}>{conMenzioni(m.testo)}</p>
-                    {m.scheda && (
-                      <div className={s.ltScheda}>
-                        <p className={s.ltSchedaTitolo}>{m.scheda.titolo}</p>
-                        <div className={s.ltSchedaVoci}>
-                          {m.scheda.voci.map(([et, val, prima]) => (
-                            <div key={et}><span>{et}</span><strong>{val}</strong><em>{prima}</em></div>
-                          ))}
+    <section id="tempo-reale" ref={sez} className={`${s.sezione} ${s.sezioneGrigia} ${s.tempoRealeScroll}`} style={{ '--nmsg': N }}>
+      <div className={s.tempoRealeFermo}>
+        <div className={s.largo}>
+          <div className={s.testaSezione} data-compare>
+            <p className={s.etichetta}>{c.etichetta}</p>
+            <h2 className={s.h2}>{c.titolo}</h2>
+            <p className={s.sotto}>{c.sotto}</p>
+          </div>
+          <div className={s.lt}>
+            <aside className={s.ltLato} aria-hidden="true">
+              <p className={s.ltLatoTitolo}>LyftTalk</p>
+              {c.canali.map(k => <span key={k} className={`${s.ltCanale} ${k === c.canale ? s.ltCanaleAttivo : ''}`}># {k}</span>)}
+              <p className={s.ltLatoTitolo} style={{ marginTop: 18 }}>{c.online}</p>
+              {ai && <span className={s.ltPersona}><span className={`${s.ltPallino} ${s.ltPallinoAi}`} />{ai.chi}</span>}
+              {persone.map(p => <span key={p} className={s.ltPersona}><span className={s.ltPallino} />{p}</span>)}
+            </aside>
+            <div className={s.ltMain}>
+              <div className={s.ltTesta}>
+                <strong># {c.canale}</strong>
+                <span className={s.ltOnline}><span className={s.ltPallino} />{persone.length + 1} {c.online}</span>
+              </div>
+              <div ref={corpo} className={s.ltMessaggi} aria-live="off">
+                <p className={s.ltGiorno}><span>{c.oggi}</span></p>
+                {c.messaggi.slice(0, st.vis).map((m, i) => (
+                  <div key={i} className={s.ltMsg}>
+                    <Avatar m={m} />
+                    <div className={s.ltMsgCorpo}>
+                      <p className={s.ltIntestazione}>
+                        <strong>{m.chi}</strong>
+                        {m.ai ? <span className={s.ltBadge}>{c.ai}</span> : <span className={s.ltRuolo}>{m.ruolo}</span>}
+                        {ore && <span className={s.ltOra}>{ore[i]}</span>}
+                      </p>
+                      <p className={s.ltTesto}>{conMenzioni(m.testo)}</p>
+                      {m.scheda && (
+                        <div className={s.ltScheda}>
+                          <p className={s.ltSchedaTitolo}>{m.scheda.titolo}</p>
+                          <div className={s.ltSchedaVoci}>
+                            {m.scheda.voci.map(([et, val, prima]) => (
+                              <div key={et}><span>{et}</span><strong>{val}</strong><em>{prima}</em></div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
-                    {m.task && (
-                      <div className={s.ltTask}>
-                        <span className={s.ltTaskCasella} aria-hidden="true" />
-                        <div><p>{m.task.titolo}</p><span>{m.task.chi} · {m.task.quando}</span></div>
-                      </div>
-                    )}
-                    {m.reazioni && reazioni.has(i) && (
-                      <div className={s.ltReazioni}>
-                        {m.reazioni.map(([e, q]) => <span key={e} className={s.ltReazione}>{e} {q}</span>)}
-                      </div>
-                    )}
+                      )}
+                      {m.task && (
+                        <div className={s.ltTask}>
+                          <span className={s.ltTaskCasella} aria-hidden="true" />
+                          <div><p>{m.task.titolo}</p><span>{m.task.chi} · {m.task.quando}</span></div>
+                        </div>
+                      )}
+                      {m.reazioni && i < st.reag && (
+                        <div className={s.ltReazioni}>
+                          {m.reazioni.map(([e, q]) => <span key={e} className={s.ltReazione}>{e} {q}</span>)}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
-              {scrive && (
-                <div className={s.ltScrive}>
-                  <span className={s.ltPuntini} aria-hidden="true"><i /><i /><i /></span>
-                  <span><strong>{scrive.chi}</strong> {c.scrive}</span>
-                </div>
-              )}
-            </div>
-            <div className={s.ltComposer} aria-hidden="true">
-              <span>{c.scrivi}</span>
-              <span className={s.ltInvia}><Icon name="send" size={14} /></span>
+                ))}
+                {scrive && (
+                  <div className={s.ltScrive}>
+                    <span className={s.ltPuntini} aria-hidden="true"><i /><i /><i /></span>
+                    <span><strong>{scrive.chi}</strong> {c.scrive}</span>
+                  </div>
+                )}
+              </div>
+              <div className={s.ltComposer} aria-hidden="true">
+                <span>{c.scrivi}</span>
+                <span className={s.ltInvia}><Icon name="send" size={14} /></span>
+              </div>
             </div>
           </div>
+          <p className={s.ltNota}>{c.nota}</p>
         </div>
-        <p className={s.ltNota}>{c.nota}</p>
       </div>
     </section>
   )

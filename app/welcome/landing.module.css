@@ -2784,3 +2784,28 @@
   .produttivitaFermo .schedaBarra { margin-top: 8px; }
   .produttivitaFermo .schedaTesto { margin-top: 3px; }
 }
+
+/* ── LyftTalk in tempo reale, A SCROLL (30 set): la sezione si appunta e ogni
+   scroll fa comparire un messaggio; finita la conversazione si continua. ── */
+.tempoRealeScroll { height: calc(100vh + (var(--nmsg, 5) + 0.6) * 52vh); padding: 0; }
+.tempoRealeFermo { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
+.tempoRealeFermo .largo { width: 100%; }
+.tempoRealeFermo .testaSezione { margin-bottom: clamp(16px, 3vh, 36px); }
+.tempoRealeFermo .lt { height: min(560px, 62vh); }
+.tempoRealeFermo .ltNota { margin-top: 12px; }
+@media (max-width: 860px) {
+  .tempoRealeScroll { height: calc(100vh + (var(--nmsg, 5) + 0.6) * 58vh); }
+  .tempoRealeFermo { justify-content: flex-start; padding-top: 70px; }
+  .tempoRealeFermo .testaSezione .sotto { display: none; }
+  .tempoRealeFermo .testaSezione { margin-bottom: 10px; }
+  .tempoRealeFermo .lt { height: calc(100svh - 250px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tempoRealeScroll { height: auto; padding: var(--sez, 96px) 0; }
+  .tempoRealeFermo { position: static; height: auto; overflow: visible; display: block; }
+}
+
+/* LyftTalk appuntata: il titolo respira su tutta la riga (niente taglio sotto la barra) */
+.tempoRealeFermo .testaSezione { max-width: none; }
+.tempoRealeFermo .testaSezione .h2 { max-width: none; }
+.tempoRealeFermo .lt { height: min(540px, 58vh); }

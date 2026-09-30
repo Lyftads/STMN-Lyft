@@ -2037,3 +2037,124 @@
       rotate(calc(var(--tB) * 90deg));
   }
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+   SCENA v7 — IL FINALE RESTA VERTICALE (30 set). Il camion fa PIU' strada verso
+   il basso; poi la banda verticale della strada diventa il NASTRO trasportatore
+   (sempre verso il basso) col pacco che scende, e la camera ZOOMA sul pacco.
+   Ultimo blocco: vince su tutti i precedenti.
+   ════════════════════════════════════════════════════════════════════════ */
+/* ── Il camion: discesa lunga (vp .56-.70), esce dal fondo dello schermo ── */
+.camionTop {
+  --t2: clamp(0, calc((var(--vp, 0) - 0.37) / 0.33), 1);
+  --tA: clamp(0, calc(var(--t2) / 0.42), 1);
+  --tB: clamp(0, calc((var(--t2) - 0.44) / 0.14), 1);
+  --tC: clamp(0, calc((var(--t2) - 0.58) / 0.4), 1);
+  opacity: calc(clamp(0, calc((var(--vp, 0) - 0.378) / 0.025), 1) * clamp(0, calc((0.72 - var(--vp, 0)) / 0.02), 1));
+  transform:
+    translate3d(
+      calc(-31vw + var(--tA) * 74.5vw + var(--tB) * 6vw),
+      calc(sin(var(--tA) * 14rad) * 3px + var(--tB) * 7vh + var(--tC) * 72vh),
+      0)
+    rotate(calc(var(--tB) * 90deg));
+}
+/* la strada resta sotto il camion fino in fondo alla discesa, poi cede al nastro */
+.stradaCurva { opacity: calc(clamp(0, calc((var(--vp, 0) - 0.365) / 0.03), 1) * clamp(0, calc((0.78 - var(--vp, 0)) / 0.04), 1)); }
+/* ── Il carrello dello zoom: nastro verticale, scaffali e pacco vivono qui dentro ── */
+.zoomScena {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  --zoom: clamp(0, calc((var(--vp, 0) - 0.86) / 0.13), 1);
+  transform: scale(calc(1 + var(--zoom) * 0.65));
+  transform-origin: 64vw 48vh;
+}
+/* il nastro VERTICALE: la stessa striscia vera, ruotata; la texture cammina verso il BASSO */
+.nastroTop { display: none; }
+.nastroVert {
+  position: absolute; z-index: 1; left: calc(64vw - 65vh); top: calc(50vh - 10.5vw); width: 130vh; height: 21vw;
+  transform: rotate(90deg);
+  background: url('/landing/scena/nastro.webp') repeat-x center / auto 118%;
+  background-position-x: calc(var(--vp, 0) * 90vh);
+  filter: drop-shadow(0 0 26px rgba(0, 0, 0, .25));
+  opacity: clamp(0, calc((var(--vp, 0) - 0.71) / 0.04), 1);
+}
+/* il pacco: scende lungo il nastro, arriva a centro banda e VIAGGIA (il nastro gli
+   scorre sotto) mentre la camera stringe */
+.paccoProp {
+  left: calc(64vw - 3.4vw); top: 0; width: clamp(66px, 6.8vw, 110px); z-index: 2;
+  --corsa: clamp(0, calc((var(--vp, 0) - 0.735) / 0.145), 1);
+  opacity: clamp(0, calc((var(--vp, 0) - 0.74) / 0.03), 1);
+  transform: translate3d(calc(sin(var(--corsa) * 8rad) * 2px), calc(-14vh + var(--corsa) * 58vh), 0) rotate(calc(2deg + var(--corsa) * 3deg));
+  filter: drop-shadow(0 14px 16px rgba(0, 0, 0, .38));
+}
+/* gli scaffali ai LATI della banda verticale, su bianco */
+.rackProp { transform: translate3d(0, calc((var(--vp, 0) - 0.85) * -4vh), 0); }
+.rack1 { --nasce: 0.74; top: 26vh; left: 6vw; width: 25vw; }
+.rack2 { --nasce: 0.77; top: 30vh; left: 78vw; width: 20vw; }
+.rack3 { --nasce: 0.8; top: 72vh; left: 19vw; width: 26vw; }
+.rack4 { --nasce: 0.78; top: 74vh; left: 79vw; width: 19vw; }
+@media (prefers-reduced-motion: reduce) {
+  .zoomScena { position: static; transform: none; }
+  .nastroVert { display: none; }
+  .paccoProp { transform: rotate(2deg); top: 40vh; opacity: 1; }
+  .rackProp { opacity: 1; transform: none; }
+}
+@media (max-width: 860px) {
+  .camionTop {
+    transform:
+      translate3d(
+        calc(-48vw + var(--tA) * 87vw + var(--tB) * 9vw),
+        calc(var(--tB) * 7vh + var(--tC) * 72vh),
+        0)
+      rotate(calc(var(--tB) * 90deg));
+  }
+  .nastroVert { left: calc(64vw - 65vh); top: calc(50vh - 16vw); height: 32vw; }
+  .paccoProp { left: calc(64vw - 29px); width: 58px; }
+  .zoomScena { transform-origin: 64vw 44vh; }
+  .paccoProp { --corsa: clamp(0, calc((var(--vp, 0) - 0.735) / 0.145), 1); transform: translate3d(0, calc(-14vh + var(--corsa) * 54vh), 0) rotate(calc(2deg + var(--corsa) * 3deg)); }
+  .rack1 { top: 24vh; left: -6vw; width: 44vw; }
+  .rack2 { top: 30vh; left: 82vw; width: 30vw; }
+  .rack3 { top: 72vh; left: 2vw; width: 42vw; }
+  .rack4 { top: 76vh; left: 83vw; width: 28vw; }
+}
+
+/* ── Ritocchi v7.1: nastro senza giunture, niente buco tra camion e nastro ── */
+/* la discesa del camion dura di piu' e il nastro arriva mentre lui esce dal fondo */
+.camionTop { --tC: clamp(0, calc((var(--t2) - 0.52) / 0.48), 1); }
+.stradaCurva { opacity: calc(clamp(0, calc((var(--vp, 0) - 0.365) / 0.03), 1) * clamp(0, calc((0.74 - var(--vp, 0)) / 0.04), 1)); }
+/* il tile specchiato e' senza cuciture PER COSTRUZIONE (meta' + meta' riflessa) */
+.nastroVert {
+  background-image: url('/landing/scena/nastro-tile.webp');
+  opacity: clamp(0, calc((var(--vp, 0) - 0.655) / 0.05), 1);
+}
+.paccoProp {
+  --corsa: clamp(0, calc((var(--vp, 0) - 0.7) / 0.16), 1);
+  opacity: clamp(0, calc((var(--vp, 0) - 0.7) / 0.03), 1);
+}
+.rack1 { --nasce: 0.7; }
+.rack2 { --nasce: 0.73; }
+.rack3 { --nasce: 0.76; }
+.rack4 { --nasce: 0.74; }
+@media (max-width: 860px) {
+  .paccoProp { --corsa: clamp(0, calc((var(--vp, 0) - 0.7) / 0.16), 1); }
+}
+
+/* v7.2: il nastro entra solo QUANDO il camion e' uscito — crossfade stretto dentro la banda */
+.nastroVert { opacity: clamp(0, calc((var(--vp, 0) - 0.7) / 0.04), 1); }
+.paccoProp {
+  --corsa: clamp(0, calc((var(--vp, 0) - 0.72) / 0.15), 1);
+  opacity: clamp(0, calc((var(--vp, 0) - 0.72) / 0.03), 1);
+}
+.rack1 { --nasce: 0.72; }
+.rack2 { --nasce: 0.75; }
+.rack3 { --nasce: 0.78; }
+.rack4 { --nasce: 0.76; }
+@media (max-width: 860px) {
+  .paccoProp { --corsa: clamp(0, calc((var(--vp, 0) - 0.72) / 0.15), 1); }
+}
+
+/* v7.3: sul telefono il finale e' su BIANCO — il contatore torna nei colori del sito
+   (la regola "bianco+ombra" era nata quando cadeva sulla fascia fotografica scura) */
+@media (max-width: 860px) {
+  .hud .viaggioContatore span { color: var(--testo3); text-shadow: none; }
+  .hud .viaggioContatore strong { color: var(--testo); text-shadow: none; }
+}

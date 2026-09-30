@@ -565,12 +565,16 @@ function Viaggio({ t }) {
           <path d="M -2 84.8 H 42" stroke="rgba(255,255,255,.14)" strokeWidth="0.4" fill="none" />
         </svg>
         <img className={s.camionTop} src="/landing/scena/camion.webp" alt="" aria-hidden="true" loading="lazy" decoding="async" />
-        <div className={s.nastroTop} aria-hidden="true" />
-        <img className={`${s.rackProp} ${s.rack1}`} src="/landing/scena/rack-a.webp" alt="" aria-hidden="true" loading="lazy" decoding="async" />
-        <img className={`${s.rackProp} ${s.rack2}`} src="/landing/scena/rack-b.webp" alt="" aria-hidden="true" loading="lazy" decoding="async" />
-        <img className={`${s.rackProp} ${s.rack3}`} src="/landing/scena/rack-b.webp" alt="" aria-hidden="true" loading="lazy" decoding="async" />
-        <img className={`${s.rackProp} ${s.rack4}`} src="/landing/scena/rack-a.webp" alt="" aria-hidden="true" loading="lazy" decoding="async" />
-        <img className={s.paccoProp} src="/landing/scena/pacco.webp" alt="" aria-hidden="true" loading="lazy" decoding="async" />
+        {/* ── Tempo 3 · lo scroll RESTA verticale: la banda della strada diventa il nastro
+            trasportatore, il pacco scende, la camera ZOOMA sul pacco che viaggia. ── */}
+        <div className={s.zoomScena} aria-hidden="true">
+          <div className={s.nastroVert} />
+          <img className={`${s.rackProp} ${s.rack1}`} src="/landing/scena/rack-a.webp" alt="" loading="lazy" decoding="async" />
+          <img className={`${s.rackProp} ${s.rack2}`} src="/landing/scena/rack-b.webp" alt="" loading="lazy" decoding="async" />
+          <img className={`${s.rackProp} ${s.rack3}`} src="/landing/scena/rack-b.webp" alt="" loading="lazy" decoding="async" />
+          <img className={`${s.rackProp} ${s.rack4}`} src="/landing/scena/rack-a.webp" alt="" loading="lazy" decoding="async" />
+          <img className={s.paccoProp} src="/landing/scena/pacco.webp" alt="" loading="lazy" decoding="async" />
+        </div>
         <div className={s.largo}>
           <div className={`${s.viaggioTesta} ${s.testaFilm}`}>
             <p className={s.etichetta}>{t.nav.prodotto}</p>
@@ -617,7 +621,7 @@ function Viaggio({ t }) {
             <div className={s.stazioneRiga}><span>{v.costo} + Ads</span><strong>−€41</strong></div>
             <div className={s.stazioneRiga + ' ' + s.stazioneTotale}><span>{v.margineP}</span><strong>€38</strong></div>
           </div>
-          <div className={`${s.hudScheda} ${s.stazioneScheda} ${s.schedaAnnuncio}`} style={{ '--at': 0.7, '--lato': 1 }}>
+          <div className={`${s.hudScheda} ${s.stazioneScheda} ${s.schedaAnnuncio}`} style={{ '--at': 0.72, '--lato': 1 }}>
             <p className={s.stazioneTitolo}><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><path d={LOGHI['Meta']} /></svg> {t.filo.attribution}</p>
             {/* il video-ad VERO: questo gira da solo, e' un contenuto dentro al film */}
             <div className={s.adVideo}><video src="/landing/scena/meta-ad.mp4" poster="/landing/scena/meta-creative.webp" muted playsInline autoPlay loop preload="metadata" tabIndex={-1} /><span>Prospecting – Video</span></div>

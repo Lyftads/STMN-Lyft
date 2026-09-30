@@ -2711,3 +2711,28 @@
       rotate(calc(var(--tB) * 90deg));
   }
 }
+
+/* v12.3 — il camion non "vola" piu': niente scivolata verso il basso (era il
+   raccordo con l'orbita rimossa) e il laterale sfuma INSIEME al pannello, con le
+   ruote appoggiate sul bordo finche' esiste; il bordo gli sopravvive di un pelo. */
+.camionLato {
+  opacity: calc(clamp(0, calc((var(--vp, 0) - 0.17) / 0.04), 1) * clamp(0, calc((0.375 - var(--vp, 0)) / 0.045), 1));
+  transform:
+    translate3d(
+      calc(-46vw + var(--corsaA) * 36vw + var(--corsaB) * 28vw),
+      calc(sin(var(--corsaB) * 12rad) * 2px),
+      0)
+    scale(calc(1 + var(--vicino) * 1.4));
+}
+.pannelloServizi { opacity: calc(var(--fin) * clamp(0, calc((0.385 - var(--vp, 0)) / 0.045), 1)); }
+.stradaCurva { opacity: calc(clamp(0, calc((var(--vp, 0) - 0.345) / 0.04), 1) * clamp(0, calc((0.84 - var(--vp, 0)) / 0.04), 1)); }
+.camionTop { opacity: calc(clamp(0, calc((var(--vp, 0) - 0.42) / 0.06), 1) * clamp(0, calc((0.81 - var(--vp, 0)) / 0.04), 1)); }
+@media (max-width: 860px) {
+  .camionLato {
+    opacity: calc(clamp(0, calc((var(--vp, 0) - 0.17) / 0.04), 1) * clamp(0, calc((0.375 - var(--vp, 0)) / 0.045), 1));
+    transform:
+      translate3d(calc(-50vw + var(--corsaA) * 30vw + var(--corsaB) * 30vw), 0, 0)
+      scale(calc(1 + var(--vicino) * 0.9));
+  }
+  .camionTop { opacity: calc(clamp(0, calc((var(--vp, 0) - 0.43) / 0.05), 1) * clamp(0, calc((0.81 - var(--vp, 0)) / 0.04), 1)); }
+}

@@ -2911,3 +2911,46 @@
     color-mix(in srgb, var(--notte) 34%, transparent) 92%,
     transparent 100%);
 }
+
+/* ── (30 set) L'ONDA al primo caricamento: i testi dell'apertura si riempiono
+   dalla prima lettera all'ultima — un fronte BLU li attraversa e si dissolve nel
+   colore finale. Solo al load (le animazioni partono al primo paint), veloce. ── */
+@keyframes ondaTesto { from { background-position: 100% 0; } to { background-position: 0% 0; } }
+.aperturaTesto .etichetta, .aperturaTesto .h1, .aperturaTesto .sotto, .barra .voce {
+  color: transparent;
+  background-image: linear-gradient(100deg,
+    var(--ondaFine, #ffffff) 0 30%,
+    #4a6cf0 46%,
+    rgba(74, 108, 240, .35) 53%,
+    transparent 60% 100%);
+  -webkit-background-clip: text; background-clip: text;
+  background-size: 260% 100%; background-repeat: no-repeat;
+  animation: ondaTesto .9s cubic-bezier(.6, .05, .3, 1) both;
+}
+.barra .voce { --ondaFine: currentColor; animation-delay: 0s; }
+.barra .voce { color: transparent; }
+.aperturaTesto .etichetta { --ondaFine: rgba(255, 255, 255, .62); animation-delay: .08s; }
+.aperturaTesto .h1 { --ondaFine: #ffffff; animation-delay: .18s; }
+.aperturaTesto .sotto { --ondaFine: rgba(255, 255, 255, .8); animation-delay: .34s; }
+/* i bottoni arrivano in coda all'onda, in dissolvenza */
+@keyframes ondaAzioni { from { opacity: 0; translate: 0 10px; } to { opacity: 1; translate: 0 0; } }
+.aperturaTesto .azioni { animation: ondaAzioni .5s var(--ease) .55s both; }
+/* le voci della barra: il colore finale non puo' essere currentColor (che qui e'
+   trasparente): bianco della barra scura del load */
+.barra .voce { --ondaFine: rgba(255, 255, 255, .85); }
+@media (prefers-reduced-motion: reduce) {
+  .aperturaTesto .etichetta, .aperturaTesto .h1, .aperturaTesto .sotto, .barra .voce {
+    color: inherit; background: none; animation: none; -webkit-background-clip: border-box; background-clip: border-box;
+  }
+  .aperturaTesto .azioni { animation: none; }
+}
+
+/* fermate corrette: a fine corsa la finestra (100/260 = 38.5% del gradiente)
+   cade TUTTA nel colore finale — niente code blu che restano */
+.aperturaTesto .etichetta, .aperturaTesto .h1, .aperturaTesto .sotto, .barra .voce {
+  background-image: linear-gradient(100deg,
+    var(--ondaFine, #ffffff) 0 40%,
+    #4a6cf0 52%,
+    rgba(74, 108, 240, .35) 58%,
+    transparent 65% 100%);
+}

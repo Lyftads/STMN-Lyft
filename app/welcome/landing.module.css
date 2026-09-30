@@ -2689,3 +2689,25 @@
   .camionLato { opacity: calc(clamp(0, calc((var(--vp, 0) - 0.17) / 0.04), 1) * clamp(0, calc((0.41 - var(--vp, 0)) / 0.05), 1)); }
   .camionTop { opacity: calc(clamp(0, calc((var(--vp, 0) - 0.44) / 0.06), 1) * clamp(0, calc((0.81 - var(--vp, 0)) / 0.04), 1)); }
 }
+
+/* v12.2 — niente zoom-in al cambio di inquadratura: la vista dall'alto emerge
+   direttamente alla misura di viaggio (scala fissa), stessa distanza di camera
+   del laterale che l'ha preceduta. */
+.camionTop {
+  transform:
+    translate3d(
+      calc(11.5vw + var(--tA) * 32vw + var(--tB) * 6vw),
+      calc(sin(var(--tA) * 14rad) * 3px + var(--tB) * 7vh + var(--tC) * 37vh + var(--tD) * 50vh),
+      0)
+    rotate(calc(var(--tB) * 90deg));
+}
+@media (max-width: 860px) {
+  .camionTop {
+    transform:
+      translate3d(
+        calc(3vw + var(--tA) * 39vw + var(--tB) * 9vw),
+        calc(var(--tB) * 7vh + var(--tC) * 23vh + var(--tD) * 42vh),
+        0)
+      rotate(calc(var(--tB) * 90deg));
+  }
+}

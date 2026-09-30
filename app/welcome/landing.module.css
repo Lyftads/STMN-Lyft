@@ -2749,3 +2749,38 @@
     opacity: calc(clamp(0, calc((var(--vp, 0) - 0.4) / 0.05), 1) * clamp(0, calc((0.81 - var(--vp, 0)) / 0.04), 1));
   }
 }
+
+/* ── Produttivita' APPUNTATA (30 set): a ogni scroll cambia scheda, schermo fermo;
+   finite le schede la pagina continua. La barra segue la frazione dello scroll. ── */
+.produttivitaScroll { height: 430vh; padding: 0; }
+.produttivitaFermo { position: sticky; top: 0; height: 100vh; display: flex; align-items: center; overflow: hidden; }
+.produttivitaFermo .largo { width: 100%; }
+.produttivitaFermo .testaSezione { margin-bottom: clamp(20px, 4vh, 44px); }
+.produttivitaScroll .schedaAttiva .schedaBarra i { animation: none; width: calc(var(--fr, 0) * 100%); }
+@media (max-width: 860px) {
+  .produttivitaScroll { height: 480vh; }
+  .produttivitaFermo { align-items: flex-start; padding-top: 76px; }
+  .produttivitaFermo .testaSezione { margin-bottom: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .produttivitaScroll { height: auto; padding: var(--sez, 96px) 0; }
+  .produttivitaFermo { position: static; height: auto; overflow: visible; display: block; }
+  .produttivitaScroll .schedaAttiva .schedaBarra i { width: 100%; }
+}
+
+/* Produttivita' appuntata: tutto DENTRO il quadro (il titolo sbordava sopra) */
+.produttivitaFermo { align-items: flex-start; padding-top: clamp(64px, 9vh, 110px); }
+.produttivitaFermo .schermoFoto { max-height: 56vh; width: min(100%, calc(56vh * 1.6)); margin: 0 auto; }
+@media (max-width: 860px) {
+  .produttivitaFermo { padding-top: 70px; }
+  .produttivitaFermo .schermoFoto { max-height: none; width: 100%; }
+}
+
+/* Produttivita' appuntata, telefono: tutto nel quadro (via il sottotitolo, tab compatte) */
+@media (max-width: 860px) {
+  .produttivitaFermo .testaSezione .sotto { display: none; }
+  .produttivitaFermo .testaSezione { margin-bottom: 8px; }
+  .produttivitaFermo .scheda { padding: 10px 0; }
+  .produttivitaFermo .schedaBarra { margin-top: 8px; }
+  .produttivitaFermo .schedaTesto { margin-top: 3px; }
+}

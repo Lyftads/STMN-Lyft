@@ -17,7 +17,6 @@ import LogoMark from '../components/LogoMark'
 import Immagini from './Immagini'
 import s from './landing.module.css'
 
-const DURATA = 6500   // quanto resta accesa ogni scheda
 const calmo = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
 function useVisibile(ref, soglia = 0.3) {
@@ -33,44 +32,68 @@ function useVisibile(ref, soglia = 0.3) {
 }
 
 export function Produttivita({ t, lang }) {
+  // 30 set 2026: la sezione si APPUNTA e le schede avanzano con lo SCROLL, una alla
+  // volta, con lo schermo fermo (niente piu' giro a tempo); finite le schede la
+  // pagina continua sotto. La barra si riempie con la frazione dello scroll dentro
+  // la scheda (--fr sul section). Un clic porta lo scroll al punto della scheda.
   const p = t.produttivita
-  const radice = useRef(null)
-  const visibile = useVisibile(radice)
+  const sez = useRef(null)
   const [attiva, setAttiva] = useState(0)
-  const [giro, setGiro] = useState(0)
   const [fermo, setFermo] = useState(false)
   useEffect(() => { setFermo(calmo()) }, [])
   useEffect(() => {
-    if (!visibile || fermo) return
-    const id = setTimeout(() => setAttiva(a => (a + 1) % p.voci.length), DURATA)
-    return () => clearTimeout(id)
-  }, [attiva, giro, visibile, fermo, p.voci.length])
-  const scegli = (i) => { setAttiva(i); setGiro(g => g + 1) }
+    if (fermo) return
+    const el = sez.current
+    if (!el) return
+    const N = p.voci.length
+    let raf = 0
+    const aggiorna = () => {
+      raf = 0
+      const r = el.getBoundingClientRect()
+      const tot = el.offsetHeight - window.innerHeight
+      const pr = tot > 0 ? Math.min(1, Math.max(0, -r.top / tot)) : 0
+      const i = Math.min(N - 1, Math.floor(pr * N))
+      el.style.setProperty('--fr', (Math.min(1, Math.max(0, pr * N - i))).toFixed(3))
+      setAttiva(a => (a === i ? a : i))
+    }
+    const chiedi = () => { if (!raf) raf = requestAnimationFrame(aggiorna) }
+    aggiorna()
+    window.addEventListener('scroll', chiedi, { passive: true })
+    window.addEventListener('resize', chiedi)
+    return () => { window.removeEventListener('scroll', chiedi); window.removeEventListener('resize', chiedi); if (raf) cancelAnimationFrame(raf) }
+  }, [fermo, p.voci.length])
+  const scegli = (i) => {
+    const el = sez.current
+    if (fermo || !el) { setAttiva(i); return }
+    const tot = el.offsetHeight - window.innerHeight
+    const y = window.scrollY + el.getBoundingClientRect().top
+    window.scrollTo({ top: Math.round(y + tot * ((i + 0.5) / p.voci.length)), behavior: 'smooth' })
+  }
   return (
-    <section id="produttivita" className={s.sezione}>
-      <div className={s.largo}>
-        <div className={s.testaSezione} data-compare>
-          <p className={s.etichetta}>{p.etichetta}</p>
-          <h2 className={s.h2}>{p.titolo}</h2>
-          <p className={s.sotto}>{p.sotto}</p>
-        </div>
-        <div ref={radice} className={s.schede}>
-          <div className={s.schedeElenco} role="tablist" aria-label={p.etichetta}>
-            {p.voci.map((v, i) => (
-              <button key={v.id} type="button" role="tab" aria-selected={i === attiva} className={`${s.scheda} ${i === attiva ? s.schedaAttiva : ''}`} onClick={() => scegli(i)}>
-                <span className={s.schedaTitolo}>{v.titolo}</span>
-                <span className={s.schedaTesto}>{v.testo}</span>
-                <span className={s.schedaBarra} aria-hidden="true">
-                  {i === attiva && <i key={`${attiva}-${giro}`} style={{ animationDuration: `${DURATA}ms`, animationPlayState: visibile && !fermo ? 'running' : 'paused' }} />}
-                </span>
-              </button>
-            ))}
+    <section id="produttivita" ref={sez} className={`${s.sezione} ${s.produttivitaScroll}`}>
+      <div className={s.produttivitaFermo}>
+        <div className={s.largo}>
+          <div className={s.testaSezione} data-compare>
+            <p className={s.etichetta}>{p.etichetta}</p>
+            <h2 className={s.h2}>{p.titolo}</h2>
+            <p className={s.sotto}>{p.sotto}</p>
           </div>
-          <div className={s.cornice} role="tabpanel">
-            <div className={s.schermoFoto}>
+          <div className={s.schede}>
+            <div className={s.schedeElenco} role="tablist" aria-label={p.etichetta}>
               {p.voci.map((v, i) => (
-                <Immagini key={v.id} lang={lang} id={v.id} alt={`${v.titolo} — ${v.testo}`} className={i === attiva ? s.fotoAttiva : ''} />
+                <button key={v.id} type="button" role="tab" aria-selected={i === attiva} className={`${s.scheda} ${i === attiva ? s.schedaAttiva : ''}`} onClick={() => scegli(i)}>
+                  <span className={s.schedaTitolo}>{v.titolo}</span>
+                  <span className={s.schedaTesto}>{v.testo}</span>
+                  <span className={s.schedaBarra} aria-hidden="true">{i === attiva && <i />}</span>
+                </button>
               ))}
+            </div>
+            <div className={s.cornice} role="tabpanel">
+              <div className={s.schermoFoto}>
+                {p.voci.map((v, i) => (
+                  <Immagini key={v.id} lang={lang} id={v.id} alt={`${v.titolo} — ${v.testo}`} className={i === attiva ? s.fotoAttiva : ''} />
+                ))}
+              </div>
             </div>
           </div>
         </div>

@@ -466,16 +466,16 @@ function Fonti({ t }) {
 // conti si accumulano in una fila in basso. Il contatore del margine scala in corsa.
 // Telefono: niente video scrubbati (batteria): gli atti sono le foto, il resto e' identico.
 const VIAGGIO_ATTI = [
-  { id: 'cielo', da: 0, a: 0.18 },
+  { id: 'cielo', da: 0, a: 0.21 },
   { id: 'strada', da: 0.24, a: 0.5 },
   { id: 'magazzino', da: 0.48, a: 1.001 },
 ]
 const VIAGGIO_DOCK = [
   { id: 'ordine', testo: '€96', logo: 'Shopify', at: 0.44 },
   { id: 'margine', testo: null, logo: null, at: 0.56 },
-  { id: 'meta', testo: 'ROAS 3,1×', logo: 'Meta', at: 0.74 },
-  { id: 'pmax', testo: 'PMax 4,2×', logo: 'Google Ads', at: 0.82 },
-  { id: 'ebit', testo: 'EBIT €19k', logo: null, at: 0.9 },
+  { id: 'meta', testo: 'ROAS 3,1×', logo: 'Meta', at: 0.78 },
+  { id: 'pmax', testo: 'PMax 4,2×', logo: 'Google Ads', at: 0.86 },
+  { id: 'ebit', testo: 'EBIT €19k', logo: null, at: 0.92 },
 ]
 const CONTI_ETICHETTA = (t) => (t.blocchi.find(b => b.id === 'pnl') || {}).etichetta || 'P&L'
 function Viaggio({ t }) {
@@ -590,8 +590,8 @@ function Viaggio({ t }) {
             tradotti in 5 lingue. Una per il camion, due per il nastro. */}
         {[
           { id: 'productPerformance', da: 0.39, a: 0.53, destra: true },
-          { id: 'attribution', da: 0.7, a: 0.83, destra: false },
-          { id: 'pnl', da: 0.84, a: 0.92, destra: true },
+          { id: 'attribution', da: 0.68, a: 0.82, destra: false },
+          { id: 'pnl', da: 0.86, a: 0.94, destra: true },
         ].map(d => {
           const b = t.blocchi.find(x => x.id === d.id)
           if (!b) return null
@@ -621,14 +621,14 @@ function Viaggio({ t }) {
             <div className={s.stazioneRiga}><span>{v.costo} + Ads</span><strong>−€41</strong></div>
             <div className={s.stazioneRiga + ' ' + s.stazioneTotale}><span>{v.margineP}</span><strong>€38</strong></div>
           </div>
-          <div className={`${s.hudScheda} ${s.stazioneScheda} ${s.schedaAnnuncio}`} style={{ '--at': 0.72, '--lato': 1 }}>
+          <div className={`${s.hudScheda} ${s.stazioneScheda} ${s.schedaAnnuncio}`} style={{ '--at': 0.75, '--lato': 1 }}>
             <p className={s.stazioneTitolo}><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><path d={LOGHI['Meta']} /></svg> {t.filo.attribution}</p>
             {/* il video-ad VERO: questo gira da solo, e' un contenuto dentro al film */}
             <div className={s.adVideo}><video src="/landing/scena/meta-ad.mp4" poster="/landing/scena/meta-creative.webp" muted playsInline autoPlay loop preload="metadata" tabIndex={-1} /><span>Prospecting – Video</span></div>
             <div className={s.stazioneRiga}><span>ROAS</span><strong className={s.su}>3,1×</strong></div>
             <div className={s.stazioneRiga}><span>CPC</span><strong>€0,42</strong></div>
           </div>
-          <div className={`${s.hudScheda} ${s.stazioneScheda} ${s.schedaAnnuncio}`} style={{ '--at': 0.8, '--lato': 1 }}>
+          <div className={`${s.hudScheda} ${s.stazioneScheda} ${s.schedaAnnuncio}`} style={{ '--at': 0.84, '--lato': 1, '--fuori': 0.94 }}>
             <p className={s.stazioneTitolo}><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true"><path d={LOGHI['Google Ads']} /></svg> {v.google}</p>
             <div className={s.adCatalogo}>
               <i style={{ backgroundImage: 'url(/landing/scena/prod-scarpe.webp)' }}><b>€96</b></i>
@@ -637,13 +637,13 @@ function Viaggio({ t }) {
             </div>
             <div className={s.stazioneRiga}><span>ROAS</span><strong className={s.su}>4,2×</strong></div>
           </div>
-          <div className={`${s.hudScheda} ${s.stazioneScheda}`} style={{ '--at': 0.87, '--lato': 0 }}>
+          <div className={`${s.hudScheda} ${s.stazioneScheda}`} style={{ '--at': 0.9, '--lato': 0 }}>
             <p className={s.stazioneTitolo}><Icon name="file" size={13} /> {CONTI_ETICHETTA(t)}</p>
             <div className={s.stazioneRiga}><span>{v.ricavi}</span><strong>€55.298</strong></div>
             <div className={s.stazioneRiga}><span>COGS + Ads</span><strong>−€35.983</strong></div>
             <div className={s.stazioneRiga + ' ' + s.stazioneTotale}><span>EBIT</span><strong className={s.su}>€19.315</strong></div>
           </div>
-          <div className={`${s.hudScheda} ${s.stazioneScheda}`} style={{ '--at': 0.93, '--lato': 1, '--resta': 1 }}>
+          <div className={`${s.hudScheda} ${s.stazioneScheda}`} style={{ '--at': 0.95, '--lato': 1, '--resta': 1 }}>
             <p className={s.stazioneTitolo}><Icon name="chat" size={13} /> {t.filo.ai}</p>
             <div className={s.stazioneChat}>«{v.margineP} €38 · MER 3,6×»</div>
             <div className={s.stazioneRiga}><span>{t.ai.etichetta}</span><strong>online</strong></div>

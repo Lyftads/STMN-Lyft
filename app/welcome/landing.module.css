@@ -2158,3 +2158,173 @@
   .hud .viaggioContatore span { color: var(--testo3); text-shadow: none; }
   .hud .viaggioContatore strong { color: var(--testo); text-shadow: none; }
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+   SCENA v8 — TRANSIZIONI LENTE E FINALE VIVO (30 set).
+   Dissolvenze INCROCIATE e lunghe aereo→camion e camion→nastro; la discesa del
+   camion occupa un quinto del film; durante lo zoom sul pacco NIENTE si congela:
+   il nastro accelera, il pacco deriva, gli scaffali sfilano ai lati.
+   Ultimo blocco: vince su tutti i precedenti.
+   ════════════════════════════════════════════════════════════════════════ */
+.viaggio { height: 820vh; }
+
+/* ── Dissolvenza 1 · dal cielo al pannello dei servizi (incrociata, .14-.21) ── */
+.cieloVelo { opacity: calc(clamp(0, calc((var(--vp, 0) - 0.025) / 0.055), 1) * clamp(0, calc((0.21 - var(--vp, 0)) / 0.07), 1)); }
+.nuvolaFronte { opacity: calc(clamp(0, calc((var(--vp, 0) - 0.04) / 0.05), 1) * clamp(0, calc((0.21 - var(--vp, 0)) / 0.06), 1)); }
+.aereoGrande {
+  --volo: clamp(0, calc((var(--vp, 0) - 0.012) / 0.18), 1);
+  opacity: calc(clamp(0, calc((var(--vp, 0) - 0.02) / 0.04), 1) * clamp(0, calc((0.2 - var(--vp, 0)) / 0.05), 1));
+}
+.pannelloServizi {
+  --fin: clamp(0, calc((var(--vp, 0) - 0.15) / 0.06), 1);
+  opacity: calc(var(--fin) * clamp(0, calc((0.41 - var(--vp, 0)) / 0.05), 1));
+}
+.camionLato {
+  --corsa: clamp(0, calc((var(--vp, 0) - 0.17) / 0.205), 1);
+  opacity: calc(clamp(0, calc((var(--vp, 0) - 0.17) / 0.04), 1) * clamp(0, calc((0.395 - var(--vp, 0)) / 0.045), 1));
+}
+
+/* ── Dissolvenza 2 · dal pannello alla strada dall'alto (incrociata, .36-.41) ── */
+.stradaCurva { opacity: calc(clamp(0, calc((var(--vp, 0) - 0.36) / 0.05), 1) * clamp(0, calc((0.81 - var(--vp, 0)) / 0.05), 1)); }
+/* la discesa: un quinto del film (vp ~.55-.76), il camion percorre TUTTO lo schermo */
+.camionTop {
+  --t2: clamp(0, calc((var(--vp, 0) - 0.37) / 0.39), 1);
+  --tA: clamp(0, calc(var(--t2) / 0.3), 1);
+  --tB: clamp(0, calc((var(--t2) - 0.32) / 0.12), 1);
+  --tC: clamp(0, calc((var(--t2) - 0.46) / 0.54), 1);
+  opacity: calc(clamp(0, calc((var(--vp, 0) - 0.378) / 0.04), 1) * clamp(0, calc((0.77 - var(--vp, 0)) / 0.04), 1));
+  transform:
+    translate3d(
+      calc(-31vw + var(--tA) * 74.5vw + var(--tB) * 6vw),
+      calc(sin(var(--tA) * 14rad) * 3px + var(--tB) * 7vh + var(--tC) * 78vh),
+      0)
+    rotate(calc(var(--tB) * 90deg));
+}
+
+/* ── Dissolvenza 3 · dal camion al nastro (incrociata dentro la banda, .74-.80) ── */
+.nastroVert { opacity: clamp(0, calc((var(--vp, 0) - 0.74) / 0.06), 1); }
+/* la scheda google esce prima del suo turno naturale: --fuori inline dal markup */
+.hudScheda, .hud .stazioneScheda {
+  --out: clamp(0, calc((var(--vp, 0) - var(--fuori, calc(var(--at) + 0.12))) / 0.02), 1);
+}
+
+/* ── Il finale VIVO: niente si congela durante lo zoom ── */
+.zoomScena {
+  --zoom: clamp(0, calc((var(--vp, 0) - 0.895) / 0.105), 1);
+  transform: scale(calc(1 + var(--zoom) * 0.7));
+}
+/* il nastro ACCELERA mentre la camera stringe */
+.nastroVert { background-position-x: calc(var(--vp, 0) * 90vh + var(--zoom, 0) * 55vh); }
+.nastroVert, .paccoProp, .rackProp { --zoom: clamp(0, calc((var(--vp, 0) - 0.895) / 0.105), 1); }
+/* il pacco arriva sotto la camera e poi DERIVA piano: mai inchiodato */
+.paccoProp {
+  --corsa: clamp(0, calc((var(--vp, 0) - 0.78) / 0.13), 1);
+  opacity: clamp(0, calc((var(--vp, 0) - 0.78) / 0.04), 1);
+  transform: translate3d(calc(sin(var(--corsa) * 8rad) * 2px), calc(-14vh + var(--corsa) * 58vh + var(--zoom) * 5vh), 0) rotate(calc(2deg + var(--corsa) * 3deg));
+}
+/* gli scaffali nascono col nastro, poi sfilano ai lati e si attenuano con lo zoom */
+.rackProp { opacity: calc(clamp(0, calc((var(--vp, 0) - var(--nasce, 0.5)) / 0.05), 1) * (1 - var(--zoom) * 0.45)); }
+.rack1, .rack3 { transform: translate3d(calc(var(--zoom) * -8vw), calc((var(--vp, 0) - 0.88) * -4vh), 0); }
+.rack2, .rack4 { transform: translate3d(calc(var(--zoom) * 8vw), calc((var(--vp, 0) - 0.88) * -4vh), 0); }
+.rack1 { --nasce: 0.78; }
+.rack2 { --nasce: 0.81; }
+.rack3 { --nasce: 0.84; }
+.rack4 { --nasce: 0.82; }
+
+@media (max-width: 860px) {
+  .viaggio { height: 700vh; }
+  .camionTop {
+    transform:
+      translate3d(
+        calc(-48vw + var(--tA) * 87vw + var(--tB) * 9vw),
+        calc(var(--tB) * 7vh + var(--tC) * 78vh),
+        0)
+      rotate(calc(var(--tB) * 90deg));
+  }
+  .paccoProp {
+    --corsa: clamp(0, calc((var(--vp, 0) - 0.78) / 0.13), 1);
+    transform: translate3d(0, calc(-14vh + var(--corsa) * 54vh + var(--zoom) * 5vh), 0) rotate(calc(2deg + var(--corsa) * 3deg));
+  }
+}
+
+/* v8.1 — LE FUNZIONI NON SONO FISSE (dalla registrazione UC del 30 set):
+   le 8 aree del SaaS sono un TRENO orizzontale che scorre con lo scroll sotto il
+   camion — a ogni scroll ne compare una nuova da destra. (100vw - 100%) porta il
+   bordo destro del treno al bordo dello schermo per costruzione. */
+.pannelloGriglia {
+  display: flex; flex-wrap: nowrap; gap: clamp(22px, 3vw, 52px); width: max-content;
+  --treno: clamp(0, calc((var(--vp, 0) - 0.175) / 0.2), 1);
+  transform: translate3d(calc(var(--treno) * (100vw - 100%) - var(--treno) * clamp(24px, 4vw, 64px)), 0, 0);
+}
+.pannelloVoce { flex: 0 0 auto; width: clamp(210px, 21vw, 330px); }
+.pannelloVoce li { white-space: normal; }
+@media (max-width: 860px) {
+  .pannelloGriglia { gap: 26px; }
+  .pannelloVoce { width: 60vw; }
+  .pannelloVoce ul { display: grid; }
+  .pannelloVoce h4 { font-size: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pannelloGriglia { display: grid; grid-template-columns: repeat(2, 1fr); width: auto; transform: none; }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   v8.2 — I RITOCCHI DEI CRITICI (30 set, 3 lenti + verifica sui fotogrammi v7).
+   ════════════════════════════════════════════════════════════════════════ */
+/* 1) Schede-popup SEMPRE a fondo pieno: mai lastre grigie su strada/nastro,
+      il camion non le "buca" piu' otticamente. */
+.hudScheda, .hud .stazioneScheda { background: #ffffff; }
+/* 2) Lo zoom sul pacco si SENTE: parte prima e arriva piu' vicino (~2.2x). */
+.zoomScena, .nastroVert, .paccoProp, .rackProp { --zoom: clamp(0, calc((var(--vp, 0) - 0.86) / 0.14), 1); }
+.zoomScena { transform: scale(calc(1 + var(--zoom) * 1.2)); }
+/* 3) Il nastro riempie meglio la banda che lo genera: meno salto di scala. */
+.nastroVert { top: calc(50vh - 13vw); height: 26vw; background-size: auto 106%; }
+@media (max-width: 860px) {
+  /* 4) L'aereo IN QUADRO anche sul telefono, fusoliera sotto il titolo. */
+  .aereoGrande { width: 150vw; margin-left: -75vw; top: 15vh; transform: translate3d(calc(-12vw + var(--volo) * 32vw), calc(var(--volo) * 3vh), 0) rotate(90deg); }
+  /* 5) La scheda Meta sta nello slot mobile: video ad a fascia bassa. */
+  .adVideo { height: 96px; }
+  /* 6) Il contatore attraversa pannello nero e scaffali: velo bianco sfumato dietro,
+        lo stesso linguaggio delle descrizioni. */
+  .hud .viaggioContatore { padding: 14px 18px; border-radius: 14px; background: radial-gradient(ellipse at 70% 50%, rgba(255, 255, 255, .92) 42%, rgba(255, 255, 255, 0) 78%); }
+  /* 7) Nastro mobile piu' pieno. */
+  .nastroVert { top: calc(50vh - 19vw); height: 38vw; }
+}
+
+/* v8.3 — la discesa in DUE tratti: il camion resta in quadro fino a ~.73
+   (scende piano, tanta strada A VISTA), poi esce rapido dal fondo proprio
+   mentre il nastro prende il suo posto: mai un fotogramma senza protagonista. */
+.camionTop {
+  --tC: clamp(0, calc((var(--vp, 0) - 0.553) / 0.177), 1);
+  --tD: clamp(0, calc((var(--vp, 0) - 0.73) / 0.045), 1);
+  transform:
+    translate3d(
+      calc(-31vw + var(--tA) * 74.5vw + var(--tB) * 6vw),
+      calc(sin(var(--tA) * 14rad) * 3px + var(--tB) * 7vh + var(--tC) * 37vh + var(--tD) * 50vh),
+      0)
+    rotate(calc(var(--tB) * 90deg));
+}
+@media (max-width: 860px) {
+  .camionTop {
+    transform:
+      translate3d(
+        calc(-48vw + var(--tA) * 87vw + var(--tB) * 9vw),
+        calc(var(--tB) * 7vh + var(--tC) * 37vh + var(--tD) * 50vh),
+        0)
+      rotate(calc(var(--tB) * 90deg));
+  }
+}
+
+/* v8.4 — telefono: il camion parte piu' in basso, la corsa di discesa e' piu' corta
+   (resta in quadro fino al passaggio al nastro); velo del contatore piu' ampio. */
+@media (max-width: 860px) {
+  .camionTop {
+    transform:
+      translate3d(
+        calc(-48vw + var(--tA) * 87vw + var(--tB) * 9vw),
+        calc(var(--tB) * 7vh + var(--tC) * 23vh + var(--tD) * 42vh),
+        0)
+      rotate(calc(var(--tB) * 90deg));
+  }
+  .hud .viaggioContatore { padding: 16px 24px; background: radial-gradient(ellipse at 55% 50%, rgba(255, 255, 255, .94) 52%, rgba(255, 255, 255, 0) 84%); }
+}

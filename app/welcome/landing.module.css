@@ -2954,3 +2954,14 @@
     rgba(74, 108, 240, .35) 58%,
     transparent 65% 100%);
 }
+
+/* ── (30 set) La POSA del globo: foto vera del mondo nell'HTML dal primo paint,
+   posizionata esattamente dove nasce il canvas (la presa e' quadrata, la posa e'
+   il ritaglio centrale 84% della tela → inset 8%). Sfuma quando il 3D e' vivo. ── */
+.aperturaGlobo { position: relative; }
+.globoPosaBox {
+  position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  opacity: 1; transition: opacity .9s var(--ease);
+}
+.globoPosaBox img { position: absolute; left: 8%; top: 8%; width: 84%; height: 84%; }
+.globoPosaBox[data-vivo='1'] { opacity: 0; }

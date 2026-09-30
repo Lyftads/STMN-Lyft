@@ -384,6 +384,9 @@ function Macchina({ prima, oggetti }) {
 function Apertura({ t, lang, pagina }) {
   const a = t.apertura
   const sezione = useRef(null)
+  // (30 set) La POSA del globo: una foto vera del mondo, nell'HTML dal primo paint
+  // (niente JavaScript da aspettare). Sfuma via quando il 3D e' vivo davvero.
+  const [globoVivo, setGloboVivo] = useState(false)
   useAlba(sezione, pagina)
   return (
     <section id="inizio" ref={sezione} className={s.apertura}>
@@ -402,7 +405,12 @@ function Apertura({ t, lang, pagina }) {
             <Link href="/demo" className={s.btnVuoto}>{a.demo}</Link>
           </div>
         </div>
-        <div className={s.aperturaGlobo}><Globo testi={a.globo} lingua={INTL[lang]} /></div>
+        <div className={s.aperturaGlobo}>
+          <div className={s.globoPosaBox} data-vivo={globoVivo ? '1' : '0'} aria-hidden="true">
+            <img src="/landing/globo-posa.webp" alt="" fetchPriority="high" decoding="async" />
+          </div>
+          <Globo testi={a.globo} lingua={INTL[lang]} onPronto={() => setGloboVivo(true)} />
+        </div>
       </div>
     </section>
   )

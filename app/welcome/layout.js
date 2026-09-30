@@ -11,5 +11,12 @@ export const metadata = {
 }
 
 export default function WelcomeLayout({ children }) {
-  return children
+  return (
+    <>
+      {/* (30 set) La posa del globo e i puntini dei continenti partono col primo HTML. */}
+      <link rel="preload" as="image" href="/landing/globo-posa.webp" fetchPriority="high" />
+      <link rel="preload" as="fetch" href="/geo/punti-globo.bin" crossOrigin="anonymous" />
+      {children}
+    </>
+  )
 }

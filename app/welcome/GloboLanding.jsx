@@ -53,7 +53,7 @@ function unaCitta() {
 // un po' di rumore intorno alla citta', cosi' le celle non cadono sempre nello stesso esagono
 const vicino = (c) => ({ lat: c[1] + (Math.random() - 0.5) * 1.2, lng: c[2] + (Math.random() - 0.5) * 1.6, citta: c[0] })
 
-export default function GloboLanding({ testi, lingua }) {
+export default function GloboLanding({ testi, lingua, onPronto }) {
   const wrapRef = useRef(null)
   const globeRef = useRef(null)
   const [lato, setLato] = useState(0)
@@ -250,6 +250,7 @@ export default function GloboLanding({ testi, lingua }) {
     let padre = g.scene()
     g.scene().traverse(o => { if (padre === g.scene() && typeof o.getCoords === 'function') padre = o })
     padre.add(nuvola)
+    onPronto?.()
     return () => { padre.remove(nuvola); geo.dispose(); mat.dispose() }
   }, [pronto, punti, lato, chiave])
 

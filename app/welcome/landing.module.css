@@ -2736,3 +2736,16 @@
   }
   .camionTop { opacity: calc(clamp(0, calc((var(--vp, 0) - 0.43) / 0.05), 1) * clamp(0, calc((0.81 - var(--vp, 0)) / 0.04), 1)); }
 }
+
+/* v12.4 — la vista dall'alto arriva SUBITO dopo lo stacco e nasce GIA' in
+   movimento: niente buco lungo, niente camion fermo che poi riparte. La guida
+   copre tutta la finestra fino alla curva, piu' lenta e continua. */
+.camionTop {
+  opacity: calc(clamp(0, calc((var(--vp, 0) - 0.39) / 0.05), 1) * clamp(0, calc((0.81 - var(--vp, 0)) / 0.04), 1));
+  --tA: clamp(0, calc((var(--vp, 0) - 0.42) / 0.195), 1);
+}
+@media (max-width: 860px) {
+  .camionTop {
+    opacity: calc(clamp(0, calc((var(--vp, 0) - 0.4) / 0.05), 1) * clamp(0, calc((0.81 - var(--vp, 0)) / 0.04), 1));
+  }
+}

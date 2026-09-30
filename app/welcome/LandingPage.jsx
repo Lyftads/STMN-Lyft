@@ -410,6 +410,30 @@ function Apertura({ t, lang, pagina }) {
 
 // L'intro (loro: WE MOVE FREIGHT. / WE OWN THE OUTCOME. con la foto piccola e i tre numeri grandi):
 // la foto e' la Dashboard vera; i numeri sono fatti del prodotto, contati dai dizionari, non risultati.
+// (30 set) I numeri grandi si CREANO con lo scroll: quando entrano in vista contano
+// da 1 al valore vero, a scatti veloci. Senza JavaScript (o con meno movimento) il
+// numero e' subito quello vero.
+function Cifra({ n }) {
+  const el = useRef(null)
+  const [v, setV] = useState(n)
+  useEffect(() => {
+    const nodo = el.current
+    if (!nodo || typeof IntersectionObserver === 'undefined') return
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+    let timer = 0
+    const io = new IntersectionObserver(([e]) => {
+      if (!e.isIntersecting) return
+      io.disconnect()
+      let i = 1
+      setV(1)
+      timer = setInterval(() => { i += 1; setV(Math.min(n, i)); if (i >= n) clearInterval(timer) }, 110)
+    }, { threshold: 0.6 })
+    io.observe(nodo)
+    return () => { io.disconnect(); if (timer) clearInterval(timer) }
+  }, [n])
+  return <strong ref={el} className={s.cifra}>{v}</strong>
+}
+
 function Intro({ t, lang }) {
   const u = t.uc
   const numeri = [[FONTI.length, u.statFonti, u.statFontiDesc], [LINGUE.length, u.statLingue, u.statLingueDesc], [t.tutto.aree.length, u.statAree, u.statAreeDesc]]
@@ -426,7 +450,7 @@ function Intro({ t, lang }) {
           <p className={s.introNota}>{u.introNota}</p>
           {numeri.map(([n, l, d]) => (
             <div key={l} className={s.stat} data-compare>
-              <strong className={s.cifra}>{n}</strong>
+              <Cifra n={n} />
               <div><p className={s.statTitolo}>{l}</p><p className={s.statTesto}>{d}</p></div>
             </div>
           ))}

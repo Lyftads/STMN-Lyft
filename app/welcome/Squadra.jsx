@@ -148,6 +148,8 @@ export function TempoReale({ t, lang }) {
       const typing = j < N && j >= vis ? j : -1
       const reag = Math.max(0, Math.floor(k + 0.15))
       setSt(prev => (prev.vis === vis && prev.typing === typing && prev.reag === reag ? prev : { vis, typing, reag }))
+      const cp = corpo.current
+      if (cp) cp.scrollTop = cp.scrollHeight
     }
     const chiedi = () => { if (!raf) raf = requestAnimationFrame(aggiorna) }
     aggiorna()
@@ -157,7 +159,14 @@ export function TempoReale({ t, lang }) {
   }, [fermo, N])
 
   // l'ultimo messaggio sempre in vista, come in una chat vera
-  useEffect(() => { const el = corpo.current; if (el) el.scrollTop = el.scrollHeight }, [st])
+  // in fondo DOPO il render e di nuovo dopo l'assestamento del layout
+  useEffect(() => {
+    const el = corpo.current
+    if (!el) return
+    el.scrollTop = el.scrollHeight
+    const id = requestAnimationFrame(() => { el.scrollTop = el.scrollHeight })
+    return () => cancelAnimationFrame(id)
+  }, [st])
 
   const scrive = st.typing >= 0 ? c.messaggi[st.typing] : null
   const persone = [...new Set(c.messaggi.filter(m => !m.ai).map(m => m.chi))]

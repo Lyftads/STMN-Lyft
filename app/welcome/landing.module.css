@@ -2809,3 +2809,55 @@
 .tempoRealeFermo .testaSezione { max-width: none; }
 .tempoRealeFermo .testaSezione .h2 { max-width: none; }
 .tempoRealeFermo .lt { height: min(540px, 58vh); }
+
+/* ── (30 set) La mezzaluna del Cervello: niente taglio in alto, sfumatura piu'
+   tenue. Un velo bianco fonde l'attacco con la pagina (l'ultimo giro l'aveva
+   perso: agli angoli il disco copriva per pochi px e si vedeva la riga), le
+   dissolvenze sono piu' larghe e l'anello blu e' a meta' della forza. ── */
+.buio::before, :global(:root[data-theme='dark']) .buio::before {
+  background:
+    linear-gradient(to bottom, var(--fondoPagina) 0, color-mix(in srgb, var(--fondoPagina) 55%, transparent) 90px, transparent 230px),
+    radial-gradient(circle 108vw at 50% -78vw, var(--fondoPagina) 0 85.5%, color-mix(in srgb, var(--fondoPagina) 62%, transparent) 92%, color-mix(in srgb, var(--fondoPagina) 24%, transparent) 96.5%, transparent 100%),
+    radial-gradient(circle 135vw at 50% -78vw, transparent 0 73%, rgba(82, 112, 238, .28) 84%, rgba(46, 66, 190, .16) 91%, transparent 98%),
+    radial-gradient(ellipse at 50% 30%, #1d3a7a 0%, #0b1636 55%, #060c1f 100%);
+}
+@media (max-width: 860px) {
+  .buio::before, :global(:root[data-theme='dark']) .buio::before {
+    background:
+      linear-gradient(to bottom, var(--fondoPagina) 0, color-mix(in srgb, var(--fondoPagina) 55%, transparent) 70px, transparent 170px),
+      radial-gradient(circle 178vw at 50% -135vw, var(--fondoPagina) 0 81%, color-mix(in srgb, var(--fondoPagina) 60%, transparent) 89%, color-mix(in srgb, var(--fondoPagina) 22%, transparent) 95%, transparent 100%),
+      radial-gradient(circle 215vw at 50% -135vw, transparent 0 71%, rgba(82, 112, 238, .24) 81%, rgba(46, 66, 190, .14) 90%, transparent 98%),
+      radial-gradient(ellipse at 50% 30%, #1d3a7a 0%, #0b1636 55%, #060c1f 100%);
+  }
+}
+
+/* (30 set) La hairline sull'attacco della mezzaluna: il blu della sezione spuntava
+   per ~1px sopra il gradiente (arrotondamento del raster). Il velo sborda di 2px. */
+.buio::before { top: -2px; }
+
+/* (30 set) «Nella versione black le scritte sui popup si vedono pochissimo»: le
+   schede del film sono CARTA, bianche in entrambi i temi — anche l'inchiostro e'
+   fisso, non segue le variabili del tema. */
+.hudScheda, .hud .stazioneScheda { color: #141414; }
+.hudScheda .stazioneTitolo, .hud .stazioneScheda .stazioneTitolo { color: #6f6f6f; }
+.hudScheda .stazioneRiga span, .hud .stazioneScheda .stazioneRiga span { color: #565656; }
+.hudScheda .stazioneRiga strong, .hud .stazioneScheda .stazioneRiga strong { color: #121212; }
+.hudScheda .stazioneChat, .hud .stazioneScheda .stazioneChat { color: #121212; background: #f2f2f2; }
+
+/* (30 set) L'ultimo messaggio della chat appuntata restava tagliato: dentro il pin
+   lo scorrimento interno e' ISTANTANEO (niente smooth che insegue lo scrub). */
+.tempoRealeFermo .ltMessaggi { scroll-behavior: auto; }
+
+/* (30 set) Il taglio dell'ultimo messaggio: i flex item della chat si COMPRIMONO
+   nella finestra (shrink) e l'ultimo resta mozzato. La colonna si ancora dal
+   BASSO e nessun item si schiaccia: l'eccesso sborda in alto (nascosto) e la
+   coda della conversazione e' sempre in vista, per costruzione. */
+.ltMessaggi { justify-content: flex-end; }
+.ltMessaggi > * { flex-shrink: 0; }
+
+/* (30 set) Il VERO taglio: .ltMain (elemento di griglia) cresceva oltre la sua
+   traccia (min-height auto) e il fondo della chat finiva sotto il clip del .lt.
+   Con min-height: 0 la colonna si comprime alla finestra e l'ancoraggio dal
+   basso mostra sempre la coda. */
+.ltMain { min-height: 0; }
+.ltMessaggi { min-height: 0; }

@@ -606,6 +606,22 @@ function Viaggio({ t }) {
             </div>
           )
         })}
+        {/* ── I servizi che escono nella parte BIANCA ai lati della corsia, uno a ogni
+            scroll, mentre il camion scende (come i pannelli laterali di UC). ── */}
+        {[
+          { id: 'kpiBrain', da: 0.55, a: 0.65, destra: false },
+          { id: 'inventory', da: 0.6, a: 0.7, destra: true },
+        ].map(d => {
+          const b = t.blocchi.find(x => x.id === d.id)
+          if (!b) return null
+          return (
+            <div key={'lato-' + d.id} className={`${s.servizioLato} ${d.destra ? s.servizioDx : s.servizioSx}`} style={{ '--da': d.da, '--fine': d.a }}>
+              <p className={s.etichetta}>{b.etichetta}</p>
+              <h3 className={s.descTitolo}>{b.titolo}</h3>
+              <p className={s.descTesto}>{b.testo}</p>
+            </div>
+          )
+        })}
         {/* L'HUD: contatore, stazioni, etichette. Spazio-schermo: niente puo' coprirlo. */}
         <div className={s.hud} aria-hidden="true">
           <div className={s.viaggioContatore}><span ref={contaLbl}>ORDINE #4126</span><strong ref={conta}>€96</strong></div>

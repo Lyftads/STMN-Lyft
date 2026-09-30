@@ -2328,3 +2328,150 @@
   }
   .hud .viaggioContatore { padding: 16px 24px; background: radial-gradient(ellipse at 55% 50%, rgba(255, 255, 255, .94) 52%, rgba(255, 255, 255, 0) 84%); }
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+   v8.5 — IL CAMION COMPARE IN PRIMO PIANO (30 set). Appare GRANDE (zoom-in,
+   ~2.4x, ruote sempre sul bordo del pannello: origin in basso al centro), poi
+   scrollando la camera si allontana (zoom-out) fino alla grandezza di prima e
+   il camion riprende la sua corsa. Reversibile come tutto il film.
+   ════════════════════════════════════════════════════════════════════════ */
+.camionLato {
+  transform-origin: 50% 100%;
+  /* vicino 1→0: da .20 a .30 la camera si allontana */
+  --vicino: calc(1 - clamp(0, calc((var(--vp, 0) - 0.2) / 0.1), 1));
+  /* corsa in due tratti: avanza piano finche' e' in primo piano, poi viaggia */
+  --corsaA: clamp(0, calc((var(--vp, 0) - 0.17) / 0.13), 1);
+  --corsaB: clamp(0, calc((var(--vp, 0) - 0.3) / 0.085), 1);
+  transform:
+    translate3d(
+      calc(-46vw + var(--corsaA) * 36vw + var(--corsaB) * 46vw),
+      calc(sin(var(--corsaB) * 12rad) * 2px),
+      0)
+    scale(calc(1 + var(--vicino) * 1.4));
+}
+@media (max-width: 860px) {
+  .camionLato {
+    transform:
+      translate3d(
+        calc(-50vw + var(--corsaA) * 30vw + var(--corsaB) * 70vw),
+        0,
+        0)
+      scale(calc(1 + var(--vicino) * 0.9));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .camionLato { transform: none; }
+}
+
+/* v8.6 — l'aereo e la nuvola in PRIMO PIANO (z4) escono prima che il camion grande
+   prenda la scena: niente sagome semi-trasparenti sopra pannello e camion.
+   Le nuvole di fondo (z1, dietro il pannello) restano lente come chiesto. */
+.aereoGrande {
+  --volo: clamp(0, calc((var(--vp, 0) - 0.012) / 0.15), 1);
+  opacity: calc(clamp(0, calc((var(--vp, 0) - 0.02) / 0.04), 1) * clamp(0, calc((0.17 - var(--vp, 0)) / 0.045), 1));
+}
+.nuvolaFronte { opacity: calc(clamp(0, calc((var(--vp, 0) - 0.04) / 0.05), 1) * clamp(0, calc((0.18 - var(--vp, 0)) / 0.045), 1)); }
+
+/* ════════════════════════════════════════════════════════════════════════
+   v9 — IL CAMBIO DI INQUADRATURA IN 3D (30 set, dalla registrazione UC 09.27).
+   Il camion si vede di LATO; con lo scroll la vista laterale si SDRAIA sulle
+   ruote (rotateX in prospettiva) e da terra si ALZA la vista dall'alto, grande
+   quasi quanto quella laterale; poi la camera si solleva (zoom-out) e il camion
+   riprende la corsa. Durante la discesa, ai lati bianchi della corsia escono
+   ALTRI SERVIZI, uno a ogni scroll. Ultimo blocco: vince.
+   ════════════════════════════════════════════════════════════════════════ */
+/* il laterale finisce la corsa a centro schermo e si RIBALTA sulle ruote */
+.camionLato {
+  --ribalta: clamp(0, calc((var(--vp, 0) - 0.365) / 0.05), 1);
+  opacity: calc(clamp(0, calc((var(--vp, 0) - 0.17) / 0.04), 1) * clamp(0, calc((0.42 - var(--vp, 0)) / 0.045), 1));
+  transform:
+    perspective(1100px)
+    translate3d(
+      calc(-46vw + var(--corsaA) * 36vw + var(--corsaB) * 28vw),
+      calc(sin(var(--corsaB) * 12rad) * 2px),
+      0)
+    scale(calc(1 + var(--vicino) * 1.4))
+    rotateX(calc(var(--ribalta) * 88deg));
+}
+/* la vista dall'alto si ALZA da terra nello stesso punto, GRANDE, poi la camera
+   si solleva e la riporta alla misura di viaggio */
+.camionTop {
+  transform-origin: 50% 50%;
+  --alza: clamp(0, calc((var(--vp, 0) - 0.38) / 0.05), 1);
+  --lontano: clamp(0, calc((var(--vp, 0) - 0.415) / 0.075), 1);
+  opacity: calc(clamp(0, calc((var(--vp, 0) - 0.378) / 0.035), 1) * clamp(0, calc((0.77 - var(--vp, 0)) / 0.04), 1));
+  transform:
+    perspective(1100px)
+    translate3d(
+      calc(11.5vw + var(--tA) * 32vw + var(--tB) * 6vw),
+      calc(sin(var(--tA) * 14rad) * 3px + var(--tB) * 7vh + var(--tC) * 37vh + var(--tD) * 50vh),
+      0)
+    scale(calc(1.8 - var(--lontano) * 0.8))
+    rotateX(calc((1 - var(--alza)) * -88deg));
+}
+/* i servizi ai lati della corsia: entrano dal basso, uno per scroll, e restano
+   sulla parte bianca (sinistra larga, destra stretta) */
+.servizioLato {
+  position: absolute; z-index: 4; top: 30vh; pointer-events: none;
+  padding: 18px 20px; border-radius: 16px;
+  background: color-mix(in srgb, var(--fondo) 88%, transparent);
+  backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
+  opacity: calc(clamp(0, calc((var(--vp, 0) - var(--da)) / 0.035), 1) * clamp(0, calc((var(--fine) - var(--vp, 0)) / 0.035), 1));
+  translate: 0 calc((1 - clamp(0, calc((var(--vp, 0) - var(--da)) / 0.035), 1)) * 30px);
+}
+.servizioSx { left: clamp(24px, 4vw, 64px); width: min(30vw, 420px); }
+.servizioDx { left: 78vw; width: 19vw; top: 52vh; }
+.servizioDx .descTitolo { font-size: clamp(18px, 1.6vw, 26px); }
+.servizioLato .descTesto { font-size: 14px; }
+@media (max-width: 860px) {
+  /* flip con le misure del telefono; i servizi laterali si susseguono a sinistra */
+  .camionLato {
+    transform:
+      perspective(900px)
+      translate3d(calc(-50vw + var(--corsaA) * 30vw + var(--corsaB) * 30vw), 0, 0)
+      scale(calc(1 + var(--vicino) * 0.9))
+      rotateX(calc(var(--ribalta) * 88deg));
+  }
+  .camionTop {
+    transform:
+      perspective(900px)
+      translate3d(
+        calc(3vw + var(--tA) * 39vw + var(--tB) * 9vw),
+        calc(var(--tB) * 7vh + var(--tC) * 23vh + var(--tD) * 42vh),
+        0)
+      scale(calc(1.7 - var(--lontano) * 0.7))
+      rotateX(calc((1 - var(--alza)) * -88deg));
+  }
+  .servizioSx { width: 62vw; left: 16px; top: 26vh; }
+  .servizioDx { width: 62vw; left: 16px; top: 26vh; }
+  .servizioLato .descTesto { font-size: 13px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .servizioLato { position: static; opacity: 1; translate: none; width: auto; margin: 18px clamp(24px, 4vw, 64px); }
+  .camionTop, .camionLato { transform: none; }
+}
+
+/* v9.1 — raccordi del flip: mentre si sdraia, il laterale SCIVOLA alla quota
+   della strada (il top nasce esattamente li'); il servizio destro sale in alto
+   per non pestare la scheda MARGINE. */
+.camionLato {
+  transform:
+    perspective(1100px)
+    translate3d(
+      calc(-46vw + var(--corsaA) * 36vw + var(--corsaB) * 28vw),
+      calc(sin(var(--corsaB) * 12rad) * 2px + var(--ribalta) * 16vh),
+      0)
+    scale(calc(1 + var(--vicino) * 1.4))
+    rotateX(calc(var(--ribalta) * 88deg));
+}
+.servizioDx { top: 25vh; }
+@media (max-width: 860px) {
+  .camionLato {
+    transform:
+      perspective(900px)
+      translate3d(calc(-50vw + var(--corsaA) * 30vw + var(--corsaB) * 30vw), calc(var(--ribalta) * 13vh), 0)
+      scale(calc(1 + var(--vicino) * 0.9))
+      rotateX(calc(var(--ribalta) * 88deg));
+  }
+  .servizioDx { top: 26vh; }
+}

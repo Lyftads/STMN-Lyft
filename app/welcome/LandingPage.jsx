@@ -467,7 +467,6 @@ function Fonti({ t }) {
 // Telefono: niente video scrubbati (batteria): gli atti sono le foto, il resto e' identico.
 const VIAGGIO_ATTI = [
   { id: 'cielo', da: 0, a: 0.21 },
-  { id: 'flip', da: 0.34, a: 0.52 },
   { id: 'magazzino', da: 0.48, a: 1.001 },
 ]
 const VIAGGIO_DOCK = [
@@ -558,7 +557,6 @@ function Viaggio({ t }) {
         <img className={s.camionLato} src="/landing/scena/camion-lato.webp" alt="" aria-hidden="true" loading="lazy" decoding="async" />
         {/* ── Atto 2b/2c · dall'alto: strada orizzontale, poi la CURVA e la discesa in verticale
             (il percorso e' un disegno unico; la mezzeria tratteggiata scorre con la rotella). */}
-        <video className={s.flipVid} ref={el => { video.current[1] = el }} data-src="/landing/scena/camion-flip.mp4" muted playsInline preload="none" tabIndex={-1} aria-hidden="true" />
         <svg className={s.stradaCurva} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
           <path d="M -2 56 H 62 Q 78 56 78 72 V 102 H 50 V 94 Q 50 86 42 86 H -2 Z" fill="#0f1116" />
           <path className={s.curvaLinea} d="M -2 71 H 58 Q 64 71 64 78 V 102" fill="none" stroke="rgba(255,255,255,.85)" strokeWidth="0.55" strokeDasharray="3.2 5.2" />

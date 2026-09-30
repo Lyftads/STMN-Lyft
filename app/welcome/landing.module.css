@@ -2661,3 +2661,31 @@
 @media (max-width: 860px) {
   .paccoProp { --corsa: clamp(0, calc((var(--vp, 0) - 0.83) / 0.1), 1); }
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+   v12 — VIA L'ORBITA (30 set: «se non riesci a farla, levala»). Il cambio di
+   inquadratura e' una dissolvenza incrociata LENTA e pulita: il laterale scivola
+   nella banda mentre sfuma, la vista dall'alto emerge gia' grande, ferma, e a
+   dissolvenza finita parte la guida. Ultimo blocco: vince.
+   ════════════════════════════════════════════════════════════════════════ */
+.flipVid { display: none; }
+.camionLato {
+  --ribalta: clamp(0, calc((var(--vp, 0) - 0.34) / 0.09), 1);
+  opacity: calc(clamp(0, calc((var(--vp, 0) - 0.17) / 0.04), 1) * clamp(0, calc((0.44 - var(--vp, 0)) / 0.07), 1));
+}
+.camionTop {
+  opacity: calc(clamp(0, calc((var(--vp, 0) - 0.4) / 0.08), 1) * clamp(0, calc((0.81 - var(--vp, 0)) / 0.04), 1));
+}
+@media (max-width: 860px) {
+  .camionLato { opacity: calc(clamp(0, calc((var(--vp, 0) - 0.17) / 0.04), 1) * clamp(0, calc((0.44 - var(--vp, 0)) / 0.06), 1)); }
+  .camionTop { opacity: calc(clamp(0, calc((var(--vp, 0) - 0.44) / 0.06), 1) * clamp(0, calc((0.81 - var(--vp, 0)) / 0.04), 1)); }
+}
+
+/* v12.1 — stacco NETTO, mai due camion insieme: il laterale esce del tutto,
+   un beat di sola strada, poi la vista dall'alto emerge. */
+.camionLato { opacity: calc(clamp(0, calc((var(--vp, 0) - 0.17) / 0.04), 1) * clamp(0, calc((0.41 - var(--vp, 0)) / 0.05), 1)); }
+.camionTop { opacity: calc(clamp(0, calc((var(--vp, 0) - 0.44) / 0.06), 1) * clamp(0, calc((0.81 - var(--vp, 0)) / 0.04), 1)); }
+@media (max-width: 860px) {
+  .camionLato { opacity: calc(clamp(0, calc((var(--vp, 0) - 0.17) / 0.04), 1) * clamp(0, calc((0.41 - var(--vp, 0)) / 0.05), 1)); }
+  .camionTop { opacity: calc(clamp(0, calc((var(--vp, 0) - 0.44) / 0.06), 1) * clamp(0, calc((0.81 - var(--vp, 0)) / 0.04), 1)); }
+}

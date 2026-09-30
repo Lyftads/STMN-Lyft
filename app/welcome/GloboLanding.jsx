@@ -74,7 +74,23 @@ export default function GloboLanding({ testi, lingua }) {
 
   useEffect(() => {
     let vivo = true
-    fetch(COUNTRIES_URL).then(r => r.json()).then(d => { if (vivo) setPaesi(d.features || []) }).catch(() => {})
+    // (30 set) Sul telefono, al primo caricamento, questo fetch a volte salta (rete
+    // sotto pressione con tutta la pagina in arrivo) e il mondo restava senza terre
+    // finche' non si ricaricava: ora RIPROVA, fino a tre volte.
+    const carica = async () => {
+      for (let t = 0; t < 3 && vivo; t++) {
+        try {
+          const r = await fetch(COUNTRIES_URL)
+          if (!r.ok) throw new Error(String(r.status))
+          const d = await r.json()
+          if (vivo) setPaesi(d.features || [])
+          return
+        } catch {
+          await new Promise(fine => setTimeout(fine, 900 * (t + 1)))
+        }
+      }
+    }
+    carica()
     return () => { vivo = false }
   }, [])
 
@@ -189,6 +205,14 @@ export default function GloboLanding({ testi, lingua }) {
   // punti sparsi a caso sulle terre, piu' grandi e accesi quelli vicini a chi guarda, che si spengono
   // verso il bordo della sfera. Sono una sola nuvola di punti (un solo disegno per fotogramma).
   const [pronto, setPronto] = useState(false)
+  // (30 set) Se il globo non e' pronto entro 7 secondi (WebGL che non parte al primo
+  // caricamento sul telefono), si RIMONTA e riprova — al massimo due volte.
+  const [chiave, setChiave] = useState(0)
+  useEffect(() => {
+    if (pronto || chiave >= 2) return
+    const t = setTimeout(() => setChiave(k => k + 1), 7000)
+    return () => clearTimeout(t)
+  }, [pronto, chiave])
   useEffect(() => {
     const g = globeRef.current
     if (!pronto || !g || !paesi.length) return
@@ -278,6 +302,7 @@ export default function GloboLanding({ testi, lingua }) {
         {/* Il sole dell'alba dietro al bordo in alto a destra, come nell'esempio. */}
         <div ref={wrapRef} aria-hidden="true" className={st.globoPresa}>
           <Globe
+            key={chiave}
             ref={globeRef}
             onGlobeReady={avvia}
             width={lato}

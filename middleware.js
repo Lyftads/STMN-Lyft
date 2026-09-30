@@ -109,6 +109,6 @@ export const config = {
   matcher: [
     // Salta API routes (gestiscono auth da soli) + Next static + image opt +
     // asset statici (geojson/json/ico) → es. /geo/*.geojson serve anche da non loggati
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|geojson|json|js|webmanifest|ico|woff2?|mp4|webm)$).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|geojson|json|js|webmanifest|ico|woff2?|mp4|webm|bin)$).*)',
   ],
 }

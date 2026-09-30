@@ -14,7 +14,10 @@ import Globe from 'react-globe.gl'
 import * as THREE from 'three'
 import st from './landing.module.css'
 
-const COUNTRIES_URL = '/geo/countries-110m.geojson'
+// (30 set) I puntini dei continenti sono PRECALCOLATI (script offline, stessa
+// matematica): 254KB di Int16 [lat*200, lng*200, tipo] al posto di 820KB di
+// geojson + secondi di point-in-polygon sul telefono. Il mondo esce subito.
+const PUNTI_URL = '/geo/punti-globo.bin'
 const ARANCIO = '#ff5500'
 // Il negozio d'esempio spedisce da qui: gli archi partono da Milano.
 const NEGOZIO = { lat: 45.46, lng: 9.19 }
@@ -54,7 +57,7 @@ export default function GloboLanding({ testi, lingua }) {
   const wrapRef = useRef(null)
   const globeRef = useRef(null)
   const [lato, setLato] = useState(0)
-  const [paesi, setPaesi] = useState([])
+  const [punti, setPunti] = useState(null)
   const [sessioni, setSessioni] = useState(() => Array.from({ length: 70 }, () => ({ ...vicino(unaCitta()), count: 1 })))
   const sessioniRef = useRef(sessioni)
   sessioniRef.current = sessioni
@@ -74,16 +77,15 @@ export default function GloboLanding({ testi, lingua }) {
 
   useEffect(() => {
     let vivo = true
-    // (30 set) Sul telefono, al primo caricamento, questo fetch a volte salta (rete
-    // sotto pressione con tutta la pagina in arrivo) e il mondo restava senza terre
-    // finche' non si ricaricava: ora RIPROVA, fino a tre volte.
+    // Riprova fino a tre volte: al primo caricamento sul telefono la rete a volte
+    // molla proprio qui, e il mondo restava senza terre.
     const carica = async () => {
       for (let t = 0; t < 3 && vivo; t++) {
         try {
-          const r = await fetch(COUNTRIES_URL)
+          const r = await fetch(PUNTI_URL)
           if (!r.ok) throw new Error(String(r.status))
-          const d = await r.json()
-          if (vivo) setPaesi(d.features || [])
+          const b = await r.arrayBuffer()
+          if (vivo) setPunti(new Int16Array(b))
           return
         } catch {
           await new Promise(fine => setTimeout(fine, 900 * (t + 1)))
@@ -215,48 +217,14 @@ export default function GloboLanding({ testi, lingua }) {
   }, [pronto, chiave])
   useEffect(() => {
     const g = globeRef.current
-    if (!pronto || !g || !paesi.length) return
-    const poligoni = []
-    for (const f of paesi) {
-      const geo = f.geometry; if (!geo) continue
-      const gruppi = geo.type === 'Polygon' ? [geo.coordinates] : geo.type === 'MultiPolygon' ? geo.coordinates : []
-      for (const p of gruppi) {
-        const anello = p[0]; let a = 180, b = -180, c = 90, d = -90
-        for (const [x, y] of anello) { if (x < a) a = x; if (x > b) b = x; if (y < c) c = y; if (y > d) d = y }
-        poligoni.push({ anello, a, b, c, d })
-      }
-    }
-    const dentro = (x, y, an) => { let k = false; for (let i = 0, j = an.length - 1; i < an.length; j = i++) { const [xi, yi] = an[i], [xj, yj] = an[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) k = !k } return k }
-    const terra = (x, y) => { for (const p of poligoni) if (x >= p.a && x <= p.b && y >= p.c && y <= p.d && dentro(x, y, p.anello)) return true; return false }
-    // Come su unitedcarriers.com (Marino, 29 set: «i pallini delineano poco i continenti»): tre strati
-    // di puntini piccoli e tutti uguali — le COSTE fitte e piene (sono loro a disegnare i continenti),
-    // l'interno delle terre su una griglia regolare, e un velo tenue sull'oceano.
+    if (!pronto || !g || !punti) return
+    // I puntini arrivano gia' pronti dal file precalcolato: qui si convertono solo
+    // in coordinate 3D del globo (una manciata di millisecondi, non secondi).
     const pos = [], tipo = []
-    const metti = (lat, lng, t) => { const q = g.getCoords(lat, lng, 0.004); pos.push(q.x, q.y, q.z); tipo.push(t) }
-    for (const p of poligoni) {
-      const an = p.anello
-      for (let i = 1; i < an.length; i++) {
-        const [x0, y0] = an[i - 1], [x1, y1] = an[i]
-        const passi = Math.max(1, Math.ceil(Math.hypot((x1 - x0) * Math.cos(y0 * Math.PI / 180), y1 - y0) / 0.5))
-        for (let k = 0; k < passi; k++) {
-          const t = k / passi, y = y0 + (y1 - y0) * t, x = x0 + (x1 - x0) * t
-          // Solo le COSTE: il file e' diviso per stato, e un bordo che non tocca il mare e' un confine.
-          const e = 0.6
-          if (!terra(x + e, y) || !terra(x - e, y) || !terra(x, y + e) || !terra(x, y - e)) metti(y, x, 1)
-        }
-      }
+    for (let i = 0; i < punti.length; i += 3) {
+      const q = g.getCoords(punti[i] / 200, punti[i + 1] / 200, 0.004)
+      pos.push(q.x, q.y, q.z); tipo.push(punti[i + 2])
     }
-    const griglia = (passo, t, voglio) => {
-      for (let lat = -60; lat <= 80; lat += passo) {
-        const pl = passo / Math.max(0.15, Math.cos(lat * Math.PI / 180))
-        for (let lng = -180; lng < 180; lng += pl) {
-          const y = lat + (Math.random() - 0.5) * passo * 0.25, x = lng + (Math.random() - 0.5) * pl * 0.25
-          if (terra(x, y) === voglio) metti(y, x, t)
-        }
-      }
-    }
-    griglia(0.72, 0, true)
-    griglia(1.5, 2, false)
     const geo = new THREE.BufferGeometry()
     geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3))
     geo.setAttribute('tipo', new THREE.Float32BufferAttribute(tipo, 1))
@@ -283,7 +251,7 @@ export default function GloboLanding({ testi, lingua }) {
     g.scene().traverse(o => { if (padre === g.scene() && typeof o.getCoords === 'function') padre = o })
     padre.add(nuvola)
     return () => { padre.remove(nuvola); geo.dispose(); mat.dispose() }
-  }, [pronto, paesi, lato])
+  }, [pronto, punti, lato, chiave])
 
   const intero = (n) => new Intl.NumberFormat(lingua).format(n)
   const freschi = ordini.filter(o => Date.now() - o.t < 4500)

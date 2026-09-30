@@ -1930,3 +1930,110 @@
   backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
 }
 .rack2 { top: 40vh; }
+
+/* ════════════════════════════════════════════════════════════════════════
+   SCENA v6 — L'ATTO DEL CAMION IN TRE TEMPI (30 set, dagli screen UC 14/15/16).
+   Prima il camion di LATO fermo sul bordo del PANNELLO NERO dei servizi (le 8 aree
+   del SaaS, per esteso); poi la vista dall'alto sulla strada orizzontale; poi la
+   CURVA: il camion ruota di 90 gradi e lo scroll diventa una discesa VERTICALE.
+   Ultimo blocco: vince su tutti i precedenti.
+   ════════════════════════════════════════════════════════════════════════ */
+.viaggio { height: 740vh; }
+
+/* ── Tempo 0 · il cielo chiude prima: lascia il posto al pannello ── */
+.cieloVelo { opacity: calc(clamp(0, calc((var(--vp, 0) - 0.025) / 0.055), 1) * clamp(0, calc((0.19 - var(--vp, 0)) / 0.04), 1)); }
+.nuvolaFronte { opacity: calc(clamp(0, calc((var(--vp, 0) - 0.04) / 0.05), 1) * clamp(0, calc((0.19 - var(--vp, 0)) / 0.035), 1)); }
+.aereoGrande {
+  --volo: clamp(0, calc((var(--vp, 0) - 0.012) / 0.15), 1);
+  opacity: calc(clamp(0, calc((var(--vp, 0) - 0.02) / 0.04), 1) * clamp(0, calc((0.18 - var(--vp, 0)) / 0.025), 1));
+}
+/* il titolo esce di scena prima che il camion gli passi davanti */
+.testaFilm .sotto { opacity: calc(1 - clamp(0, calc((var(--vp, 0) - 0.08) / 0.06), 1)); }
+.testaFilm .etichetta { opacity: calc(1 - clamp(0, calc((var(--vp, 0) - 0.08) / 0.07), 1)); }
+.testaFilm .h2 { opacity: calc(1 - clamp(0, calc((var(--vp, 0) - 0.1) / 0.08), 1)); }
+
+/* ── Tempo 1 (vp .17-.38) · il PANNELLO NERO dei servizi, il camion di lato sul bordo ── */
+.pannelloServizi {
+  position: absolute; z-index: 1; left: 0; right: 0; bottom: 0; height: 54vh;
+  background: #0f1116; color: #ffffff; pointer-events: none;
+  padding: clamp(18px, 3vh, 34px) clamp(24px, 4vw, 64px) 0;
+  --fin: clamp(0, calc((var(--vp, 0) - 0.17) / 0.03), 1);
+  opacity: calc(var(--fin) * clamp(0, calc((0.385 - var(--vp, 0)) / 0.03), 1));
+  translate: 0 calc((1 - var(--fin)) * 46px);
+}
+.pannelloEtichetta { margin: 0 0 clamp(10px, 2vh, 22px); font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: rgba(255, 255, 255, .55); }
+.pannelloGriglia { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(14px, 2.2vw, 34px) clamp(16px, 2.4vw, 38px); }
+.pannelloVoce { border-top: 1px solid rgba(255, 255, 255, .18); padding-top: clamp(8px, 1.6vh, 16px); min-width: 0; }
+.pannelloVoce svg { color: #ffffff; opacity: .9; }
+.pannelloVoce h4 { margin: 8px 0 7px; font-family: var(--display); font-weight: 700; font-size: clamp(12px, 1vw, 15px); line-height: 1.1; letter-spacing: .02em; text-transform: uppercase; color: #ffffff; }
+.pannelloVoce ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.pannelloVoce li { font-size: clamp(10px, .82vw, 12px); line-height: 1.4; color: rgba(255, 255, 255, .62); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pannelloVoce li::before { content: '\2022\00a0\00a0'; color: rgba(255, 255, 255, .38); }
+/* il camion vero, di lato, con le ruote sul bordo del pannello */
+.camionLato {
+  position: absolute; z-index: 2; left: 0; bottom: calc(54vh - 4px); width: min(44vw, 620px); height: auto; pointer-events: none;
+  --corsa: clamp(0, calc((var(--vp, 0) - 0.175) / 0.185), 1);
+  opacity: calc(clamp(0, calc((var(--vp, 0) - 0.18) / 0.03), 1) * clamp(0, calc((0.38 - var(--vp, 0)) / 0.025), 1));
+  transform: translate3d(calc(-52vw + var(--corsa) * 88vw), calc(sin(var(--corsa) * 12rad) * 2px), 0);
+  filter: drop-shadow(0 22px 24px rgba(0, 0, 0, .4));
+}
+
+/* ── Tempo 2 (vp .37-.67) · dall'alto: strada orizzontale, CURVA, discesa verticale ── */
+.stradaDisegno { display: none; }
+.stradaCurva {
+  position: absolute; z-index: 1; inset: 0; width: 100%; height: 100%; pointer-events: none;
+  opacity: calc(clamp(0, calc((var(--vp, 0) - 0.365) / 0.03), 1) * clamp(0, calc((0.7 - var(--vp, 0)) / 0.03), 1));
+}
+.curvaLinea { stroke-dashoffset: calc(var(--vp, 0) * -240); }
+.camionTop {
+  left: 0; top: calc(71vh - 9.6vw); width: 29vw;
+  --t2: clamp(0, calc((var(--vp, 0) - 0.37) / 0.3), 1);
+  --tA: clamp(0, calc(var(--t2) / 0.5), 1);
+  --tB: clamp(0, calc((var(--t2) - 0.52) / 0.16), 1);
+  --tC: clamp(0, calc((var(--t2) - 0.68) / 0.32), 1);
+  --guida: 0;
+  opacity: calc(clamp(0, calc((var(--vp, 0) - 0.378) / 0.025), 1) * clamp(0, calc((0.71 - var(--vp, 0)) / 0.02), 1));
+  transform:
+    translate3d(
+      calc(-31vw + var(--tA) * 74.5vw + var(--tB) * 6vw),
+      calc(sin(var(--tA) * 14rad) * 3px + var(--tB) * 7vh + var(--tC) * 58vh),
+      0)
+    rotate(calc(var(--tB) * 90deg));
+  filter: drop-shadow(-22px 26px 24px rgba(0, 0, 0, .4));
+}
+
+/* ── Tempo 3 (vp .66-1) · il magazzino: tutto slitta sui nuovi tempi ── */
+.nastroTop { opacity: clamp(0, calc((var(--vp, 0) - 0.66) / 0.04), 1); }
+.paccoProp {
+  --corsa: clamp(0, calc((var(--vp, 0) - 0.68) / 0.28), 1);
+  opacity: calc(clamp(0, calc((var(--vp, 0) - 0.68) / 0.03), 1) * (1 - clamp(0, calc((var(--vp, 0) - 0.96) / 0.03), 1)));
+}
+.rackProp { transform: translate3d(0, calc((var(--vp, 0) - 0.85) * -4vh), 0); }
+.rack1 { --nasce: 0.66; }
+.rack2 { --nasce: 0.69; }
+.rack3 { --nasce: 0.72; }
+.rack4 { --nasce: 0.7; }
+
+@media (prefers-reduced-motion: reduce) {
+  .viaggio { height: auto; }
+  .camionLato, .stradaCurva { display: none; }
+  .pannelloServizi { position: static; opacity: 1; translate: none; height: auto; padding-bottom: 24px; }
+}
+@media (max-width: 860px) {
+  .viaggio { height: 640vh; }
+  .pannelloServizi { height: 58vh; padding-top: 14px; }
+  .pannelloGriglia { grid-template-columns: repeat(2, 1fr); gap: 10px 14px; }
+  .pannelloVoce h4 { font-size: 11px; margin: 6px 0 4px; }
+  .pannelloVoce ul { display: none; }
+  .pannelloVoce svg { width: 18px; height: 18px; }
+  .camionLato { width: 74vw; bottom: calc(58vh - 3px); transform: translate3d(calc(-80vw + var(--corsa) * 130vw), 0, 0); }
+  .camionTop {
+    width: 44vw; left: 0; top: calc(71vh - 14.5vw);
+    transform:
+      translate3d(
+        calc(-48vw + var(--tA) * 87vw + var(--tB) * 9vw),
+        calc(var(--tB) * 7vh + var(--tC) * 58vh),
+        0)
+      rotate(calc(var(--tB) * 90deg));
+  }
+}

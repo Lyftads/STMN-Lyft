@@ -2475,3 +2475,116 @@
   }
   .servizioDx { top: 26vh; }
 }
+
+/* v9.2 — FIX: la riscrittura v9 della transform aveva PERSO la rotazione della
+   curva (rotate 90deg su --tB): il camion restava orizzontale. E via il rotateX
+   posticcio: il cambio di inquadratura vero arriva col video orbitale. */
+.camionTop {
+  transform:
+    translate3d(
+      calc(11.5vw + var(--tA) * 32vw + var(--tB) * 6vw),
+      calc(sin(var(--tA) * 14rad) * 3px + var(--tB) * 7vh + var(--tC) * 37vh + var(--tD) * 50vh),
+      0)
+    rotate(calc(var(--tB) * 90deg))
+    scale(calc(1.8 - var(--lontano) * 0.8));
+}
+.camionLato {
+  transform:
+    translate3d(
+      calc(-46vw + var(--corsaA) * 36vw + var(--corsaB) * 28vw),
+      calc(sin(var(--corsaB) * 12rad) * 2px + var(--ribalta) * 16vh),
+      0)
+    scale(calc(1 + var(--vicino) * 1.4));
+}
+@media (max-width: 860px) {
+  .camionTop {
+    transform:
+      translate3d(
+        calc(3vw + var(--tA) * 39vw + var(--tB) * 9vw),
+        calc(var(--tB) * 7vh + var(--tC) * 23vh + var(--tD) * 42vh),
+        0)
+      rotate(calc(var(--tB) * 90deg))
+      scale(calc(1.7 - var(--lontano) * 0.7));
+  }
+  .camionLato {
+    transform:
+      translate3d(calc(-50vw + var(--corsaA) * 30vw + var(--corsaB) * 30vw), calc(var(--ribalta) * 13vh), 0)
+      scale(calc(1 + var(--vicino) * 0.9));
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   v10 — IL CAMBIO DI INQUADRATURA VERO: un video orbitale scrubbato (come il
+   cielo). La camera sale dal fianco del camion fin sopra la verticale; il fondo
+   del video e' NERO e il blend "screen" lo fa sparire: il camion orbitante si
+   vede solo dentro la banda nera della strada, come fosse parte della scena.
+   ════════════════════════════════════════════════════════════════════════ */
+.flipVid {
+  position: absolute; z-index: 2; pointer-events: none;
+  left: 2vw; top: calc(71vh - 21.4vw); width: 76vw; height: 42.75vw;
+  object-fit: contain; mix-blend-mode: screen;
+  opacity: calc(clamp(0, calc((var(--vp, 0) - 0.355) / 0.03), 1) * clamp(0, calc((0.45 - var(--vp, 0)) / 0.025), 1));
+}
+/* il laterale consegna al video: svanisce appena l'orbita comincia, scivolando
+   nella banda; il top entra quando l'orbita e' allo zenit */
+.camionLato {
+  --ribalta: clamp(0, calc((var(--vp, 0) - 0.34) / 0.045), 1);
+  opacity: calc(clamp(0, calc((var(--vp, 0) - 0.17) / 0.04), 1) * clamp(0, calc((0.385 - var(--vp, 0)) / 0.03), 1));
+}
+.camionTop {
+  opacity: calc(clamp(0, calc((var(--vp, 0) - 0.418) / 0.028), 1) * clamp(0, calc((0.77 - var(--vp, 0)) / 0.04), 1));
+}
+@media (max-width: 860px) {
+  /* sul telefono i video non girano (come gli atti): resta la dissolvenza */
+  .flipVid { display: none; }
+  .camionLato { opacity: calc(clamp(0, calc((var(--vp, 0) - 0.17) / 0.04), 1) * clamp(0, calc((0.4 - var(--vp, 0)) / 0.04), 1)); }
+  .camionTop { opacity: calc(clamp(0, calc((var(--vp, 0) - 0.39) / 0.035), 1) * clamp(0, calc((0.77 - var(--vp, 0)) / 0.04), 1)); }
+}
+@media (prefers-reduced-motion: reduce) { .flipVid { display: none; } }
+
+/* v10.1 — la contro-rotazione: nel video la camera, salendo, RUOTA anche il camion
+   nel quadro (da orizzontale a muso in alto). Il box contro-ruota in senso opposto
+   ∝ scroll, cosi' il camion resta orizzontale per tutta l'orbita e a fine corsa
+   combacia con la vista dall'alto che guida verso destra. Col blend screen la
+   rotazione del rettangolo e' invisibile. */
+.flipVid {
+  left: 2vw; top: calc(67vh - 21.4vw);
+  rotate: calc(clamp(0, calc((var(--vp, 0) - 0.376) / 0.056), 1) * 88deg);
+}
+/* il laterale scivola nella banda mentre consegna all'orbita */
+.camionLato {
+  transform:
+    translate3d(
+      calc(-46vw + var(--corsaA) * 36vw + var(--corsaB) * 28vw),
+      calc(sin(var(--corsaB) * 12rad) * 2px + var(--ribalta) * 20vh),
+      0)
+    scale(calc(1 + var(--vicino) * 1.4));
+}
+
+/* v10.2 — il box dell'orbita sale di un filo: le ruote non escono dal bordo basso
+   della banda (i neri del video sono schiacciati a zero in codifica: lo screen
+   lascia la banda esattamente com'e'). */
+.flipVid { top: calc(64vh - 21.4vw); }
+
+/* v10.3 — l'orbita si ferma appena sopra la verticale (il video e' tagliato li'):
+   il muso e' ancora verso destra e il passaggio alla vista di viaggio e' una
+   dissolvenza corta. Il crossfade pannello→strada si chiude PRIMA del flip:
+   l'orbita brilla su banda nera piena, non su un grigio a meta' dissolvenza. */
+.pannelloServizi { opacity: calc(var(--fin) * clamp(0, calc((0.38 - var(--vp, 0)) / 0.04), 1)); }
+.stradaCurva { opacity: calc(clamp(0, calc((var(--vp, 0) - 0.34) / 0.04), 1) * clamp(0, calc((0.81 - var(--vp, 0)) / 0.05), 1)); }
+.flipVid {
+  left: 8vw; top: calc(66vh - 18vw); width: 64vw; height: 36vw;
+  rotate: calc(clamp(0, calc((var(--vp, 0) - 0.376) / 0.039), 1) * 62deg);
+  opacity: calc(clamp(0, calc((var(--vp, 0) - 0.355) / 0.03), 1) * clamp(0, calc((0.435 - var(--vp, 0)) / 0.025), 1));
+}
+.camionTop {
+  opacity: calc(clamp(0, calc((var(--vp, 0) - 0.405) / 0.03), 1) * clamp(0, calc((0.77 - var(--vp, 0)) / 0.04), 1));
+  --lontano: clamp(0, calc((var(--vp, 0) - 0.43) / 0.06), 1);
+  transform:
+    translate3d(
+      calc(11.5vw + var(--tA) * 32vw + var(--tB) * 6vw),
+      calc(sin(var(--tA) * 14rad) * 3px + var(--tB) * 7vh + var(--tC) * 37vh + var(--tD) * 50vh),
+      0)
+    rotate(calc(var(--tB) * 90deg))
+    scale(calc(1.9 - var(--lontano) * 0.9));
+}

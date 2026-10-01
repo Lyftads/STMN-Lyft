@@ -2957,8 +2957,9 @@
 
 /* ── (30 set) La POSA del globo: foto vera del mondo nell'HTML dal primo paint,
    posizionata esattamente dove nasce il canvas (la presa e' quadrata, la posa e'
-   il ritaglio centrale 84% della tela → inset 8%). Sfuma quando il 3D e' vivo. ── */
-.aperturaGlobo { position: relative; }
+   il ritaglio centrale 84% della tela → inset 8%). Sfuma quando il 3D e' vivo.
+   NIENTE position qui: .aperturaGlobo su desktop E' absolute (139vh) — una
+   riga "relative" in coda gliela sovrascriveva e sfasciava tutta l'apertura. ── */
 .globoPosaBox {
   position: absolute; inset: 0; z-index: 2; pointer-events: none;
   opacity: 1; transition: opacity .9s var(--ease);

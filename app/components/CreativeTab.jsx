@@ -839,9 +839,32 @@ function readCreativeCache() {
   if (typeof window === 'undefined') return {}
   try { return JSON.parse(localStorage.getItem(CREATIVE_LS) || '{}') || {} } catch { return {} }
 }
+// Gli indirizzi delle immagini di Meta (fbcdn) sono FIRMATI e scadono: il
+// parametro `oe` e' la scadenza in secondi, in esadecimale (~4 giorni e mezzo,
+// misurato il 2 ott 2026). Scaduti rispondono 403. Con la cache a 7 giorni le
+// immagini statiche sparivano e restava solo il catalogo (foto da Shopify, che
+// non scadono). La copia salvata vale quindi fino alla prima scadenza, meno 2 ore.
+function primaScadenzaImmagini(payload) {
+  let min = Infinity
+  const guarda = (u) => {
+    if (typeof u !== 'string' || !u.includes('oe=')) return
+    try {
+      const oe = new URL(u).searchParams.get('oe')
+      const ms = oe ? parseInt(oe, 16) * 1000 : NaN
+      if (Number.isFinite(ms) && ms < min) min = ms
+    } catch {}
+  }
+  for (const r of payload?.rows || []) {
+    guarda(r.image_url); guarda(r.full_image_url); guarda(r.thumbnail_url)
+    guarda(r.preview_image_url); guarda(r.display_image_url); guarda(r.creative_image_url)
+    for (const p of r.products || []) guarda(p.image_url)
+  }
+  return min
+}
 function getCreativeCached(key) {
   const e = readCreativeCache()[key]
   if (!e || (Date.now() - e.ts) > CREATIVE_TTL) return null
+  if (Date.now() > primaScadenzaImmagini(e.payload) - 2 * 60 * 60 * 1000) return null
   return e.payload
 }
 function setCreativeCached(key, payload) {

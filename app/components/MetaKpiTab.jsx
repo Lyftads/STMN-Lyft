@@ -121,7 +121,9 @@ export default function MetaKpiTab({ live, globalPreset }) {
     if (force) invalidate(key)
     const cached = !force ? getCached(key) : null
     if (cached) {
+      // Dato gia in memoria (precarica): niente attesa, e il periodo resta cliccabile.
       setData(cached.data)
+      setLoading(false)
     } else {
       setLoading(true)
     }

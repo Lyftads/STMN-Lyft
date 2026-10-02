@@ -102,7 +102,8 @@ export default function GoogleKpiTab() {
     const key = `google-kpi:${tfKey(tf)}`
     if (force) invalidate(key)
     const cached = !force ? getCached(key) : null
-    if (cached) setData(cached.data)
+    // Dato gia in memoria (precarica): niente attesa, e il periodo resta cliccabile.
+    if (cached) { setData(cached.data); setLoading(false) }
     else setLoading(true)
     setError(null)
     swrFetch({

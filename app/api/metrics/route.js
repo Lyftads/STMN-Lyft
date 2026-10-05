@@ -1540,8 +1540,16 @@ export async function GET(req) {
     // 2) Nessuna riga (primo accesso assoluto del tenant) o force → fetch live
     //    (lento, UNA volta) e salva memoria + Supabase per tutte le volte successive.
     if (!hist || hist.expiresAt <= Date.now()) {
+      const vecchiSerie = vecchiQL
       const [sw, sm] = await Promise.all([fetchShopifyWeekly(), fetchShopifyMonthly()])
-      const valid = Array.isArray(sw) && sw.length >= 5 // non cachiamo throttled-vuoto
+      // Shopify occupato → la porta ShopifyQL ha dato l'ULTIMO DATO BUONO della
+      // stessa domanda, che puo' avere giorni ("SINCE ... UNTIL today" e' sempre
+      // lo stesso testo). Salvarlo qui con l'orario di adesso lo faceva passare
+      // per fresco (5 ott, Weekly AV ferma a 2.628 € contro i 3.430 € veri).
+      // Si mostra, ma non si salva e si riprova.
+      const serieVecchia = vecchiQL > vecchiSerie
+      const valid = !serieVecchia && Array.isArray(sw) && sw.length >= 5 // non cachiamo throttled-vuoto
+      if (serieVecchia) historyStale = true
       hist = { shopifyWeekly: sw, shopifyMonthly: sm, expiresAt: valid ? Date.now() + HISTORY_TTL_MS : 0 }
       if (valid) {
         historyCache.set(histKey, hist)

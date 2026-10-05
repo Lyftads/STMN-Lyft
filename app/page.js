@@ -1,6 +1,7 @@
 'use client'
 import AzioneBarra from './components/ui/AzioneBarra'
 import { globalPresetToTf } from '../lib/tfQuery'
+import { tabDaIndirizzo, percorsoDiTab } from '../lib/tabUrl'
 import SintesiDashboard from './components/SintesiDashboard'
 import SpiegaNumero from './components/SpiegaNumero'
 import BriefingMattino from './components/BriefingMattino'
@@ -2302,10 +2303,32 @@ export default function App() {
   const [tab, setTab] = useState('dashboard')
   // Deep-link: ?tab=<id> apre direttamente quella sezione (usato anche dal
   // generatore video per inquadrare la tab giusta senza ambiguità di menu).
+  // Anche il percorso: /task, /weekly… (lib/tabUrl.js) — si salva nei preferiti.
+  const [indirizzoLetto, setIndirizzoLetto] = useState(false)
   useEffect(() => {
     // Id sconosciuti (tab rimosse, link vecchi) → dashboard, mai schermata vuota.
-    try { const p = new URLSearchParams(window.location.search).get('tab'); if (p) setTab(ALL_TABS.includes(p) ? p : 'dashboard') } catch {}
+    const leggiTab = () => { try { const p = tabDaIndirizzo(window.location) || 'dashboard'; setTab(ALL_TABS.includes(p) ? p : 'dashboard') } catch {} }
+    leggiTab(); setIndirizzoLetto(true)
+    // Indietro/avanti del browser riportano alla tab di prima.
+    window.addEventListener('popstate', leggiTab)
+    return () => window.removeEventListener('popstate', leggiTab)
   }, [])
+  // La tab aperta finisce nell'indirizzo. Se l'indirizzo diceva gia' questa tab
+  // (vecchio ?tab=, oppure / per la dashboard) si riscrive e basta; un cambio
+  // di tab invece e' un passo nuovo della cronologia.
+  useEffect(() => {
+    // Finche' l'indirizzo non e' stato letto, tab e' solo la 'dashboard' di partenza.
+    if (!indirizzoLetto) return
+    try {
+      const voluto = percorsoDiTab(tab)
+      const { pathname, search, hash } = window.location
+      if (pathname === voluto || voluto === '/') return
+      const q = new URLSearchParams(search); q.delete('tab')
+      const url = voluto + (q.toString() ? '?' + q : '') + hash
+      if ((tabDaIndirizzo(window.location) || 'dashboard') === tab) window.history.replaceState(null, '', url)
+      else window.history.pushState(null, '', url)
+    } catch {}
+  }, [tab, indirizzoLetto])
   const [allowedTabs, setAllowedTabs] = useState(null) // null = accesso completo (Admin/owner)
   // Creative Studio attiva SOLO sul workspace STMN (owner sul proprio workspace).
   // Bloccata per TUTTI i clienti, incluso l'owner quando ha switchato su un

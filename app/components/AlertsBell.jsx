@@ -47,7 +47,20 @@ export function useAlerts() {
     setCounts(prev => ({ ...prev, total: Math.max(0, prev.total - 1) }))
   }
 
-  return { alerts, counts, loading, dismiss }
+  // Tutti gli avvisi in un colpo: una chiamata sola, non una per avviso.
+  const dismissAll = async () => {
+    const ids = alerts.map(a => a.id)
+    if (!ids.length) return
+    await fetch('/api/alerts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids, action: 'dismiss' }),
+    })
+    setAlerts([])
+    setCounts({ urgent: 0, warning: 0, info: 0, total: 0 })
+  }
+
+  return { alerts, counts, loading, dismiss, dismissAll }
 }
 
 // Il solo ELENCO degli avvisi, senza campanella e senza tendina: lo disegna la
@@ -61,7 +74,7 @@ export function useAlerts() {
 // predefinito col nome ElencoAlert e gli passava delle props che la campanella
 // ignora: nella scheda «Avvisi» compariva una campanella invece dell'elenco —
 // nessun errore, solo la cosa sbagliata a schermo.
-export function ElencoAlert({ alerts, counts, loading, dismiss, t }) {
+export function ElencoAlert({ alerts, counts, loading, dismiss, dismissAll, t }) {
   const tr = (k, v, d) => (t ? t(k, v, d) : d)
   return (
     <div>
@@ -77,6 +90,15 @@ export function ElencoAlert({ alerts, counts, loading, dismiss, t }) {
           </div>
         )}
       </div>
+      {/* In alto, non in fondo: con decine di avvisi un bottone sotto l'elenco non lo trova nessuno. */}
+      {alerts.length > 1 && dismissAll && (
+        <button type="button" onClick={dismissAll} style={{
+          marginBottom: 12, padding: '7px 12px', borderRadius: 10, cursor: 'pointer',
+          background: 'var(--glass)', border: '1px solid var(--border)', color: 'var(--text2)', fontSize: 13, fontWeight: 500,
+        }}>
+          {tr('profilo.alertReadAll', null, 'Segna tutte come lette')}
+        </button>
+      )}
       {loading ? (
         <div style={{ color: 'var(--text3)', textAlign: 'center', padding: '30px 0', fontSize: 13 }}>…</div>
       ) : alerts.length === 0 ? (

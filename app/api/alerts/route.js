@@ -94,10 +94,12 @@ export async function POST(req) {
   let body
   try { body = await req.json() } catch { return NextResponse.json({ error: 'Body non valido' }, { status: 400 }) }
 
-  const id = body?.id
+  // Un avviso (id) o tanti insieme (ids): «segna tutte come lette» ne manda
+  // una lista sola invece di una chiamata per avviso.
+  const ids = Array.isArray(body?.ids) ? body.ids.filter(x => typeof x === 'string') : body?.id ? [body.id] : []
   const action = body?.action
-  if (!id || !['dismiss', 'restore'].includes(action)) {
-    return NextResponse.json({ error: 'id + action (dismiss|restore) richiesti' }, { status: 400 })
+  if (!ids.length || !['dismiss', 'restore'].includes(action)) {
+    return NextResponse.json({ error: 'id (o ids) + action (dismiss|restore) richiesti' }, { status: 400 })
   }
 
   const admin = getAdminSupabase()
@@ -110,12 +112,9 @@ export async function POST(req) {
     .maybeSingle()
 
   const current = Array.isArray(row?.dismissed_alerts) ? row.dismissed_alerts : []
-  let next
-  if (action === 'dismiss') {
-    next = current.includes(id) ? current : [...current, id]
-  } else {
-    next = current.filter(x => x !== id)
-  }
+  const next = action === 'dismiss'
+    ? [...current, ...ids.filter(x => !current.includes(x))]
+    : current.filter(x => !ids.includes(x))
 
   const { error } = await admin
     .from('companies')

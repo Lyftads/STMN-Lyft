@@ -1,6 +1,6 @@
 'use client'
 
-import { Fonte } from './FasceTabella'
+import FasceTabella, { Fonte } from './FasceTabella'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { sepDecimali } from '../../../lib/client/numeri'
 
@@ -34,8 +34,10 @@ const th = { padding: '10px 12px', borderBottom: '1px solid var(--border)', font
 const td = { padding: '9px 12px', textAlign: 'right', whiteSpace: 'nowrap' }
 
 // Stacco all'inizio di ogni gruppo: senza, a colonne aperte i numeri diventano
-// una distesa in cui non si capisce quale appartiene a quale periodo.
-const STACCO = { borderLeft: '1px solid var(--border2)', paddingLeft: 18 }
+// una distesa in cui non si capisce quale appartiene a quale periodo. La riga
+// verticale la traccia la classe `rep-stacco` (CSS): un bordo inline qui verrebbe
+// annullato dal `border: none !important` del vestito comune delle tabelle.
+const STACCO = { paddingLeft: 18 }
 
 const thYoy = { ...th, fontSize: 10, opacity: 0.45, color: 'var(--text3)', fontWeight: 600, minWidth: 92, cursor: 'pointer', ...STACCO }
 const tdYoy = { ...td, color: 'var(--text3)', fontWeight: 500, fontSize: 13, fontVariantNumeric: 'tabular-nums', cursor: 'pointer', ...STACCO }
@@ -64,7 +66,19 @@ export default function MatriceReport({
     [periodi, totale]
   )
 
-  const nColonne = 1 + periodi.length * (haAnnoPrima ? 3 : 2) + (totale ? (haAnnoPrima ? 3 : 2) : 0)
+  const nGruppo = haAnnoPrima ? 3 : 2
+  const nColonne = 1 + periodi.length * nGruppo + (totale ? nGruppo : 0)
+
+  // Le fasce sopra le colonne, come nel conto dei prodotti Google: una per
+  // periodo, col nome del periodo dentro. Il periodo piu' recente (il primo)
+  // e' quello che si guarda per primo e ha la fascia blu; gli altri sono
+  // neutri, il totale verde. Cosi' la riga delle colonne resta libera per
+  // dire CONTRO COSA e' calcolata la variazione sotto ogni numero.
+  const fasce = [
+    { vuote: 1 },
+    ...periodi.map((p, i) => ({ fam: i === 0 ? 'fam-resa' : 'fam-periodo', n: nGruppo, label: p.label })),
+    ...(totale ? [{ fam: 'fam-vendite', n: nGruppo, label: totale.label }] : []),
+  ]
 
   // ── Barra di scorrimento anche in ALTO ────────────────────────────────
   // Con molti periodi la tabella e' piu' alta dello schermo: senza, per
@@ -108,13 +122,20 @@ export default function MatriceReport({
 
   const intestazioneGruppo = (p, chiave) => [
     haAnnoPrima && (
-      <th key={`${chiave}-yoy`} className="rep-side" onClick={() => setYoyAperta(x => !x)}
+      <th key={`${chiave}-yoy`} className="rep-side rep-stacco" onClick={() => setYoyAperta(x => !x)}
         style={{ ...thYoy, ...(yoyAperta ? null : thYoyChiusa) }}
         title={yoyAperta ? t('rep.yoyHide', null, 'Nascondi lo stesso periodo dell’anno prima') : t('rep.yoyShow', null, 'Mostra lo stesso periodo dell’anno prima')}>
         {yoyAperta ? (p.labelAnnoPrima || t('rep.prevShort', null, 'prec.')) : (p.siglaAnnoPrima || '·')}
       </th>
     ),
-    <th key={chiave} className="rep-val" style={{ ...th, minWidth: 118, color: p.forte ? 'var(--accent)' : undefined }}>{p.label}</th>,
+    <th key={chiave} className={haAnnoPrima ? 'rep-val' : 'rep-val rep-stacco'} style={{ ...th, minWidth: 118, color: p.forte ? 'var(--accent)' : undefined }}>
+      {(() => {
+        // Il nome del periodo sta nella fascia sopra: qui si dice il riferimento
+        // delle variazioni, che cambia con la colonna dell'anno prima.
+        const rif = yoyAperta ? p.labelAnnoPrima : p.labelPrec
+        return rif ? t('rep.vsCol', { p: rif }, `vs ${rif}`) : t('rep.valueCol', null, 'Valore')
+      })()}
+    </th>,
     <th key={`${chiave}-inc`} className="rep-side" onClick={() => setIncAperta(x => !x)}
       style={{ ...thInc, ...(incAperta ? null : thIncChiusa) }}
       title={incAperta ? t('rep.incHide', null, 'Nascondi l’incidenza') : t('rep.incShow', null, 'Mostra l’incidenza')}>
@@ -129,12 +150,12 @@ export default function MatriceReport({
     const prev = riga.noConfronto ? null : num(confronto?.[riga.key])
     return [
       haAnnoPrima && (
-        <td key={`${chiave}-yoy`} className="rep-side" onClick={() => setYoyAperta(x => !x)}
+        <td key={`${chiave}-yoy`} className="rep-side rep-stacco" onClick={() => setYoyAperta(x => !x)}
           style={{ ...baseTd, ...tdYoy, ...(yoyAperta ? null : tdYoyChiusa), ...sfondo }}>
           {yoyAperta ? (p.valoriAnnoPrima ? cellaValore(riga, p.valoriAnnoPrima) : '—') : ''}
         </td>
       ),
-      <td key={chiave} className="rep-val" style={{ ...baseTd, ...sfondo, color: riga.sub ? 'var(--text2)' : undefined }}>
+      <td key={chiave} className={haAnnoPrima ? 'rep-val' : 'rep-val rep-stacco'} style={{ ...baseTd, ...sfondo, color: riga.sub ? 'var(--text2)' : undefined }}>
         <div>{cellaValore(riga, valori)}</div>
         {prev != null && cur != null && (
           <Delta cur={cur} prev={prev} inverse={riga.inverse}
@@ -163,6 +184,7 @@ export default function MatriceReport({
         style={{ position: 'relative', zIndex: 2, width: '100%', overflowX: 'auto', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
         <table className="tab-lyft" style={{ borderCollapse: 'collapse', fontSize: 13, minWidth: '100%' }}>
           <thead>
+            <FasceTabella gruppi={fasce} />
             <tr>
               <th className="rep-label" style={{ ...th, textAlign: 'left', position: 'sticky', left: 0, zIndex: 2, background: 'var(--surface)', minWidth: 200 }}>{etichettaColonna}</th>
               {periodi.map(p => intestazioneGruppo(p, p.key))}

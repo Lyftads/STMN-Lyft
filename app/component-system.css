@@ -273,6 +273,12 @@
 .tab-lyft .fam-traffico { --fam: var(--gpv-economia); --fam-bg: var(--gpv-economia-bg); }
 .tab-lyft .fam-pub      { --fam: var(--gpv-google);   --fam-bg: var(--gpv-google-bg); }
 .tab-lyft .fam-resa     { --fam: var(--gpv-resa);     --fam-bg: var(--gpv-resa-bg); }
+/* Fascia neutra: i periodi della matrice dei report, che non hanno una fonte sola. */
+.tab-lyft .fam-periodo  { --fam: var(--text2);         --fam-bg: var(--neutro-bg); }
+/* Divisorio verticale fra un periodo e l'altro nella matrice dei report: con
+   l'anno prima e l'incidenza aperti ogni periodo e' tre colonne, e senza una
+   riga non si capisce dove finisce uno e comincia l'altro. */
+.tab-lyft th.rep-stacco, .tab-lyft td.rep-stacco { box-shadow: inset 1px 0 0 var(--border3, var(--gpv-linea)); }
 .tab-lyft thead tr.reg-fasce th { padding: 0 !important; border: none !important; background: transparent !important; position: static !important; }
 .tab-lyft thead tr.reg-fasce th.fam {
   padding: 7px 12px !important; letter-spacing: .14em !important; text-align: center !important;

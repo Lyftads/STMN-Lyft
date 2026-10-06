@@ -78,6 +78,12 @@ export default function TasksTab() {
     if (!m) return '—'
     return m.full_name || m.email
   }, [members])
+  // Nome E foto del profilo (team_members.avatar_url): serve all'assegnatario
+  // sulle card, che prima era solo un nome accanto a un'iconcina.
+  const membro = useCallback((id) => {
+    const m = members.find(x => x.id === id)
+    return m ? { id, name: m.full_name || m.email, avatar: m.avatar_url || null } : null
+  }, [members])
 
   const load = useCallback(async () => {
     try {
@@ -252,12 +258,11 @@ export default function TasksTab() {
 
   return (
     <div style={{ fontFamily: 'inherit', color: 'var(--text)' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 18, flexWrap: 'wrap' }}>
-        <div>
-          <h2 style={{ margin: 0, fontFamily: 'inherit', fontSize: 20, fontWeight: 600 }}>{t('tk.title', null, 'Projects & Tasks')}</h2>
-          <div style={{ color: 'var(--text2)', fontSize: 13 }}>{t('tk.subtitle', null, 'Team assignment, deadlines, review and approval')}</div>
-        </div>
+      {/* Riga dei comandi. Il titolo e il sottotitolo li scrive la cornice
+          (AppShell, TITOLI_TAB) come per tutte le altre tab: qui restano le
+          viste a sinistra e, sulla Board, «Nuova task» a destra, cosi' le
+          colonne partono subito sotto. */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', gap: 6, background: 'var(--glass)', borderRadius: 12, padding: 4 }}>
             <button onClick={() => { setView('projects'); setActiveProject('all') }} style={{ ...btnGhost, border: 'none', background: view === 'projects' ? 'var(--btn-primario)' : 'transparent', color: view === 'projects' ? 'var(--btn-primario-testo)' : 'var(--text)' }}>{t('tk.projects', null, 'Progetti')}</button>
@@ -265,6 +270,11 @@ export default function TasksTab() {
             <button onClick={() => setView('overview')} style={{ ...btnGhost, border: 'none', background: view === 'overview' ? 'var(--btn-primario)' : 'transparent', color: view === 'overview' ? 'var(--btn-primario-testo)' : 'var(--text)', fontWeight: view === 'overview' ? 700 : 400 }}><Icon name="chart-bar" size={14} /> {t('tk.charts', null, 'Charts')}</button>
           </div>
         </div>
+        {(view === 'board' || view === 'mine') && (
+          <button type="button" onClick={() => setNewTaskOpen(true)} style={{ ...btn, display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 18px', fontSize: 13 }}>
+            <Icon name="plus" size={13} /> {t('tk.newTask', null, 'Nuova task')}
+          </button>
+        )}
       </div>
 
       {view === 'projects' && (
@@ -439,22 +449,13 @@ export default function TasksTab() {
             {view === 'mine' && (
               <>
                 <div style={{ fontFamily: 'inherit', fontWeight: 600, fontSize: 20, marginBottom: 14 }}>{t('tk.myTasks', null, 'My tasks')} · {myTasks.length}</div>
-                <TaskBoard tasks={myTasks} memberName={memberName} onPatch={patchTask} onDelete={deleteTask} onOpen={setDetailId} />
+                <TaskBoard tasks={myTasks} memberName={memberName} membro={membro} onPatch={patchTask} onDelete={deleteTask} onOpen={setDetailId} />
               </>
             )}
             {view === 'board' && (<>
-            {/* Nuova task: un pulsante, e la finestra chiede tutto in una volta.
-                La barra sempre aperta occupava spazio a ogni sguardo e non
-                aveva posto per la descrizione. */}
-            <button type="button" onClick={() => setNewTaskOpen(true)} style={{
-              ...btn, display: 'inline-flex', alignItems: 'center', gap: 7,
-              padding: '10px 18px', fontSize: 13, marginBottom: 18,
-            }}>
-              <Icon name="plus" size={13} /> {t('tk.newTask', null, 'Nuova task')}
-            </button>
-
-            {/* Griglia: colonne di stato × righe di priorità */}
-            <TaskBoard tasks={visible} memberName={memberName} onPatch={patchTask} onDelete={deleteTask} onOpen={setDetailId} />
+            {/* Griglia: colonne di stato × righe di priorità. «Nuova task»
+                sta nella riga dei comandi in alto. */}
+            <TaskBoard tasks={visible} memberName={memberName} membro={membro} onPatch={patchTask} onDelete={deleteTask} onOpen={setDetailId} />
             </>)}
           </div>
         </div>
@@ -606,6 +607,7 @@ export default function TasksTab() {
         <TaskDetail
           task={detailTask}
           memberName={memberName}
+          membro={membro}
           onClose={() => setDetailId(null)}
           onPatch={patchTask}
           onUpload={uploadFile}
@@ -745,7 +747,7 @@ function NewTaskModal({ form, setForm, creating, members, onLeave, projects, ope
   )
 }
 
-function TaskCard({ t, memberName, onPatch, onDelete, onOpen }) {
+function TaskCard({ t, memberName, membro, onPatch, onDelete, onOpen }) {
   const { t: tr } = useI18n()
   const prio = PRIORITIES.find(p => p.id === (t.priority || 'medium')) || PRIORITIES[1]
   const overdue = t.due_date && t.status !== 'done' && t.status !== 'approved' && new Date(t.due_date) < new Date(new Date().toDateString())
@@ -763,7 +765,7 @@ function TaskCard({ t, memberName, onPatch, onDelete, onOpen }) {
         {t.description && <span title={tr('tk.containsNotes', null, 'Contains notes')} style={{ fontSize: 11.5, color: 'var(--text2)' }}><Icon name="file" size={12} /></span>}
         {Array.isArray(t.attachments) && t.attachments.length > 0 && <span title={tr('tk.attachments', null, 'Attachments')} style={{ fontSize: 11.5, color: 'var(--text2)' }}><Icon name="paperclip" size={12} /> {t.attachments.length}</span>}
       </div>
-      <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 8 }}><Icon name="user" size={12} /> {memberName(t.assignee_id)}</div>
+      <div style={{ marginTop: 8 }}><Assegnatario task={t} membro={membro} memberName={memberName} size={22} /></div>
       <div style={{ display: 'flex', gap: 6, marginTop: 10, alignItems: 'center' }}>
         <select value={t.status || 'todo'} onClick={e => e.stopPropagation()} onChange={e => { e.stopPropagation(); onPatch(t.id, { status: e.target.value }) }}
           style={{ ...input, width: 'auto', flex: 1, padding: '5px 8px', fontSize: 13 }}>
@@ -786,7 +788,7 @@ function fmtSize(b) {
   return `${(b / 1024 / 1024).toFixed(1)} MB`
 }
 
-function TaskDetail({ task, memberName, onClose, onPatch, onUpload, onDownload, onDeleteAttachment }) {
+function TaskDetail({ task, memberName, membro, onClose, onPatch, onUpload, onDownload, onDeleteAttachment }) {
   const { t, intlLocale } = useI18n()
   const [desc, setDesc] = useState(task.description || '')
   const [uploading, setUploading] = useState(false)
@@ -835,7 +837,10 @@ function TaskDetail({ task, memberName, onClose, onPatch, onUpload, onDownload, 
           />
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text2)', cursor: 'pointer', fontSize: 22, lineHeight: 1 }}>×</button>
         </div>
-        <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 12 }}>{t('tk.assignedTo', { name: memberName(task.assignee_id) }, 'Assigned to {name}')}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text2)', marginBottom: 12 }}>
+          <span>{t('tk.assignedTo', { name: '' }, 'Assegnata a ').replace(/\s+$/, '')}</span>
+          <Assegnatario task={task} membro={membro} memberName={memberName} size={24} />
+        </div>
 
         <div style={{ display: 'flex', gap: 14, marginBottom: 16, flexWrap: 'wrap' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text2)' }}>
@@ -1057,7 +1062,39 @@ function SideItem({ label, count, color, active, onClick, onDelete }) {
 // leggere il colore prima del contenuto, e una colonna mezza vuota sembrava un
 // problema quando era solo una priorita' poco usata. La priorita' ora sta dove
 // serve, cioe' sulla task, come una piccola etichetta.
-function TaskBoard({ tasks, memberName, onPatch, onDelete, onOpen }) {
+// Chi non ha ancora scritto il nome compare con l'email: le iniziali si prendono
+// da «nome.cognome@» (IL per ilaria.liodori), non dalla sola prima lettera.
+function perIniziali(nome) {
+  const n = String(nome || '')
+  if (!n.includes('@')) return n
+  return n.split('@')[0].split(/[._\-+]+/).filter(x => /^[a-z]/i.test(x)).slice(0, 2).join(' ')
+}
+
+// Chi ha in mano la task: la foto del profilo, o le iniziali nel tondo quando
+// la foto manca, e accanto il nome. Con piu' assegnatari le foto si impilano
+// e i nomi si leggono per intero nel titolo al passaggio del mouse.
+function Assegnatario({ task, membro, memberName, size = 22, piccolo = false }) {
+  const ids = Array.isArray(task.assignees) && task.assignees.length ? task.assignees : (task.assignee_id ? [task.assignee_id] : [])
+  const persone = ids.map(id => (membro ? membro(id) : null) || { id, name: memberName(id), avatar: null }).filter(p => p.name && p.name !== '—')
+  if (!persone.length) return <span style={{ fontSize: piccolo ? 11.5 : 13, color: 'var(--text3)' }}>—</span>
+  const nomi = persone.map(p => p.name).join(', ')
+  return (
+    <span title={nomi} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+      <span style={{ display: 'inline-flex', flexShrink: 0 }}>
+        {persone.slice(0, 3).map((p, i) => (
+          <span key={p.id} style={{ marginLeft: i ? -Math.round(size * 0.3) : 0, borderRadius: '50%', border: i ? '2px solid var(--surface)' : 'none', display: 'inline-flex' }}>
+            <Avatar name={perIniziali(p.name)} url={p.avatar} size={size} />
+          </span>
+        ))}
+      </span>
+      <span style={{ fontSize: piccolo ? 11.5 : 13, color: 'var(--text2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {persone.length === 1 ? persone[0].name : persone.length <= 3 ? nomi : `${persone[0].name} +${persone.length - 1}`}
+      </span>
+    </span>
+  )
+}
+
+function TaskBoard({ tasks, memberName, membro, onPatch, onDelete, onOpen }) {
   const { t: tr } = useI18n()
   return (
     // Su telefono le colonne non si stringono: scorrono di lato DENTRO questo
@@ -1074,7 +1111,7 @@ function TaskBoard({ tasks, memberName, onPatch, onDelete, onOpen }) {
                 <span style={{ flex: 1, fontFamily: 'inherit', fontWeight: 600, fontSize: 15, textTransform: 'uppercase', letterSpacing: '.05em' }}>{tr(col.key, null, col.en)}</span>
                 <span style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 600 }}>{items.length}</span>
               </div>
-              {items.map(t => <TaskCard key={t.id} t={t} memberName={memberName} onPatch={onPatch} onDelete={onDelete} onOpen={() => onOpen(t.id)} />)}
+              {items.map(t => <TaskCard key={t.id} t={t} memberName={memberName} membro={membro} onPatch={onPatch} onDelete={onDelete} onOpen={() => onOpen(t.id)} />)}
             </div>
           )
         })}

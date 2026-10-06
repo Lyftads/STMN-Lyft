@@ -40,6 +40,7 @@ const TITOLI_TAB = {
   googleVerdicts: ['gpv.title', 'Performance prodotti Google', 'gpv.subtitle', 'Verdetti per prodotto, confrontati con le vendite reali di Shopify'],
   corrispettivi: ['cor.title', 'Corrispettivi e-commerce', 'cor.subtitle', 'Registro delle vendite per giorno e paese, con l’IVA registrata da Shopify e il regime fiscale, pronto per il commercialista.'],
   clienti: ['cli.title', 'Clienti', 'cli.subtitle2', 'Clienti divisi per ciclo di vita (RFM). Scegli un segmento e lancia la campagna giusta in un click.'],
+  tasks: ['tk.title', 'Progetti & Task', 'tk.subtitle', 'Assegna, scadenze, revisione e approvazione del team'],
 }
 
 // Titolo pagina via i18n: override solo dove diverso dall'etichetta tab.
@@ -628,7 +629,7 @@ export default function AppShell({
             {/* Queste quattro tab hanno un titolo loro dentro la pagina: qui la
                 cornice lo lascia vuoto per non stamparlo due volte. Lyftimer
                 (timeTracking) esiste solo nel SaaS, quindi non e' nell'elenco del fork. */}
-            {tab !== 'tasks' && tab !== 'timeTracking' && tab !== 'chat' && tab !== 'onboarding' && tab !== 'helpCenter' ? (
+            {tab !== 'timeTracking' && tab !== 'chat' && tab !== 'onboarding' && tab !== 'helpCenter' ? (
               <div className="app-header-title">
                 <h1 className="heading-lg">
                   {getPageTitle(tab, t)}

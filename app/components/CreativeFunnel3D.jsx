@@ -51,9 +51,12 @@ function immagineDi(row) {
 }
 
 // Posizione deterministica: stessa creativita' → stesso posto a ogni apertura.
+// Dentro a uno stadio le schede girano TUTTE intorno all'anello, a passo
+// uniforme, in ordine di campagna: le sorelle restano vicine e nessun lato
+// dell'imbuto resta vuoto. Il raggio alterna col passo aureo e l'altezza
+// oscilla un po', cosi' due vicine non si coprono.
 function posizioni(rows, stadi) {
-  const campagne = Array.from(new Set(rows.map(r => r.campaign_id || r.campaign_name || '')))
-  const nCamp = Math.max(1, campagne.length)
+  const chiave = r => r.campaign_id || r.campaign_name || ''
   const perStadio = {}
   for (const r of rows) {
     const st = stadi[r.ad_id || r.id]?.stadio || 'top'
@@ -61,20 +64,14 @@ function posizioni(rows, stadi) {
   }
   const out = {}
   for (const st of STADI) {
-    const lista = perStadio[st] || []
+    const lista = (perStadio[st] || []).slice().sort((a, b) => chiave(a).localeCompare(chiave(b)) || String(a.ad_id).localeCompare(String(b.ad_id)))
     const { y, r } = ANELLI[st]
+    const n = Math.max(1, lista.length)
     lista.forEach((row, i) => {
-      const ci = campagne.indexOf(row.campaign_id || row.campaign_name || '')
       const h = hash(row.ad_id || row.id)
-      // settore della campagna + scarto dentro al settore, poi un giro
-      // d'oro per non sovrapporre le sorelle
-      // settore della campagna + passo aureo dentro al settore: due sorelle
-      // non cadono mai nello stesso punto
-      const settore = Math.PI * 2 / nCamp
-      const base = ci * settore
-      const ang = base + (((i * 0.618034) % 1) - 0.5) * settore * 0.9 + (h - 0.5) * 0.12
-      const raggio = r * (0.5 + 0.5 * ((i * 0.381966 + h) % 1))
-      const dy = (hash(row.ad_id + 'y') - 0.5) * 60
+      const ang = (i / n) * Math.PI * 2 + (h - 0.5) * (Math.PI * 2 / n) * 0.5
+      const raggio = r * (0.6 + 0.4 * ((i * 0.618034 + h * 0.2) % 1))
+      const dy = (hash(row.ad_id + 'y') - 0.5) * 70
       out[row.ad_id || row.id] = new THREE.Vector3(Math.cos(ang) * raggio, y + dy, Math.sin(ang) * raggio)
     })
   }

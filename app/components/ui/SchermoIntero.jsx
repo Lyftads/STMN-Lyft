@@ -1,53 +1,34 @@
 'use client'
 
 // Schermo intero per un riquadro (la board del funnel, il 3D…).
-// Prima prova l'API Fullscreen del browser sul riquadro stesso; dove manca
-// (iPhone) o viene rifiutata, ripiega su un velo fisso che copre la finestra.
-// In entrambi i casi il riquadro riceve la classe `schermo-intero` e lo stile
-// che lo porta a tutto schermo; Esc o il bottone lo riportano a posto.
+// NON si usa l'API Fullscreen del browser: a schermo intero nativo si vede
+// SOLO quell'elemento, e il pannello della creativita' (portale sul body)
+// restava invisibile — Marino: «a tutto schermo il pop up non compare».
+// Il riquadro diventa fisso e copre la finestra, sotto il livello dei
+// pannelli (1100); Esc o il bottone lo riportano a posto.
+// Il riquadro va montato sul BODY con un portale (`Portale`): .app-main ha
+// z-index 1 e fa da contesto di impilamento, per cui un fixed con z 1000 al
+// suo interno restava comunque sotto la barra laterale (z 20 nel body).
 
 import { useCallback, useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 
-export function usaSchermoIntero(ref) {
+export function usaSchermoIntero() {
   const [pieno, setPieno] = useState(false)
-  const [nativo, setNativo] = useState(false)
+  const cambia = useCallback(() => setPieno(p => !p), [])
 
-  const cambia = useCallback(async () => {
-    const el = ref.current
-    if (!el) return
-    if (pieno) {
-      if (nativo && document.fullscreenElement) { try { await document.exitFullscreen() } catch {} }
-      setPieno(false); setNativo(false)
-      return
-    }
-    if (el.requestFullscreen) {
-      try { await el.requestFullscreen(); setNativo(true); setPieno(true); return } catch {}
-    }
-    setNativo(false); setPieno(true)
-  }, [ref, pieno, nativo])
-
-  // Uscita nativa (Esc del browser) → si aggiorna lo stato.
   useEffect(() => {
-    const sync = () => { if (!document.fullscreenElement) { setPieno(p => (nativo ? false : p)); setNativo(false) } }
-    document.addEventListener('fullscreenchange', sync)
-    return () => document.removeEventListener('fullscreenchange', sync)
-  }, [nativo])
-
-  // Esc nel ripiego (il browser non lo manda da solo).
-  useEffect(() => {
-    if (!pieno || nativo) return
-    const onKey = e => { if (e.key === 'Escape') setPieno(false) }
+    if (!pieno) return
+    const onKey = e => { if (e.key === 'Escape' && !document.querySelector('.ly-pannello')) setPieno(false) }
     document.addEventListener('keydown', onKey)
     const prima = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = prima }
-  }, [pieno, nativo])
+  }, [pieno])
 
-  const stile = pieno && !nativo
-    ? { position: 'fixed', inset: 0, zIndex: 1200, height: '100vh', minHeight: 0, borderRadius: 0 }
-    : pieno ? { height: '100vh', minHeight: 0, borderRadius: 0 } : null
-
-  return { pieno, cambia, stile }
+  const stile = pieno ? { position: 'fixed', inset: 0, zIndex: 1000, height: '100vh', minHeight: 0, borderRadius: 0 } : null
+  const Portale = useCallback(({ children }) => (pieno && typeof document !== 'undefined' ? createPortal(children, document.body) : children), [pieno])
+  return { pieno, cambia, stile, Portale }
 }
 
 // Bottone con le quattro frecce: allarga quando e' chiuso, stringe quando e' pieno.

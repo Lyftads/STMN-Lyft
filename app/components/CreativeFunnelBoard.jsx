@@ -62,7 +62,7 @@ export default function CreativeFunnelBoard({ rows, stadi, onSelect, fonteAI }) 
   const [spazio, setSpazio] = useState(false)
   const trascino = useRef(null)
   const [inMano, setInMano] = useState(false)
-  const { pieno, cambia: cambiaPieno, stile: stilePieno } = usaSchermoIntero(box)
+  const { pieno, cambia: cambiaPieno, stile: stilePieno, Portale } = usaSchermoIntero()
 
   const NOMI = {
     top: t('cr.funnel.top', null, 'Scoperta'),
@@ -156,6 +156,7 @@ export default function CreativeFunnelBoard({ rows, stadi, onSelect, fonteAI }) 
   const passo = (v) => setZ(p => Math.min(MAX, Math.max(MIN, p + v)))
 
   return (
+    <Portale>
     <div className="cfb-box" ref={box}
       onPointerDown={giu} onPointerMove={muovi} onPointerUp={su} onPointerCancel={su}
       style={{
@@ -225,5 +226,6 @@ export default function CreativeFunnelBoard({ rows, stadi, onSelect, fonteAI }) 
         {fonteAI === 'loading' && <> · {t('cr.funnel.aiInCorso', null, 'L\'AI sta classificando le creative senza segnali…')}</>}
       </div>
     </div>
+    </Portale>
   )
 }

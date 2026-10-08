@@ -80,7 +80,7 @@ export default function CreativeFunnel3D({ rows, stadi, onSelect, fonteAI }) {
   const { t } = useI18n()
   const telaRef = useRef(null)
   const riquadroRef = useRef(null)
-  const { pieno, cambia: cambiaPieno, stile: stilePieno } = usaSchermoIntero(riquadroRef)
+  const { pieno, cambia: cambiaPieno, stile: stilePieno, Portale } = usaSchermoIntero()
   const glRef = useRef(null)
   const cssRef = useRef(null)
   const [hover, setHover] = useState(null) // { row, x, y }
@@ -232,7 +232,9 @@ export default function CreativeFunnel3D({ rows, stadi, onSelect, fonteAI }) {
       css.domElement.remove()
       sceneRef.current = null
     }
-  }, [])
+  // A schermo intero il DOM sotto al portale e' nuovo ma il componente e' lo
+  // stesso: la scena va ricreata sui nuovi nodi, o il canvas sparisce.
+  }, [pieno])
 
   // Schede e fili
   useEffect(() => {
@@ -303,8 +305,10 @@ export default function CreativeFunnel3D({ rows, stadi, onSelect, fonteAI }) {
     const geo = new THREE.BufferGeometry()
     geo.setAttribute('position', new THREE.Float32BufferAttribute(fili, 3))
     gruppoDati.add(new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: new THREE.Color('#8e8e98'), transparent: true, opacity: 0.18 })))
+  // `pieno` ci sta apposta: a schermo intero il riquadro si rimonta sul body
+  // (portale), la scena rinasce vuota e le schede vanno ridisegnate.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visibili, stadi, spesaMax, riepilogo, spesaTot])
+  }, [visibili, stadi, spesaMax, riepilogo, spesaTot, pieno])
 
   // Stadio a fuoco: le altre schede si spengono.
   useEffect(() => {
@@ -314,12 +318,13 @@ export default function CreativeFunnel3D({ rows, stadi, onSelect, fonteAI }) {
       if (!o.element) return
       o.element.style.opacity = !fuoco || o.userData.stadio === fuoco ? '1' : (o.element.classList.contains('cf3-fase') ? '0.35' : '0.12')
     })
-  }, [fuoco, visibili, stadi])
+  }, [fuoco, visibili, stadi, pieno])
 
   const h = hover?.row
   const hs = h ? stadi[h.ad_id || h.id] : null
 
   return (
+    <Portale>
     <div ref={riquadroRef} style={{ position: 'relative', borderRadius: 16, border: '1px solid var(--border)', background: 'var(--surface)', overflow: 'hidden', ...(stilePieno || {}) }}>
       {/* Stesso fondo a pallini della board, cosi' le due viste sono sorelle. */}
       <div ref={telaRef} style={{ position: 'relative', height: pieno ? '100vh' : 'min(78vh, 820px)', minHeight: pieno ? 0 : 480, backgroundColor: 'var(--surface)', backgroundImage: 'radial-gradient(var(--border2, rgba(128,128,128,.25)) 1px, transparent 1.2px)', backgroundSize: '24px 24px' }}>
@@ -386,5 +391,6 @@ export default function CreativeFunnel3D({ rows, stadi, onSelect, fonteAI }) {
         )}
       </div>
     </div>
+    </Portale>
   )
 }

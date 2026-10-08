@@ -20,6 +20,7 @@ import { useI18n } from '../../lib/i18n/I18nProvider'
 import { soldi } from '../../lib/client/soldi'
 import { num } from '../../lib/client/numeri'
 import { STADI, COLORE_FASE } from '../../lib/creative/stadio'
+import { usaSchermoIntero, BottoneSchermoIntero } from './ui/SchermoIntero'
 
 // Geometria dell'imbuto: altezza e raggio di ogni anello, dall'alto in basso.
 // Le schede sono 64 px a scala 1 e il CSS3D usa i pixel come unita': l'imbuto
@@ -78,6 +79,8 @@ function posizioni(rows, stadi) {
 export default function CreativeFunnel3D({ rows, stadi, onSelect, fonteAI }) {
   const { t } = useI18n()
   const telaRef = useRef(null)
+  const riquadroRef = useRef(null)
+  const { pieno, cambia: cambiaPieno, stile: stilePieno } = usaSchermoIntero(riquadroRef)
   const glRef = useRef(null)
   const cssRef = useRef(null)
   const [hover, setHover] = useState(null) // { row, x, y }
@@ -317,9 +320,9 @@ export default function CreativeFunnel3D({ rows, stadi, onSelect, fonteAI }) {
   const hs = h ? stadi[h.ad_id || h.id] : null
 
   return (
-    <div style={{ position: 'relative', borderRadius: 16, border: '1px solid var(--border)', background: 'var(--surface)', overflow: 'hidden' }}>
+    <div ref={riquadroRef} style={{ position: 'relative', borderRadius: 16, border: '1px solid var(--border)', background: 'var(--surface)', overflow: 'hidden', ...(stilePieno || {}) }}>
       {/* Stesso fondo a pallini della board, cosi' le due viste sono sorelle. */}
-      <div ref={telaRef} style={{ position: 'relative', height: 'min(78vh, 820px)', minHeight: 480, backgroundColor: 'var(--surface)', backgroundImage: 'radial-gradient(var(--border2, rgba(128,128,128,.25)) 1px, transparent 1.2px)', backgroundSize: '24px 24px' }}>
+      <div ref={telaRef} style={{ position: 'relative', height: pieno ? '100vh' : 'min(78vh, 820px)', minHeight: pieno ? 0 : 480, backgroundColor: 'var(--surface)', backgroundImage: 'radial-gradient(var(--border2, rgba(128,128,128,.25)) 1px, transparent 1.2px)', backgroundSize: '24px 24px' }}>
         <div ref={glRef} style={{ position: 'absolute', inset: 0 }} />
         <div ref={cssRef} style={{ position: 'absolute', inset: 0 }} />
 
@@ -349,6 +352,11 @@ export default function CreativeFunnel3D({ rows, stadi, onSelect, fonteAI }) {
           <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 6, lineHeight: 1.35 }}>
             {t('cr.funnel.legendaHint', null, 'creative · quota di spesa. Clic per mettere a fuoco.')}
           </div>
+        </div>
+
+        <div style={{ position: 'absolute', top: 14, right: 14, zIndex: 3 }}>
+          <BottoneSchermoIntero pieno={pieno} onClick={cambiaPieno}
+            titolo={pieno ? t('cr.board.esciPieno', null, 'Esci da schermo intero') : t('cr.board.pieno', null, 'Schermo intero')} />
         </div>
 
         <div style={{ position: 'absolute', bottom: 12, left: 14, right: 14, zIndex: 3, display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 11.5, color: 'var(--text3)', pointerEvents: 'none' }}>

@@ -15,6 +15,7 @@ import { useI18n } from '../../lib/i18n/I18nProvider'
 import { soldi } from '../../lib/client/soldi'
 import { num } from '../../lib/client/numeri'
 import { STADI, COLORE_FASE } from '../../lib/creative/stadio'
+import { usaSchermoIntero, BottoneSchermoIntero } from './ui/SchermoIntero'
 
 const MIN = 0.15, MAX = 2.5
 const SOGLIA = 4 // px sotto i quali il gesto e' un clic
@@ -61,6 +62,7 @@ export default function CreativeFunnelBoard({ rows, stadi, onSelect, fonteAI }) 
   const [spazio, setSpazio] = useState(false)
   const trascino = useRef(null)
   const [inMano, setInMano] = useState(false)
+  const { pieno, cambia: cambiaPieno, stile: stilePieno } = usaSchermoIntero(box)
 
   const NOMI = {
     top: t('cr.funnel.top', null, 'Scoperta'),
@@ -124,7 +126,7 @@ export default function CreativeFunnelBoard({ rows, stadi, onSelect, fonteAI }) 
     setZ(Math.max(MIN, Math.min(MAX, stipato ? Math.min(zx, 1) : Math.min(zx, zy))))
     setPan({ x: m, y: m })
   }, [])
-  useEffect(() => { const id = requestAnimationFrame(centra); return () => cancelAnimationFrame(id) }, [centra, rows.length])
+  useEffect(() => { const id = requestAnimationFrame(centra); return () => cancelAnimationFrame(id) }, [centra, rows.length, pieno])
 
   const giu = (e) => {
     if (e.button === 2) return
@@ -160,6 +162,7 @@ export default function CreativeFunnelBoard({ rows, stadi, onSelect, fonteAI }) 
         backgroundSize: `${24 * z}px ${24 * z}px`,
         backgroundPosition: `${pan.x}px ${pan.y}px`,
         cursor: inMano ? 'grabbing' : spazio ? 'grab' : 'default',
+        ...(stilePieno || {}),
       }}>
       <style>{CSS}</style>
       <div className="cfb-contenuto" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${z})` }}>
@@ -214,6 +217,8 @@ export default function CreativeFunnelBoard({ rows, stadi, onSelect, fonteAI }) 
         <span className="mono">{Math.round(z * 100)}%</span>
         <button type="button" onClick={() => passo(0.15)} aria-label="+">+</button>
         <button type="button" className="testo" onClick={centra}>{t('cr.board.centra', null, 'Centra')}</button>
+        <BottoneSchermoIntero pieno={pieno} onClick={cambiaPieno} stile={{ width: 30, height: 30, background: 'transparent' }}
+          titolo={pieno ? t('cr.board.esciPieno', null, 'Esci da schermo intero') : t('cr.board.pieno', null, 'Schermo intero')} />
       </div>
       <div className="cfb-aiuto">
         {t('cr.board.aiuto', null, 'Trascina per spostare · rotella per ingrandire · clic su una scheda per aprirla')}

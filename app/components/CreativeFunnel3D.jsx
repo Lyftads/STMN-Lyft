@@ -2,8 +2,9 @@
 
 // Creative Funnel Graph: le creativita' Meta sospese in un imbuto 3D.
 // Altezza = stadio del funnel (scoperta in cima, riattivazione in fondo),
-// grandezza = spesa, bordo colorato SOLO per il verdetto ROAS (stesse soglie
-// della griglia), angolo = campagna (le sorelle stanno vicine).
+// grandezza = spesa, angolo = campagna (le sorelle stanno vicine). Il bordo
+// delle schede e' neutro (scelta di Marino): il colore sta solo sugli anelli
+// delle fasi; il ROAS lo si legge al passaggio del mouse.
 //
 // Due strati con la stessa camera: WebGL per anelli e fili (poca roba, si
 // disegna in un passaggio), CSS3D per le schede. Le schede sono veri <img>
@@ -35,11 +36,6 @@ const APICE = new THREE.Vector3(0, -520, 0)
 export const COLORE_FASE = { top: '#38bdf8', middle: '#a78bfa', lower: '#f97316', riattivazione: '#ef4444' }
 const MAX_SCHEDE = 150
 const LATO = 64 // px della scheda a scala 1
-
-// Stesse soglie e stessi colori della griglia: un verdetto, non una decorazione.
-function coloreRoas(roas) {
-  return roas >= 4 ? '#22c55e' : roas >= 2.5 ? '#3b82f6' : roas >= 1.5 ? '#f59e0b' : '#ef4444'
-}
 
 function hash(s) {
   let h = 2166136261
@@ -256,13 +252,12 @@ export default function CreativeFunnel3D({ rows, stadi, onSelect, fonteAI }) {
       if (!p) continue
       const st = stadi[id]?.stadio || 'top'
       const spesa = Number(row.spend) || 0
-      const roas = Number(row.roas) || 0
       const scala = 0.65 + 0.75 * Math.sqrt(spesa / spesaMax)
 
       const el = document.createElement('div')
       el.className = 'cf3-scheda'
       el.dataset.stadio = st
-      el.style.cssText = `width:${LATO}px;height:${LATO}px;border:2px solid ${coloreRoas(roas)};border-radius:10px;overflow:hidden;background:var(--surface);box-shadow:0 6px 18px rgba(0,0,0,.35);cursor:pointer;`
+      el.style.cssText = `width:${LATO}px;height:${LATO}px;border:1px solid var(--border3, var(--border));border-radius:10px;overflow:hidden;background:var(--surface);box-shadow:0 6px 18px rgba(0,0,0,.35);cursor:pointer;`
       const img = immagineDi(row)
       if (img) {
         const im = document.createElement('img')

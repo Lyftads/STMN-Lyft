@@ -31,7 +31,18 @@ function Nuvoletta({ active, payload, label, formato }) {
   )
 }
 
-export default function CreativeDettaglioExtra({ row, tf }) {
+// Due istanze nel pannello (andamento sopra i pubblici, posizionamenti sotto)
+// leggono lo stesso indirizzo: la promessa in corso si condivide, una chiamata.
+const inCorso = new Map()
+function leggiUnaVolta(url, onUpdate) {
+  if (!inCorso.has(url)) {
+    const pr = leggi(url, { onUpdate }).finally(() => inCorso.delete(url))
+    inCorso.set(url, pr)
+  }
+  return inCorso.get(url)
+}
+
+export default function CreativeDettaglioExtra({ row, tf, mostra = 'tutto' }) {
   const { t } = useI18n()
   const chiaro = useTema() === 'light'
   const adId = row?.ad_id || row?.id
@@ -44,7 +55,7 @@ export default function CreativeDettaglioExtra({ row, tf }) {
     let vivo = true
     const gia = inMemoria(url)
     if (gia) { setDati(gia); setAttesa(false) } else setAttesa(true)
-    leggi(url, { onUpdate: d => { if (vivo) setDati(d) } })
+    leggiUnaVolta(url, d => { if (vivo) setDati(d) })
       .then(d => { if (vivo) setDati(d) })
       .catch(() => {})
       .finally(() => { if (vivo) setAttesa(false) })
@@ -65,9 +76,11 @@ export default function CreativeDettaglioExtra({ row, tf }) {
     return <div style={{ color: '#fca5a5', fontSize: 13 }}>{t('cr.andamento.errore', { err: dati.error || 'Meta' }, `Andamento non disponibile: ${dati.error || 'Meta'}`)}</div>
   }
 
+  const andamento = mostra === 'tutto' || mostra === 'andamento'
+  const posiz = mostra === 'tutto' || mostra === 'posizionamenti'
   return (
     <>
-      <div>
+      {andamento && <div>
         <Titolo>{t('cr.andamento.titolo', null, 'Andamento giornaliero')}</Titolo>
         {daily.length < 2 ? (
           <div style={{ color: 'var(--text3)', fontSize: 13 }}>{t('cr.andamento.vuoto', null, 'Serve più di un giorno di spesa per disegnare l’andamento.')}</div>
@@ -103,9 +116,9 @@ export default function CreativeDettaglioExtra({ row, tf }) {
             </div>
           </div>
         )}
-      </div>
+      </div>}
 
-      <div>
+      {posiz && <div>
         <Titolo>{t('cr.posizionamenti.titolo', null, 'Spesa per posizionamento')}</Titolo>
         {posizioni.length === 0 ? (
           <div style={{ color: 'var(--text3)', fontSize: 13 }}>{t('cr.posizionamenti.vuoto', null, 'Meta non ha attribuito la spesa a nessun posizionamento in questo periodo.')}</div>
@@ -142,7 +155,7 @@ export default function CreativeDettaglioExtra({ row, tf }) {
             </table>
           </div>
         )}
-      </div>
+      </div>}
     </>
   )
 }

@@ -19,7 +19,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import { soldi } from '../../lib/client/soldi'
 import { num } from '../../lib/client/numeri'
-import { STADI } from '../../lib/creative/stadio'
+import { STADI, COLORE_FASE } from '../../lib/creative/stadio'
 
 // Geometria dell'imbuto: altezza e raggio di ogni anello, dall'alto in basso.
 // Le schede sono 64 px a scala 1 e il CSS3D usa i pixel come unita': l'imbuto
@@ -31,9 +31,7 @@ const ANELLI = {
   riattivazione: { y: -300, r: 96 },
 }
 const APICE = new THREE.Vector3(0, -520, 0)
-// Colore della fase, da freddo a caldo (azzurro → rosso): e' la temperatura
-// del pubblico lungo l'imbuto. Esadecimale: nel WebGL var(--…) non vale.
-export const COLORE_FASE = { top: '#38bdf8', middle: '#a78bfa', lower: '#f97316', riattivazione: '#ef4444' }
+
 const MAX_SCHEDE = 150
 const LATO = 64 // px della scheda a scala 1
 

@@ -20,6 +20,7 @@ import { num, perc } from '../../lib/client/numeri'
 import dynamicImport from 'next/dynamic'
 import { stadioDi, estrattoPerAI } from '../../lib/creative/stadio'
 import CreativeDettaglioExtra from './CreativeDettaglioExtra'
+import CreativeFunnelBoard from './CreativeFunnelBoard'
 // L'imbuto 3D porta three.js: resta nel suo pezzo, scaricato solo quando lo si apre.
 const CreativeFunnel3D = dynamicImport(() => import('./CreativeFunnel3D'), { ssr: false, loading: () => <div className="ly-scheletro-tab" aria-busy="true" style={{ minHeight: 420 }} /> })
 
@@ -698,8 +699,8 @@ function CreativeDetailModal({ row, onClose, segments, tf }) {
               <MiniStat label="CTR" value={pct(row.ctr_link)} />
             </div>
 
-            {/* Andamento giornaliero (spesa e ROAS) e quota per posizionamento */}
-            <CreativeDettaglioExtra row={row} tf={tf} />
+            {/* Andamento giornaliero (spesa e ROAS); poi i pubblici; poi i posizionamenti */}
+            <CreativeDettaglioExtra row={row} tf={tf} mostra="andamento" />
 
             {segments && (
               <Section label={t('cr.audienceSplitTitle', null, 'Risultati per pubblico')}>
@@ -709,6 +710,8 @@ function CreativeDetailModal({ row, onClose, segments, tf }) {
                 </div>
               </Section>
             )}
+
+            <CreativeDettaglioExtra row={row} tf={tf} mostra="posizionamenti" />
 
             {copies.length > 0 && (
               <Section label={`Copy${copies.length > 1 ? ` · ${t('cr.variantsN', { n: copies.length }, `${copies.length} varianti`)}` : ''}`}>
@@ -929,7 +932,8 @@ export default function CreativeTab() {
   // solo i segmenti di pubblico: senza, lo stadio si legge solo dai nomi e
   // dal testo.
   const [vista, setVista] = useStatoTab('creative.vista', 'griglia')
-  useEffect(() => { if (vista === 'funnel') setSegOn(true) }, [vista])
+  const vistaFunnel = vista === 'funnel' || vista === '3d'
+  useEffect(() => { if (vistaFunnel) setSegOn(true) }, [vistaFunnel])
 
   // Ripiego AI per le creative senza nessun segnale: si chiede una volta per
   // annuncio (il server se lo ricorda nello snapshot del workspace).
@@ -1012,7 +1016,7 @@ export default function CreativeTab() {
   }, [rows, segData, stadiAI])
 
   useEffect(() => {
-    if (vista !== 'funnel' || segLoading) return
+    if (!vistaFunnel || segLoading) return
     const senza = rows.filter(r => !stadi[r.ad_id || r.id]?.fonte)
     if (!senza.length) return
     let vivo = true
@@ -1027,7 +1031,7 @@ export default function CreativeTab() {
       .finally(() => { if (vivo) setStadiAIStato(null) })
     return () => { vivo = false }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vista, segLoading, rows])
+  }, [vistaFunnel, segLoading, rows])
 
   const campaigns = useMemo(() => {
     const set = new Map()
@@ -1270,7 +1274,7 @@ export default function CreativeTab() {
             </select>
 
             <div style={{ display: 'inline-flex', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-              {[['griglia', t('cr.vistaGriglia', null, 'Griglia')], ['funnel', t('cr.vistaFunnel', null, 'Funnel 3D')]].map(([id, label]) => (
+              {[['griglia', t('cr.vistaGriglia', null, 'Griglia')], ['funnel', t('cr.vistaBoard', null, 'Board funnel')], ['3d', t('cr.vista3d', null, '3D')]].map(([id, label]) => (
                 <button key={id} type="button" onClick={() => setVista(id)} style={{
                   ...chipStyle, border: 'none', borderRadius: 0,
                   background: vista === id ? 'var(--glass2)' : 'transparent',
@@ -1372,6 +1376,13 @@ export default function CreativeTab() {
         </div>
 
         {sortedRows.length > 0 && vista === 'funnel' ? (
+          <CreativeFunnelBoard
+            rows={sortedRows}
+            stadi={stadi}
+            fonteAI={stadiAIStato}
+            onSelect={setSelectedCreative}
+          />
+        ) : sortedRows.length > 0 && vista === '3d' ? (
           <CreativeFunnel3D
             rows={sortedRows}
             stadi={stadi}

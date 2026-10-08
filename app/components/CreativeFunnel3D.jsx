@@ -318,7 +318,8 @@ export default function CreativeFunnel3D({ rows, stadi, onSelect, fonteAI }) {
 
   return (
     <div style={{ position: 'relative', borderRadius: 16, border: '1px solid var(--border)', background: 'var(--surface)', overflow: 'hidden' }}>
-      <div ref={telaRef} style={{ position: 'relative', height: 'min(78vh, 820px)', minHeight: 480 }}>
+      {/* Stesso fondo a pallini della board, cosi' le due viste sono sorelle. */}
+      <div ref={telaRef} style={{ position: 'relative', height: 'min(78vh, 820px)', minHeight: 480, backgroundColor: 'var(--surface)', backgroundImage: 'radial-gradient(var(--border2, rgba(128,128,128,.25)) 1px, transparent 1.2px)', backgroundSize: '24px 24px' }}>
         <div ref={glRef} style={{ position: 'absolute', inset: 0 }} />
         <div ref={cssRef} style={{ position: 'absolute', inset: 0 }} />
 

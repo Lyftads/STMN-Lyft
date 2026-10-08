@@ -187,7 +187,7 @@ export default function CreativeFunnelBoard({ rows, stadi, onSelect, fonteAI }) 
                       const img = immagineDi(row)
                       const fonte = stadi[id]?.fonte
                       return (
-                        <article className="cfb-scheda" key={id} data-id={id} title={fonte ? '' : t('cr.funnel.fonteIpotesi', null, 'ipotesi: nessun segnale')}>
+                        <article className="cfb-scheda" key={id} data-id={id} title={[stadi[id]?.tipo, fonte ? '' : t('cr.funnel.fonteIpotesi', null, 'ipotesi: nessun segnale')].filter(Boolean).join(' · ')}>
                           <div className="fascia" style={{ background: COLORE_FASE[st] }} />
                           <div className="foto">
                             {img ? <img src={img} alt="" draggable={false} loading="lazy" />

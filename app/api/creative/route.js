@@ -510,6 +510,9 @@ function extractAdContent(creative, fullCreative) {
   const allLinks = (afs.link_urls || []).map(l => l?.website_url || l?.display_url).filter(Boolean)
 
   return {
+    // id del video (se e' un'inserzione video): serve allo stadio del funnel
+    // per leggere i fotogrammi, dato che la miniatura da sola non basta
+    video_id: videoData.video_id || fullCreative?.video_id || creative?.video_id || afs.videos?.[0]?.video_id || null,
     copy: copyCandidates[0] || '',
     headline: headlineCandidates[0] || '',
     description: descriptionCandidates[0] || '',
@@ -634,6 +637,7 @@ async function hydrateCreatives(rows) {
                 'object_story_id',
                 'object_story_spec',
                 'asset_feed_spec',
+                'video_id',
               ].join(','),
               thumbnail_width: CREATIVE_IMAGE_SIZE,
               thumbnail_height: CREATIVE_IMAGE_SIZE,

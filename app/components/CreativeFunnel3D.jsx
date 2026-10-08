@@ -97,10 +97,11 @@ export default function CreativeFunnel3D({ rows, stadi, onSelect, fonteAI }) {
     riattivazione: t('cr.funnel.riattivazione', null, 'Riattivazione'),
   }
   const FONTI = {
+    offerta: t('cr.funnel.fonteOfferta', null, 'offerta evidente nel contenuto'),
     nomi: t('cr.funnel.fonteNomi', null, 'dal nome di campagna o adset'),
     pubblico: t('cr.funnel.fontePubblico', null, 'dalla spesa per pubblico'),
     testo: t('cr.funnel.fonteTesto', null, 'dal testo della creatività'),
-    ai: t('cr.funnel.fonteAI', null, 'stimato dall\'AI'),
+    ai: t('cr.funnel.fonteAI', null, 'dal contenuto, letto dall\'AI'),
     null: t('cr.funnel.fonteIpotesi', null, 'ipotesi: nessun segnale'),
   }
 
@@ -385,7 +386,7 @@ export default function CreativeFunnel3D({ rows, stadi, onSelect, fonteAI }) {
               <span>ROAS {num(Number(h.roas) || 0, 2)}</span>
             </div>
             <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 4 }}>
-              {NOMI[hs?.stadio || 'top']} · {FONTI[hs?.fonte ?? 'null']}
+              {NOMI[hs?.stadio || 'top']} · {FONTI[hs?.fonte ?? 'null']}{hs?.tipo ? <> · {hs.tipo}</> : null}
             </div>
           </div>
         )}

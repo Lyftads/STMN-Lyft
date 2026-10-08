@@ -18,7 +18,7 @@ import PeriodoInBarra from './ui/PeriodoInBarra'
 import { tfQuery } from '../../lib/tfQuery'
 import { num, perc } from '../../lib/client/numeri'
 import dynamicImport from 'next/dynamic'
-import { stadioDi, estrattoPerAI } from '../../lib/creative/stadio'
+import { stadioDi, estrattoPerAI, haContenuto } from '../../lib/creative/stadio'
 import CreativeDettaglioExtra from './CreativeDettaglioExtra'
 import CreativeFunnelBoard from './CreativeFunnelBoard'
 // L'imbuto 3D porta three.js: resta nel suo pezzo, scaricato solo quando lo si apre.
@@ -1009,16 +1009,22 @@ export default function CreativeTab() {
     const o = {}
     for (const r of rows) {
       const id = r.ad_id || r.id
-      const s = stadioDi(r, segmentiDi(r))
-      o[id] = (!s.fonte && stadiAI[id]) ? { ...s, stadio: stadiAI[id], fonte: 'ai' } : s
+      // offerta evidente → pubblico → contenuto (testo, poi AI su testo e
+      // immagine) → nome → ipotesi. L'AI arriva dopo e puo' spostare la scheda.
+      o[id] = stadioDi(r, segmentiDi(r), stadiAI[id] || null)
     }
     return o
   }, [rows, segData, stadiAI])
 
+  // Lettura AI del contenuto (testo + immagine) di TUTTE le creative con un
+  // contenuto, 40 per chiamata: il server risponde con quelle gia' lette e
+  // legge le altre, `restanti` dice se richiamare. Serve a trovare le offerte
+  // nelle immagini, che il copy non dice.
+  const [giroAI, setGiroAI] = useState(0)
   useEffect(() => {
-    if (!vistaFunnel || segLoading) return
-    const senza = rows.filter(r => !stadi[r.ad_id || r.id]?.fonte)
-    if (!senza.length) return
+    if (!vistaFunnel) return
+    const senza = rows.filter(r => !stadiAI[r.ad_id || r.id] && haContenuto(r)).slice(0, 40)
+    if (!senza.length) { setStadiAIStato(null); return }
     let vivo = true
     setStadiAIStato('loading')
     fetch('/api/creative-stadio', {
@@ -1026,12 +1032,23 @@ export default function CreativeTab() {
       body: JSON.stringify({ ads: senza.map(estrattoPerAI) }),
     })
       .then(r => r.json())
-      .then(j => { if (vivo && j?.stadi) setStadiAI(prev => ({ ...prev, ...j.stadi })) })
+      .then(j => {
+        if (!vivo) return
+        const nuovi = j?.stadi && typeof j.stadi === 'object' ? j.stadi : {}
+        // chi l'AI ha provato a leggere senza riuscirci si segna (niente loop);
+        // chi il server NON ha ancora toccato (oltre il suo tetto per chiamata)
+        // resta libero per il giro dopo
+        const tentate = j?.letture && typeof j.letture === 'object' ? j.letture : {}
+        const esito = {}
+        for (const r of senza) { const id = r.ad_id || r.id; if (nuovi[id]) esito[id] = nuovi[id]; else if (tentate[id]) esito[id] = { stadio: null, offerta: false } }
+        setStadiAI(prev => ({ ...prev, ...esito }))
+        if (Object.keys(esito).length && (j?.restanti > 0 || senza.length > Object.keys(esito).length)) setGiroAI(g => g + 1)
+      })
       .catch(() => {})
       .finally(() => { if (vivo) setStadiAIStato(null) })
     return () => { vivo = false }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vistaFunnel, segLoading, rows])
+  }, [vistaFunnel, rows, giroAI])
 
   const campaigns = useMemo(() => {
     const set = new Map()

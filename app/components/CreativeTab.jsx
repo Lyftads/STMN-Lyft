@@ -17,6 +17,10 @@ import Icon from './ui/Icon'
 import PeriodoInBarra from './ui/PeriodoInBarra'
 import { tfQuery } from '../../lib/tfQuery'
 import { num, perc } from '../../lib/client/numeri'
+import dynamicImport from 'next/dynamic'
+import { stadioDi, estrattoPerAI } from '../../lib/creative/stadio'
+// L'imbuto 3D porta three.js: resta nel suo pezzo, scaricato solo quando lo si apre.
+const CreativeFunnel3D = dynamicImport(() => import('./CreativeFunnel3D'), { ssr: false, loading: () => <div className="ly-scheletro-tab" aria-busy="true" style={{ minHeight: 420 }} /> })
 
 const PRESETS = [
   { id: 'today', label: 'Oggi', labelKey: 'cr.presetToday' },
@@ -255,7 +259,7 @@ function TabellaPubblici({ segments }) {
   )
 }
 
-function CreativeCard({ row, index, onClick, segments }) {
+function CreativeCard({ row, index, onClick, segments, stadio }) {
   const { t } = useI18n()
   const img = getCreativeImage(row)
   const name = getCreativeName(row)
@@ -477,6 +481,7 @@ function CreativeCard({ row, index, onClick, segments }) {
               whiteSpace: 'nowrap',
             }}>
               {row.campaign_name || t('cr.campaignUnavailable', null, 'Campagna non disponibile')}
+              {stadio && <> · {stadio}</>}
             </div>
           </div>
 
@@ -916,6 +921,17 @@ export default function CreativeTab() {
 
   const segmentiDi = (row) => (segData && (segData[row?.ad_id] || segData[row?.id]))?.segments || null
 
+  // Vista: griglia o imbuto 3D (Creative Funnel Graph). L'imbuto accende da
+  // solo i segmenti di pubblico: senza, lo stadio si legge solo dai nomi e
+  // dal testo.
+  const [vista, setVista] = useStatoTab('creative.vista', 'griglia')
+  useEffect(() => { if (vista === 'funnel') setSegOn(true) }, [vista])
+
+  // Ripiego AI per le creative senza nessun segnale: si chiede una volta per
+  // annuncio (il server se lo ricorda nello snapshot del workspace).
+  const [stadiAI, setStadiAI] = useState({})
+  const [stadiAIStato, setStadiAIStato] = useState(null)
+
   useEffect(() => {
     const key = `${tfQuery(tf)}|${accountFilter}`
     // Cache hit (anche dopo refresh, da localStorage) → mostra subito, niente fetch.
@@ -974,6 +990,40 @@ export default function CreativeTab() {
     () => rawRows.filter(r => asNum(r.spend) > 0),
     [rawRows]
   )
+
+  const NOMI_STADIO = {
+    top: t('cr.funnel.top', null, 'Scoperta'),
+    middle: t('cr.funnel.middle', null, 'Considerazione'),
+    lower: t('cr.funnel.lower', null, 'Conversione'),
+    riattivazione: t('cr.funnel.riattivazione', null, 'Riattivazione'),
+  }
+  const stadi = useMemo(() => {
+    const o = {}
+    for (const r of rows) {
+      const id = r.ad_id || r.id
+      const s = stadioDi(r, segmentiDi(r))
+      o[id] = (!s.fonte && stadiAI[id]) ? { ...s, stadio: stadiAI[id], fonte: 'ai' } : s
+    }
+    return o
+  }, [rows, segData, stadiAI])
+
+  useEffect(() => {
+    if (vista !== 'funnel' || segLoading) return
+    const senza = rows.filter(r => !stadi[r.ad_id || r.id]?.fonte)
+    if (!senza.length) return
+    let vivo = true
+    setStadiAIStato('loading')
+    fetch('/api/creative-stadio', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ads: senza.map(estrattoPerAI) }),
+    })
+      .then(r => r.json())
+      .then(j => { if (vivo && j?.stadi) setStadiAI(prev => ({ ...prev, ...j.stadi })) })
+      .catch(() => {})
+      .finally(() => { if (vivo) setStadiAIStato(null) })
+    return () => { vivo = false }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vista, segLoading, rows])
 
   const campaigns = useMemo(() => {
     const set = new Map()
@@ -1215,6 +1265,16 @@ export default function CreativeTab() {
               ))}
             </select>
 
+            <div style={{ display: 'inline-flex', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+              {[['griglia', t('cr.vistaGriglia', null, 'Griglia')], ['funnel', t('cr.vistaFunnel', null, 'Funnel 3D')]].map(([id, label]) => (
+                <button key={id} type="button" onClick={() => setVista(id)} style={{
+                  ...chipStyle, border: 'none', borderRadius: 0,
+                  background: vista === id ? 'var(--glass2)' : 'transparent',
+                  color: vista === id ? 'var(--text)' : 'var(--text2)',
+                }}>{label}</button>
+              ))}
+            </div>
+
             <button
               type="button"
               onClick={() => setSegOn(v => !v)}
@@ -1307,7 +1367,14 @@ export default function CreativeTab() {
           </div>
         </div>
 
-        {sortedRows.length > 0 ? (
+        {sortedRows.length > 0 && vista === 'funnel' ? (
+          <CreativeFunnel3D
+            rows={sortedRows}
+            stadi={stadi}
+            fonteAI={stadiAIStato}
+            onSelect={setSelectedCreative}
+          />
+        ) : sortedRows.length > 0 ? (
           <div
             className="m-grid2"
             style={{
@@ -1322,6 +1389,7 @@ export default function CreativeTab() {
                 row={row}
                 index={index}
                 segments={segmentiDi(row)}
+                stadio={NOMI_STADIO[stadi[row.ad_id || row.id]?.stadio]}
                 onClick={() => setSelectedCreative(row)}
               />
             ))}

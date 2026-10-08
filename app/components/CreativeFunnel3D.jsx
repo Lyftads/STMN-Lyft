@@ -24,12 +24,15 @@ import { STADI } from '../../lib/creative/stadio'
 // Le schede sono 64 px a scala 1 e il CSS3D usa i pixel come unita': l'imbuto
 // dev'essere largo rispetto a loro, altrimenti si coprono a vicenda.
 const ANELLI = {
-  top: { y: 190, r: 330 },
-  middle: { y: 64, r: 240 },
-  lower: { y: -60, r: 160 },
-  riattivazione: { y: -184, r: 96 },
+  top: { y: 300, r: 330 },
+  middle: { y: 100, r: 240 },
+  lower: { y: -100, r: 160 },
+  riattivazione: { y: -300, r: 96 },
 }
-const APICE = new THREE.Vector3(0, -350, 0)
+const APICE = new THREE.Vector3(0, -520, 0)
+// Colore della fase, da freddo a caldo (azzurro → rosso): e' la temperatura
+// del pubblico lungo l'imbuto. Esadecimale: nel WebGL var(--…) non vale.
+export const COLORE_FASE = { top: '#38bdf8', middle: '#a78bfa', lower: '#f97316', riattivazione: '#ef4444' }
 const MAX_SCHEDE = 150
 const LATO = 64 // px della scheda a scala 1
 
@@ -131,7 +134,7 @@ export default function CreativeFunnel3D({ rows, stadi, onSelect, fonteAI }) {
 
     const scene = new THREE.Scene()
     const camera = new THREE.PerspectiveCamera(42, w / h, 1, 3000)
-    camera.position.set(0, 120, 1040)
+    camera.position.set(0, 140, 1260)
 
     const gl = new THREE.WebGLRenderer({ antialias: true, alpha: true })
     gl.setPixelRatio(Math.min(2, window.devicePixelRatio || 1))
@@ -147,17 +150,21 @@ export default function CreativeFunnel3D({ rows, stadi, onSelect, fonteAI }) {
     cssRef.current.appendChild(css.domElement)
 
     const controls = new OrbitControls(camera, css.domElement)
-    controls.target.set(0, -40, 0)
+    controls.target.set(0, -60, 0)
     controls.enableDamping = true
     controls.dampingFactor = 0.08
-    controls.minDistance = 440
-    controls.maxDistance = 1800
+    controls.minDistance = 500
+    controls.maxDistance = 2200
     controls.maxPolarAngle = Math.PI * 0.72
     controls.autoRotate = true
     controls.autoRotateSpeed = 0.45
     controls.enablePan = false
-    const fermaGiro = () => { controls.autoRotate = false }
-    css.domElement.addEventListener('pointerdown', fermaGiro, { once: true })
+    // Il giro si ferma quando si tocca e riparte da solo dopo 4 s di quiete:
+    // prima si fermava per sempre al primo tocco (anche dopo un clic su una
+    // scheda), e sembrava bloccato.
+    let ripresa = 0
+    controls.addEventListener('start', () => { controls.autoRotate = false; clearTimeout(ripresa) })
+    controls.addEventListener('end', () => { clearTimeout(ripresa); ripresa = setTimeout(() => { controls.autoRotate = true }, 4000) })
     // Il clic su una scheda: OrbitControls cattura il puntatore al pointerdown,
     // quindi il pointerup NON arriva mai alla scheda. Si ascolta qui, sul
     // livello CSS3D, e si confronta col pointerdown partito dalla scheda:
@@ -166,20 +173,27 @@ export default function CreativeFunnel3D({ rows, stadi, onSelect, fonteAI }) {
       const c = candidatoRef.current
       candidatoRef.current = null
       if (!c) return
-      if (Math.hypot(e.clientX - c.x, e.clientY - c.y) < 6) onSelectRef.current?.(c.row)
+      if (Math.hypot(e.clientX - c.x, e.clientY - c.y) < 6) { setHover(null); onSelectRef.current?.(c.row) }
     }
     css.domElement.addEventListener('pointerup', alzato)
 
     // Anelli (uno per stadio) e fili verso l'apice: grigio neutro, regge
     // su fondo chiaro e scuro. Esadecimale: nel WebGL var(--…) non vale.
-    const grigio = new THREE.Color('#8e8e98')
-    const matAnello = new THREE.LineBasicMaterial({ color: grigio, transparent: true, opacity: 0.45 })
+    // Ogni fase e' un anello spesso (un toro, non una linea da 1 px) con un
+    // disco velato sotto: si vede il piano, non solo il bordo.
     const gruppoFisso = new THREE.Group()
+    const materiali = []
     for (const st of STADI) {
       const { y, r } = ANELLI[st]
-      const pts = []
-      for (let i = 0; i <= 96; i++) { const a = (i / 96) * Math.PI * 2; pts.push(new THREE.Vector3(Math.cos(a) * r, y, Math.sin(a) * r)) }
-      gruppoFisso.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), matAnello))
+      const colore = new THREE.Color(COLORE_FASE[st])
+      const matAnello = new THREE.MeshBasicMaterial({ color: colore, transparent: true, opacity: 0.85 })
+      const matDisco = new THREE.MeshBasicMaterial({ color: colore, transparent: true, opacity: 0.07, side: THREE.DoubleSide, depthWrite: false })
+      materiali.push(matAnello, matDisco)
+      const toro = new THREE.Mesh(new THREE.TorusGeometry(r, 2.2, 8, 128), matAnello)
+      toro.rotation.x = Math.PI / 2; toro.position.y = y
+      const disco = new THREE.Mesh(new THREE.CircleGeometry(r, 96), matDisco)
+      disco.rotation.x = -Math.PI / 2; disco.position.y = y
+      gruppoFisso.add(toro, disco)
     }
     scene.add(gruppoFisso)
 
@@ -212,9 +226,10 @@ export default function CreativeFunnel3D({ rows, stadi, onSelect, fonteAI }) {
       cancelAnimationFrame(raf)
       ro.disconnect()
       css.domElement.removeEventListener('pointerup', alzato)
+      clearTimeout(ripresa)
       controls.dispose()
       gruppoFisso.traverse(o => { o.geometry?.dispose?.() })
-      matAnello.dispose()
+      materiali.forEach(m => m.dispose())
       gl.dispose()
       gl.domElement.remove()
       css.domElement.remove()
@@ -272,10 +287,28 @@ export default function CreativeFunnel3D({ rows, stadi, onSelect, fonteAI }) {
 
       fili.push(p.x, p.y, p.z, APICE.x, APICE.y, APICE.z)
     }
+    // Etichetta della fase sull'anello: nome, creative e quota. Sprite CSS3D
+    // (guarda sempre la camera), appoggiata sul bordo davanti.
+    for (const st of STADI) {
+      const { y, r } = ANELLI[st]
+      const rr = riepilogo[st]
+      const quota = spesaTot ? (rr.spesa / spesaTot) * 100 : 0
+      const el = document.createElement('div')
+      el.className = 'cf3-fase'
+      el.style.cssText = 'pointer-events:none;white-space:nowrap;text-align:left;color:var(--text);'
+      el.innerHTML = `<div style="font-size:15px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:${COLORE_FASE[st]}">${NOMI[st]}</div><div style="font-size:13px;color:var(--text3);font-variant-numeric:tabular-nums">${t('cr.funnel.etichetta', { n: rr.n, pct: num(quota, 0) }, `${rr.n} creative · ${num(quota, 0)}%`)}</div>`
+      const sprite = new CSS3DSprite(el)
+      sprite.position.set(r + 150, y + 6, 0)
+      sprite.scale.setScalar(1.6)
+      sprite.userData.stadio = st
+      gruppoDati.add(sprite)
+    }
+
     const geo = new THREE.BufferGeometry()
     geo.setAttribute('position', new THREE.Float32BufferAttribute(fili, 3))
     gruppoDati.add(new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: new THREE.Color('#8e8e98'), transparent: true, opacity: 0.18 })))
-  }, [visibili, stadi, spesaMax])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibili, stadi, spesaMax, riepilogo, spesaTot])
 
   // Stadio a fuoco: le altre schede si spengono.
   useEffect(() => {
@@ -283,7 +316,7 @@ export default function CreativeFunnel3D({ rows, stadi, onSelect, fonteAI }) {
     if (!s) return
     s.gruppoDati.children.forEach(o => {
       if (!o.element) return
-      o.element.style.opacity = !fuoco || o.userData.stadio === fuoco ? '1' : '0.12'
+      o.element.style.opacity = !fuoco || o.userData.stadio === fuoco ? '1' : (o.element.classList.contains('cf3-fase') ? '0.35' : '0.12')
     })
   }, [fuoco, visibili, stadi])
 
@@ -292,7 +325,7 @@ export default function CreativeFunnel3D({ rows, stadi, onSelect, fonteAI }) {
 
   return (
     <div style={{ position: 'relative', borderRadius: 16, border: '1px solid var(--border)', background: 'var(--surface)', overflow: 'hidden' }}>
-      <div ref={telaRef} style={{ position: 'relative', height: 'min(72vh, 720px)', minHeight: 420 }}>
+      <div ref={telaRef} style={{ position: 'relative', height: 'min(78vh, 820px)', minHeight: 480 }}>
         <div ref={glRef} style={{ position: 'absolute', inset: 0 }} />
         <div ref={cssRef} style={{ position: 'absolute', inset: 0 }} />
 
@@ -312,7 +345,7 @@ export default function CreativeFunnel3D({ rows, stadi, onSelect, fonteAI }) {
                 background: attivo ? 'var(--glass)' : 'transparent', border: 'none', borderRadius: 8,
                 padding: '6px 8px', cursor: 'pointer', color: 'var(--text)', opacity: fuoco && !attivo ? 0.45 : 1,
               }}>
-                <span style={{ fontSize: 13, fontWeight: 640 }}>{NOMI[st]}</span>
+                <span style={{ fontSize: 13, fontWeight: 640 }}><span style={{ display: 'inline-block', width: 9, height: 9, borderRadius: 6, background: COLORE_FASE[st], marginRight: 7, verticalAlign: 'middle' }} />{NOMI[st]}</span>
                 <span style={{ fontSize: 13, color: 'var(--text3)', fontVariantNumeric: 'tabular-nums' }}>
                   {r.n} · {num(quota, 0)}%
                 </span>

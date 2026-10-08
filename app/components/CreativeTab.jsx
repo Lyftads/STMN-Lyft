@@ -19,6 +19,7 @@ import { tfQuery } from '../../lib/tfQuery'
 import { num, perc } from '../../lib/client/numeri'
 import dynamicImport from 'next/dynamic'
 import { stadioDi, estrattoPerAI } from '../../lib/creative/stadio'
+import CreativeDettaglioExtra from './CreativeDettaglioExtra'
 // L'imbuto 3D porta three.js: resta nel suo pezzo, scaricato solo quando lo si apre.
 const CreativeFunnel3D = dynamicImport(() => import('./CreativeFunnel3D'), { ssr: false, loading: () => <div className="ly-scheletro-tab" aria-busy="true" style={{ minHeight: 420 }} /> })
 
@@ -600,7 +601,7 @@ function formatCta(cta) {
     .join(' ')
 }
 
-function CreativeDetailModal({ row, onClose, segments }) {
+function CreativeDetailModal({ row, onClose, segments, tf }) {
   const { t } = useI18n()
   const [mounted, setMounted] = useState(false)
 
@@ -696,6 +697,9 @@ function CreativeDetailModal({ row, onClose, segments }) {
               <MiniStat label="CPC" value={money2(row.cpc_link)} />
               <MiniStat label="CTR" value={pct(row.ctr_link)} />
             </div>
+
+            {/* Andamento giornaliero (spesa e ROAS) e quota per posizionamento */}
+            <CreativeDettaglioExtra row={row} tf={tf} />
 
             {segments && (
               <Section label={t('cr.audienceSplitTitle', null, 'Risultati per pubblico')}>
@@ -1415,6 +1419,7 @@ export default function CreativeTab() {
         <CreativeDetailModal
           row={selectedCreative}
           segments={segmentiDi(selectedCreative)}
+          tf={tf}
           onClose={() => setSelectedCreative(null)}
         />
       )}

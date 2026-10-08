@@ -31,7 +31,10 @@ const ANELLI = {
   lower: { y: -100, r: 160 },
   riattivazione: { y: -300, r: 96 },
 }
-const APICE = new THREE.Vector3(0, -520, 0)
+// Fondo PIATTO (Marino: «non farlo a punta»): l'imbuto finisce su un disco
+// largo quanto l'ultimo anello, come il «Purchase Funnel» a gradoni.
+const Y_FONDO = -400
+const R_FONDO = 96
 
 const MAX_SCHEDE = 150
 const LATO = 64 // px della scheda a scala 1
@@ -148,7 +151,7 @@ export default function CreativeFunnel3D({ rows, stadi, onSelect, fonteAI }) {
     cssRef.current.appendChild(css.domElement)
 
     const controls = new OrbitControls(camera, css.domElement)
-    controls.target.set(0, -60, 0)
+    controls.target.set(0, -40, 0)
     controls.enableDamping = true
     controls.dampingFactor = 0.08
     controls.minDistance = 500
@@ -181,6 +184,19 @@ export default function CreativeFunnel3D({ rows, stadi, onSelect, fonteAI }) {
     // disco velato sotto: si vede il piano, non solo il bordo.
     const gruppoFisso = new THREE.Group()
     const materiali = []
+    // Fondo piatto: un disco velato e il suo bordo, grigio neutro come i fili
+    // (Marino: «le pareti non colorate, cambia solo la forma»).
+    const grigio = new THREE.Color('#8e8e98')
+    const matFondo = new THREE.MeshBasicMaterial({ color: grigio, transparent: true, opacity: 0.08, side: THREE.DoubleSide, depthWrite: false })
+    materiali.push(matFondo)
+    const fondo = new THREE.Mesh(new THREE.CircleGeometry(R_FONDO, 96), matFondo)
+    fondo.rotation.x = -Math.PI / 2; fondo.position.y = Y_FONDO
+    gruppoFisso.add(fondo)
+    const matBordoFondo = new THREE.MeshBasicMaterial({ color: grigio, transparent: true, opacity: 0.6 })
+    materiali.push(matBordoFondo)
+    const bordoFondo = new THREE.Mesh(new THREE.TorusGeometry(R_FONDO, 2.2, 8, 128), matBordoFondo)
+    bordoFondo.rotation.x = Math.PI / 2; bordoFondo.position.y = Y_FONDO
+    gruppoFisso.add(bordoFondo)
     for (const st of STADI) {
       const { y, r } = ANELLI[st]
       const colore = new THREE.Color(COLORE_FASE[st])
@@ -284,7 +300,8 @@ export default function CreativeFunnel3D({ rows, stadi, onSelect, fonteAI }) {
       sprite.userData.stadio = st
       gruppoDati.add(sprite)
 
-      fili.push(p.x, p.y, p.z, APICE.x, APICE.y, APICE.z)
+      const ang = Math.atan2(p.z, p.x)
+      fili.push(p.x, p.y, p.z, Math.cos(ang) * R_FONDO * 0.85, Y_FONDO, Math.sin(ang) * R_FONDO * 0.85)
     }
     // Etichetta della fase sull'anello: nome, creative e quota. Sprite CSS3D
     // (guarda sempre la camera), appoggiata sul bordo davanti.

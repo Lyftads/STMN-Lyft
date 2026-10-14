@@ -123,12 +123,15 @@
   background: transparent; border-color: transparent; backdrop-filter: none; -webkit-backdrop-filter: none;
   --testo: #f5f5f7; --testo2: rgba(255, 255, 255, .78); --testo3: rgba(255, 255, 255, .55); --text: #f5f5f7;
   --scheda: rgba(14, 16, 22, .55); --bordo: rgba(255, 255, 255, .16); --nero: #f5f5f7; --nero-hover: #ffffff; --btn-testo: #111111;
+  /* 14 ott 2026: anche il fondo. Il menu a tendina del telefono (.menuAperto) dipinge var(--fondo):
+     senza questo, nel tema chiaro restava BIANCO con le voci bianche (Marino: «bianco sul bianco»). */
+  --fondo: #0a0b0f;
   color: var(--testo); color-scheme: dark;
 }
 /* Il tema chiaro dell'app impone «select { background: #fff !important }» a tutta la pagina (due regole,
    la piu' forte e' «body :is(input:not():not():not(), select…)», specificita' 0,5,2): sulla barra scura il
    selettore lingua diventava bianco su bianco. Questo selettore vale 0,7,1 e vince. */
-:global(:root[data-theme='light']) .pagina[data-scuro='1'] .barra select.lingua.linguaBarra { background-color: var(--scheda) !important; border-color: var(--bordo) !important; color: var(--testo) !important; }
+:global(:root[data-theme='light']) .pagina[data-scuro='1'] .barra select.lingua { background-color: var(--scheda) !important; border-color: var(--bordo) !important; color: var(--testo) !important; }
 .marchio { display: inline-flex; align-items: center; gap: 9px; text-decoration: none; font-size: var(--t-4); font-weight: 680; letter-spacing: -.01em; color: var(--testo); }
 .voci { display: flex; align-items: center; gap: 26px; margin-left: 12px; }
 .voce { font-size: var(--t-5); color: var(--testo2); text-decoration: none; transition: color .15s var(--ease); }

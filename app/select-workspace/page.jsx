@@ -47,22 +47,25 @@ export default function SelectWorkspacePage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#06060c', color: 'var(--text, #e8e8ee)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+    // 14 ott 2026: i colori vengono dal tema (come il login), non piu' dal nero fisso. Con il tema
+    // chiaro di partenza --text e' scuro: su #06060c il titolo spariva e il nome dell'azienda, dentro
+    // a un <button> che NON eredita il colore, usciva nero sul nero (Marino).
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       <div style={{ width: '100%', maxWidth: 760 }}>
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <div style={{ fontSize: 26, fontWeight: 900, letterSpacing: '-0.02em' }}>{t('sw.title', null, 'Choose the company')}</div>
-          <div style={{ fontSize: 14, color: 'var(--text3, #8b8b99)', marginTop: 6 }}>{t('sw.subtitle', null, 'Select the workspace to open')}</div>
+          <div style={{ fontSize: 14, color: 'var(--text3)', marginTop: 6 }}>{t('sw.subtitle', null, 'Select the workspace to open')}</div>
         </div>
 
-        {error && <div style={{ textAlign: 'center', color: '#fca5a5', fontSize: 13, marginBottom: 16 }}>{error}</div>}
-        {!data && !error && <div style={{ textAlign: 'center', color: 'var(--text3, #8b8b99)', padding: 40 }}>{t('common.loadingShort', null, 'Loading…')}</div>}
+        {error && <div style={{ textAlign: 'center', color: 'var(--red)', fontSize: 13, marginBottom: 16 }}>{error}</div>}
+        {!data && !error && <div style={{ textAlign: 'center', color: 'var(--text3)', padding: 40 }}>{t('common.loadingShort', null, 'Loading…')}</div>}
 
         {data && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>
             {data.workspaces.map(w => (
               <button key={w.id} type="button" disabled={busy} onClick={() => open(w.id)} style={{
-                textAlign: 'left', cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.6 : 1,
-                background: 'rgba(255,255,255,0.03)', border: `1px solid ${w.id === data.activeId ? '#2997ff' : 'rgba(255,255,255,0.1)'}`,
+                textAlign: 'left', cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.6 : 1, color: 'inherit', font: 'inherit',
+                background: 'var(--surface)', border: `1px solid ${w.id === data.activeId ? 'var(--accent)' : 'var(--border2)'}`,
                 borderRadius: 16, padding: 18, display: 'flex', alignItems: 'center', gap: 12,
               }}>
                 <span style={{ width: 40, height: 40, borderRadius: 10, background: 'linear-gradient(135deg, #2997ff, #bf5af2)', flexShrink: 0, display: 'grid', placeItems: 'center', fontWeight: 900, color: '#fff' }}>
@@ -70,7 +73,7 @@ export default function SelectWorkspacePage() {
                 </span>
                 <span style={{ minWidth: 0 }}>
                   <span style={{ display: 'block', fontSize: 15, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{w.label}</span>
-                  <span style={{ display: 'block', fontSize: 11, color: 'var(--text3, #8b8b99)', marginTop: 2 }}>{w.isSelf ? t('sw.yourAccount', null, 'Your account') : t('sw.client', null, 'Client')}</span>
+                  <span style={{ display: 'block', fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>{w.isSelf ? t('sw.yourAccount', null, 'Your account') : t('sw.client', null, 'Client')}</span>
                 </span>
               </button>
             ))}

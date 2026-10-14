@@ -20,6 +20,16 @@ export async function POST(req) {
     ? body.allowedIntegrations
     : undefined
 
+  // Meta serve le app di tipo Business come "Facebook Login for Business": il dialogo
+  // classico con scope dà "Feature Unavailable". Con META_LOGIN_CONFIG_ID (ID della
+  // Login Configuration creata nella dashboard dell'app) si passa config_id e si
+  // azzera lo scope, che Meta dice di non inviare insieme a config_id.
+  const metaKey = process.env.NANGO_INTEGRATION_META || 'facebook'
+  const metaConfigId = (process.env.META_LOGIN_CONFIG_ID || '').trim()
+  const configDefaults = metaConfigId
+    ? { integrations_config_defaults: { [metaKey]: { authorization_params: { config_id: metaConfigId, scope: '' } } } }
+    : {}
+
   try {
     const res = await fetch(`${NANGO_HOST}/connect/sessions`, {
       method: 'POST',
@@ -27,6 +37,7 @@ export async function POST(req) {
       body: JSON.stringify({
         end_user: { id: String(userId) },
         ...(allowed ? { allowed_integrations: allowed } : {}),
+        ...configDefaults,
       }),
       cache: 'no-store',
       signal: AbortSignal.timeout(15000),

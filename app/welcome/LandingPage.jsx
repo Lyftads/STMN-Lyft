@@ -487,25 +487,26 @@ function Fonti({ t }) {
 }
 
 
-// Chi lo usa (Marino, 20 ott 2026): tre marchi veri, coi loghi. Caselle SCURE in entrambi i temi:
-// il logo Saracino si usa solo bianco (o bianco e oro) su fondo medio-scuro.
+// Chi lo usa (Marino, 20 ott 2026): tre marchi veri, come la fascia loghi del suo sito personale
+// (marinocatasta.it): stessa griglia con le crocette di «Legge i dati da», loghi monocromi che al
+// passaggio si accendono in negativo. Stessi file del sito.
 const CLIENTI = [
-  { id: 'saracino', nome: 'Saracino 1925', w: 490, h: 240 },
-  { id: 'annavirgili', nome: 'Anna Virgili', w: 530, h: 55 },
-  { id: 'bottegadalmut', nome: 'Bottega Dalmut', w: 1198, h: 110 },
+  { id: 'saracino', nome: 'Saracino 1925', w: 400, h: 196 },
+  { id: 'annavirgili', nome: 'Anna Virgili', w: 400, h: 172 },
+  { id: 'bottegadalmut', nome: 'Bottega Dalmut', w: 900, h: 83, alto: 20 },
 ]
 function Clienti({ t }) {
   return (
     <section className={s.clienti} aria-label={t.clienti.etichetta}>
       <div className={s.largo}>
         <p className={s.etichetta}>{t.clienti.etichetta}</p>
-        <ul className={s.clientiGriglia}>
+        <div className={`${s.fontiGriglia} ${s.clientiGriglia}`}>
           {CLIENTI.map(c => (
-            <li key={c.id} className={s.cliente}>
-              <img src={`/landing/clienti/${c.id}.webp`} alt={c.nome} width={c.w} height={c.h} loading="lazy" decoding="async" className={s[`logo_${c.id}`]} />
-            </li>
+            <span key={c.id} className={`${s.fonte} ${s.cliente}`}>
+              <img src={`/landing/clienti/${c.id}.png`} alt={c.nome} width={c.w} height={c.h} loading="lazy" decoding="async" style={c.alto ? { maxHeight: c.alto } : undefined} />
+            </span>
           ))}
-        </ul>
+        </div>
       </div>
     </section>
   )

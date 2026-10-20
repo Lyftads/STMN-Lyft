@@ -329,21 +329,25 @@
 .fonte::after { right: -5px; bottom: -5px; }
 .fontiGriglia::before { right: -4px; top: -5px; }
 .fontiGriglia::after { left: -5px; bottom: -4px; }
-/* Chi lo usa: tre caselle scure (anche col tema chiaro) con i loghi in bianco. */
+/* Chi lo usa: come la fascia loghi di marinocatasta.it — stessa griglia con le crocette di
+   «Legge i dati da», caselle da 120px, loghi monocromi (neri sul chiaro, bianchi sullo scuro)
+   alti al massimo 36px; al passaggio la casella si accende e il logo va in negativo.
+   GOTCHA: :root[data-theme=light] img { filter: none } globale vince su «.cliente img»: serve .pagina davanti. */
 .clienti { padding: 0 0 56px; }
 .clienti .etichetta { margin-bottom: 18px; }
-.clientiGriglia { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.cliente { display: flex; align-items: center; justify-content: center; height: 132px; padding: 0 28px; border-radius: 16px; background: #111113; border: 1px solid rgba(255,255,255,.08); }
-.cliente img { display: block; width: auto; height: auto; max-width: 100%; opacity: .92; transition: opacity .35s ease; }
-.cliente:hover img { opacity: 1; }
-.logo_saracino { max-height: 76px; }
-.logo_annavirgili { max-height: 28px; }
-.logo_bottegadalmut { max-height: 24px; }
+.fontiGriglia.clientiGriglia { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.fonte.cliente { height: 120px; padding: 24px 32px; }
+.pagina .fonte.cliente img { display: block; max-height: 36px; width: auto; height: auto; max-width: 60%; object-fit: contain; filter: brightness(0); transition: transform .45s cubic-bezier(.2, .8, .2, 1), filter .35s; }
+:global(:root[data-theme='dark']) .pagina .fonte.cliente img { filter: brightness(0) invert(1); }
+@media (hover: hover) {
+  .pagina .fonte.cliente:hover img { transform: scale(1.18); filter: brightness(0) invert(1); }
+  :global(:root[data-theme='dark']) .pagina .fonte.cliente:hover img { filter: brightness(0); }
+}
 @media (max-width: 760px) {
   .clienti { padding-bottom: 32px; }
-  .clientiGriglia { grid-template-columns: 1fr; gap: 8px; }
-  .cliente { height: 104px; }
-  .logo_saracino { max-height: 64px; }
+  .fontiGriglia.clientiGriglia { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .fonte.cliente { height: 88px; padding: 12px; }
+  .pagina .fonte.cliente img { max-width: 80%; }
 }
 
 /* ── Il prodotto, passo per passo ─────────────────────────────────────── */

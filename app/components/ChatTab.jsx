@@ -6,22 +6,8 @@ import Avatar from './Avatar'
 import ProfiloPopup from './ProfiloPopup'
 import { NewChannelDialog, ChannelMembersDialog } from './ChatDialogs'
 import { renderMarkdown } from './chatMarkdown'
-// La call 1:1 con un agente della Squadra AI: qui il prodotto e' multi-cliente
-// e gli agenti fanno parte della chat, quindi il componente resta montato.
-import AgentCall from './AgentCall'
 import Avvisi from './ui/Avvisi'
 import { useI18n } from '../../lib/i18n/I18nProvider'
-
-const SQUAD_AGENTS = [
-  { id: 'ceo', name: 'Chiara', role: 'CEO', color: 'var(--accent)', emoji: '👑', avatar: null },
-  { id: 'cfo', name: 'Marco', role: 'CFO', color: '#22c55e', emoji: '📊', avatar: null },
-  { id: 'cmo', name: 'Luigi', role: 'CMO', color: '#2997ff', emoji: '🎯', avatar: null },
-  { id: 'ads', name: 'Sofia', role: 'Advertising Specialist', color: '#ef4444', emoji: '🚀', avatar: null },
-  { id: 'seo', name: 'Davide', role: 'SEO Specialist', color: '#ffd60a', emoji: '🔍', avatar: null },
-  { id: 'cro', name: 'Giulia', role: 'CRO Specialist', color: 'var(--accent)', emoji: '🧪', avatar: null },
-  { id: 'data', name: 'Alessandro', role: 'Data Analyst', color: 'var(--text)', emoji: '📈', avatar: null },
-  { id: 'creative', name: 'Valentina', role: 'Creative Strategist', color: '#f59e0b', emoji: '🎨', avatar: null },
-]
 
 // Estetica minimale/futuristica, coerente col resto del software (glass + var CSS).
 const PANEL = { background: 'var(--glass, rgba(18,18,28,0.55))', border: '1px solid var(--border, rgba(255,255,255,0.08))', borderRadius: 16, backdropFilter: 'blur(14px)' }
@@ -63,8 +49,6 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
   const [text, setText] = useState('')
   const [me, setMe] = useState(null)
   const [members, setMembers] = useState([])
-  const [agentAvatars, setAgentAvatars] = useState({}) // tag "Nome · Ruolo" → foto profilo agente AI
-  const [agentMembers, setAgentMembers] = useState([]) // agenti AI come pseudo-membri (per @ e pannello persone)
   const [profile, setProfile] = useState(null)
   const [showProfile, setShowProfile] = useState(false)
   const [showNewChannel, setShowNewChannel] = useState(false)
@@ -72,7 +56,6 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
   const [manageMemberIds, setManageMemberIds] = useState([])
   const [replyTo, setReplyTo] = useState(null)
   const [sendError, setSendError] = useState('')
-  const [agentTyping, setAgentTyping] = useState(false)
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [mentionOpen, setMentionOpen] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -87,8 +70,6 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
   const [unreadCount, setUnreadCount] = useState(0)
   const [menuFor, setMenuFor] = useState(null)
   const [callMenu, setCallMenu] = useState(false)
-  const [squadPicker, setSquadPicker] = useState(false) // popup scelta agente per la call
-  const [callAgent, setCallAgent] = useState(null)       // agente selezionato → avvia AgentCall
   const [savedIds, setSavedIds] = useState([])
   const [caret, setCaret] = useState(0)          // dove si sta scrivendo
   const [thCaret, setThCaret] = useState(0)      // idem, nella conversazione a lato
@@ -119,22 +100,6 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
   const recTimerRef = useRef(null)
   const recCancelRef = useRef(false)
   const linkSelRef = useRef({ s: 0, e: 0 })
-
-  // Roster agenti AI → mappa tag→foto, per mostrare le foto profilo in chat.
-  // Senza questa chiamata gli agenti non compaiono da nessuna parte: niente foto
-  // sui loro messaggi, niente voce nel menu @, niente elenco "Squadra AI".
-  useEffect(() => {
-    fetch('/api/team-agent', { cache: 'no-store' }).then(r => r.json()).then(d => {
-      const map = {}
-      ;(d.team || []).forEach(a => { if (a.tag && a.avatar) map[a.tag] = a.avatar })
-      setAgentAvatars(map)
-      // Pseudo-membri per il menu @ e il pannello persone (sempre "online").
-      setAgentMembers((d.team || []).map(a => ({
-        id: 'agent:' + a.id, full_name: a.name, email: a.name, role: a.role,
-        avatar_url: a.avatar, isAgent: true,
-      })))
-    }).catch(() => {})
-  }, [])
 
   useEffect(() => {
     fetch('/api/channels', { cache: 'no-store' }).then(r => r.json()).then(d => {
@@ -242,40 +207,6 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
       return
     }
     setSendError('')
-    // Risposta degli agenti del team AI:
-    //  - se il messaggio NOMINA un agente, oppure
-    //  - se l'ULTIMO a parlare nel canale era un agente (continua la conversazione
-    //    senza dover richiamare il nome ogni volta).
-    // I messaggi degli agenti hanno author_id null.
-    // Trigger agenti: SOLO menzione esplicita con @ (i nomi propri da soli
-    // facevano irrompere l'AI nelle conversazioni tra colleghi umani) oppure
-    // continuazione entro 3 minuti da una risposta dell'agente.
-    const prevMsg = messages[messages.length - 1]
-    const recentAgent = !!(prevMsg && !prevMsg.author_id &&
-      (Date.now() - new Date(prevMsg.created_at).getTime()) < 3 * 60000)
-    const mentionsAgent = /@\s*(chiara|marco|luigi|sofia|davide|giulia|alessandro|valentina)\b/i.test(body)
-    if (mentionsAgent || recentAgent) {
-      let locale = null
-      try { locale = localStorage.getItem('lyft_lang') } catch {}
-      setAgentTyping(true)
-      fetch('/api/team/channel-reply', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ channel_id: active, locale }),
-      })
-        .then(x => x.json()).catch(() => ({}))
-        .then(j => {
-          // La risposta CONTIENE già i messaggi dell'agente: dipingerli subito
-          // invece di aspettare il poll (prima il canale restava immobile).
-          const list = Array.isArray(j?.messages) ? j.messages : (j?.message ? [j.message] : [])
-          const fresh = list.filter(m => m?.id && !seenRef.current.has(m.id))
-          if (fresh.length) {
-            fresh.forEach(m => seenRef.current.add(m.id))
-            lastAtRef.current = fresh[fresh.length - 1].created_at || lastAtRef.current
-            setMessages(prev => [...prev, ...fresh]); scrollBottom()
-          }
-        })
-        .finally(() => setAgentTyping(false))
-    }
   }
 
   function reloadMembers() { fetch('/api/team-members', { cache: 'no-store' }).then(r => r.json()).then(d => setMembers(d.members || [])).catch(() => {}) }
@@ -521,8 +452,7 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
   const mentionPool = (activeChannel && (activeChannel.is_private || activeChannel.is_dm) && activeMemberIds.length)
     ? members.filter(m => activeMemberIds.includes(m.id))
     : members
-  // Gli agenti AI sono sempre menzionabili (in ogni canale), in cima alla lista.
-  const mentionList = [...agentMembers, ...mentionPool].filter(m => { const n = (m.full_name || m.email || '').toLowerCase(); return !mentionQuery || n.includes(mentionQuery.toLowerCase()) }).slice(0, 12)
+  const mentionList = [...mentionPool].filter(m => { const n = (m.full_name || m.email || '').toLowerCase(); return !mentionQuery || n.includes(mentionQuery.toLowerCase()) }).slice(0, 12)
   const shownMessages = searchQ.trim() ? messages.filter(m => (m.body || '').toLowerCase().includes(searchQ.trim().toLowerCase())) : messages
   const sharedFiles = messages.filter(m => m.file_url || m.audio_url)
   const channelUnread = (ch) => { const last = lastAt[ch.id]; if (!last) return false; let read = null; try { read = localStorage.getItem('chread_' + ch.id) } catch {}; return ch.id !== active && (!read || last > read) }
@@ -540,7 +470,7 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
     const mem = memberMap[m.author_id]
     return (
       <div key={m.id} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '6px 0' }}>
-        <Avatar name={mem?.full_name || m.author_name} url={mem?.avatar_url || agentAvatars[m.author_name]} size={30} online={mem ? isOnline(mem) : undefined} />
+        <Avatar name={mem?.full_name || m.author_name} url={mem?.avatar_url} size={30} online={mem ? isOnline(mem) : undefined} />
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontSize: 13, color: MUTED }}><b style={{ color: 'var(--text)' }}>{mem?.full_name || m.author_name || tr('ch.user', null, 'User')}</b> · {new Date(m.created_at).toLocaleString(intlLocale, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
           {m.body && <div className="ch-corpo" style={{ fontSize: 15, color: '#e8e8e8', lineHeight: 1.5, wordBreak: 'break-word' }} dangerouslySetInnerHTML={{ __html: renderMarkdown(m.body) }} />}
@@ -617,15 +547,6 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
                   <span style={{ fontSize: 13, color: '#cacaca', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mem.nickname || mem.full_name || mem.email}{(mem.roles || []).includes('guest') ? ` · ${tr('ch.guest', null, 'guest')}` : ''}</span>
                 </div>
               ))}
-              {agentMembers.length > 0 && (<>
-                <div style={{ fontSize: 10, color: MUTED, textTransform: 'uppercase', letterSpacing: '.12em', padding: '16px 8px 6px' }}>{tr('ch.teamAI', { count: agentMembers.length }, 'AI Team · {count}')}</div>
-                {agentMembers.map(a => (
-                  <div key={a.id} title={tr('ch.mentionWith', { name: a.full_name }, 'Mention with @{name}')} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', borderRadius: 12 }}>
-                    <Avatar name={a.full_name} url={a.avatar_url} size={26} online={true} />
-                    <span style={{ fontSize: 13, color: '#cacaca', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.full_name} <span style={{ color: MUTED, fontSize: 11.5 }}>· {a.role}</span> <span style={{ color: '#a78bfa', fontSize: 10 }}>AI</span></span>
-                  </div>
-                ))}
-              </>)}
             </>)}
 
             {rail === 'dms' && (<>
@@ -714,38 +635,6 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
                   )}
                 </div>
                 {!activeChannel?.is_dm && <HBtn onClick={() => openManage(activeChannel.id)} title={tr('ch.membersAdd', null, 'Members · add people')}><Icon name="users" size={16} /></HBtn>}
-                <div style={{ position: 'relative' }}>
-                  <button type="button" onClick={() => setSquadPicker(o => !o)} title={tr('ch.callSquadTitle', null, 'Call an AI Squad agent')}
-                    style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--neutro-bg)', border: '1px solid rgba(124,92,255,0.4)', color: 'var(--text)', borderRadius: 8, padding: '6px 10px', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap' }}><Icon name="phone" size={14} />{tr('ch.squadAI', null, 'AI Squad')}</button>
-                  {squadPicker && (
-                    <>
-                      <div onClick={() => setSquadPicker(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
-                      <div style={{ position: 'absolute', top: 40, right: 0, ...PANEL, background: 'rgba(16,16,24,0.98)', boxShadow: '0 24px 60px rgba(0,0,0,0.6)', padding: 8, width: 290, maxHeight: 380, overflowY: 'auto', zIndex: 41 }}>
-                        <div style={{ padding: '6px 8px 8px' }}>
-                          <div style={{ color: 'var(--text)', fontWeight: 640, fontSize: 13 }}>{tr('ch.callSquad', null, 'Call the AI Squad')}</div>
-                          <div style={{ color: MUTED, fontSize: 11.5, marginTop: 2 }}>{tr('ch.chooseAgent', null, 'Choose an agent. The call is 1:1, one agent at a time.')}</div>
-                        </div>
-                        {SQUAD_AGENTS.map(a => (
-                          <button key={a.id} type="button"
-                            onClick={() => { setCallAgent(a); setSquadPicker(false) }}
-                            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '8px', background: 'transparent', border: 'none', borderRadius: 12, cursor: 'pointer', textAlign: 'left' }}
-                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                            {/* Bordo neutro: le tinte degli agenti ora sono var()
-                                e "var(--accent)55" non e' un colore valido — il
-                                cerchio spariva senza dire niente. */}
-                            <Avatar name={a.name} url={a.avatar} size={34} />
-                            <span style={{ minWidth: 0 }}>
-                              <span style={{ display: 'block', color: 'var(--text)', fontWeight: 600, fontSize: 13 }}>{a.name}</span>
-                              <span style={{ display: 'block', color: MUTED, fontSize: 11.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.role}</span>
-                            </span>
-                            <Icon name="phone" size={15} style={{ marginLeft: 'auto', color: a.color }} />
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
               </div>
             )}
           </div>
@@ -780,7 +669,7 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
                     setMsgMenu({ x: e.clientX, y: e.clientY, m, mine })
                   }}
                   style={{ position: 'relative', display: 'flex', gap: 10, alignItems: 'flex-start', padding: '7px 10px', borderRadius: 12 }}>
-                  <Avatar name={mem?.full_name || m.author_name || mem?.email} url={mem?.avatar_url || agentAvatars[m.author_name]} size={34} online={mem ? isOnline(mem) : undefined} />
+                  <Avatar name={mem?.full_name || m.author_name || mem?.email} url={mem?.avatar_url} size={34} online={mem ? isOnline(mem) : undefined} />
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ fontSize: 13, color: MUTED }}>
                       <b style={{ color: 'var(--text)' }}>{mem?.full_name || m.author_name || tr('ch.user', null, 'User')}</b> · {new Date(m.created_at).toLocaleString(intlLocale, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
@@ -892,11 +781,10 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
               {/* Input con evidenziazione menzioni */}
               <div style={{ position: 'relative' }}>
                 <div aria-hidden style={{ position: 'absolute', inset: 0, padding: '10px 12px', fontSize: 15, fontFamily: 'inherit', lineHeight: 1.45, color: '#e8e8e8', whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflow: 'hidden', pointerEvents: 'none' }} dangerouslySetInnerHTML={{ __html: highlightComposer(text) }} />
-                {/* Una riga sola per due cose che l'utente deve vedere subito:
-                    l'agente che sta pensando e l'invio fallito. */}
-                {(agentTyping || sendError) && (
-                  <div style={{ padding: '6px 14px', fontSize: 13, color: sendError ? '#fca5a5' : 'var(--text3)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {sendError || tr('chat.agentTyping', null, 'L\'agente sta scrivendo…')}
+                {/* L'invio fallito si vede subito, sotto al campo. */}
+                {sendError && (
+                  <div style={{ padding: '6px 14px', fontSize: 13, color: '#fca5a5', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {sendError}
                   </div>
                 )}
 
@@ -1086,10 +974,6 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
           ascolta l'evento e ogni errore sparirebbe in silenzio. Quindi solo
           quando la chat sta per conto suo se li monta da sola: mai due volte. */}
       {standalone && <Avvisi />}
-      {/* Call 1:1 con l'agente scelto dal picker (un solo agente alla volta) */}
-      {callAgent && (
-        <AgentCall key={callAgent.id} agent={callAgent} autoStart hideButton onClose={() => setCallAgent(null)} />
-      )}
     </div>
   )
 }

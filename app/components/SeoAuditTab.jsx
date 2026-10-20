@@ -9,7 +9,7 @@ import Icon from './ui/Icon'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts'
 // L'esperto SEO che legge i dati della tab. Nel fork per un solo cliente era
 // stato tolto perche' li' l'agente non c'era: qui e' un pezzo del prodotto e
-// va rimontato in tutti e sei i punti dove sta (audit + i cinque pannelli).
+// va rimontato in ogni punto dove sta (audit e Search Console).
 // Toglierlo non da' errore: la pagina si apre uguale e il bottone sparisce.
 import SeoAgent from './SeoAgent'
 import { useI18n } from '../../lib/i18n/I18nProvider'
@@ -26,7 +26,7 @@ const giorniDelPeriodo = (v) => v?.since ? Math.max(1, Math.round((Date.now() - 
 
 export default function SeoAuditTab() {
   const { t } = useI18n()
-  const [view, setView] = useState('gsc')              // gsc | audit | keyword | editor | competitor | aeo | history
+  const [view, setView] = useState('gsc')              // gsc | audit | history
   const [mode, setMode] = useState('page')             // page | site
   const [url, setUrl] = useState('')
   const [keyword, setKeyword] = useState('')
@@ -97,17 +97,9 @@ export default function SeoAuditTab() {
       <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
         <Pill active={view === 'gsc'} onClick={() => setView('gsc')}>Search Console</Pill>
         <Pill active={view === 'audit'} onClick={() => setView('audit')}>Audit</Pill>
-        <Pill active={view === 'keyword'} onClick={() => setView('keyword')}>Keyword AI</Pill>
-        <Pill active={view === 'editor'} onClick={() => setView('editor')}>{t('seo.navEditor', null, 'Editor contenuti')}</Pill>
-        <Pill active={view === 'competitor'} onClick={() => setView('competitor')}>Competitor</Pill>
-        <Pill active={view === 'aeo'} onClick={() => setView('aeo')}>AI Visibility</Pill>
         <Pill active={view === 'history'} onClick={() => { setView('history'); loadHistory() }}>{t('seo.navHistory', null, 'Storico')} {history.length ? `(${history.length})` : ''}</Pill>
       </div>
 
-      {view === 'keyword' && <KeywordAIPanel />}
-      {view === 'editor' && <EditorPanel />}
-      {view === 'competitor' && <CompetitorPanel />}
-      {view === 'aeo' && <AeoPanel />}
       {view === 'gsc' && <GSCPanel />}
 
       {view === 'audit' && (
@@ -323,177 +315,6 @@ function PdfButton({ type, data }) {
 }
 
 
-/* ---------- Keyword AI (Keyword AI) ---------- */
-function KeywordAIPanel() {
-  const { t } = useI18n()
-  const [kw, setKw] = useState(''); const [loading, setLoading] = useState(false); const [error, setError] = useState(null); const [d, setD] = useState(null)
-  const run = async () => {
-    if (!kw.trim() || loading) return
-    setLoading(true); setError(null); setD(null)
-    try { const r = await fetch('/api/seo-ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ locale: getClientLocale(), mode: 'keyword', keyword: kw }) }); const j = await r.json(); j.error ? setError(j.error) : setD(j) }
-    catch { setError(t('seo.error', null, 'Errore')) } finally { setLoading(false) }
-  }
-  return (
-    <div>
-      <Row><input value={kw} onChange={e => setKw(e.target.value)} onKeyDown={e => e.key === 'Enter' && run()} placeholder={t('seo.phKwAnalyze', null, 'Keyword da analizzare — es. accessori crossfit')} style={inputStyle} /><button onClick={run} disabled={loading || !kw.trim()} style={btnStyle(loading)}>{loading ? t('seo.analyzing', null, 'Analizzo…') : t('seo.analyzeKeyword', null, 'Analizza keyword')}</button></Row>
-      {error && <Err>{error}</Err>}
-      {d && (
-        <>
-          <div className="m-grid2" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16, marginTop: 20, marginBottom: 16 }}>
-            <Mini label={t('seo.intent', null, 'Intent')} value={d.intent} note={d.intentNote} />
-            <Mini label={t('seo.difficulty', null, 'Difficoltà')} value={d.difficulty?.level} note={d.difficulty?.note} />
-            <Mini label="AI Overview" value={d.aiOverview?.likely ? t('seo.likely', null, 'Probabile') : t('seo.unlikely', null, 'Improbabile')} note={d.aiOverview?.note} />
-          </div>
-          {d.volumeHint && <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 16 }}>{t('seo.estVolume', null, 'Volume stimato:')} <strong>{d.volumeHint}</strong></div>}
-          {d.summary && <div className="glass-card" style={{ padding: 18, marginBottom: 16, fontSize: 15 }}>{d.summary}</div>}
-          <Block title={t('seo.relatedKw', null, 'Keyword correlate')}><Chips list={(d.related || []).map(r => `${r.term}${r.intent ? ` · ${r.intent}` : ''}`)} /></Block>
-          <Block title={t('seo.questions', null, 'Domande (People Also Ask)')}>{(d.questions || []).map((q, i) => <div key={i} style={{ fontSize: 13, padding: '4px 0' }}>• {q}</div>)}</Block>
-          <Block title={t('seo.contentIdeas', null, 'Idee di contenuto')}>{(d.contentIdeas || []).map((c, i) => <div key={i} style={{ padding: '6px 0', fontSize: 13 }}><strong>{c.title}</strong>{c.angle ? <span style={{ opacity: 0.65 }}> — {c.angle}</span> : null}</div>)}</Block>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '4px 0' }}><PdfButton type="keyword" data={d} /></div>
-          {/* Ogni pannello passa all'agente il PROPRIO risultato: cosi' le
-              domande suggerite parlano di quello che si ha davanti. */}
-          <SeoAgent context={{ type: 'keyword', data: d }} hint={t('seo.hintKeyword', null, 'Esperto SEO — conosce questa analisi keyword.')} suggestions={[t('seo.sugKw1', null, 'Crea un cluster di contenuti da queste keyword'), t('seo.sugKw2', null, 'Scrivi 3 title ottimizzati per la keyword principale'), t('seo.sugKw3', null, 'Quale intent prioritizzo e perché?')]} />
-        </>
-      )}
-    </div>
-  )
-}
-
-/* ---------- Editor contenuti (brief da competitor) ---------- */
-function EditorPanel() {
-  const { t } = useI18n()
-  const [kw, setKw] = useState(''); const [comp, setComp] = useState(''); const [loading, setLoading] = useState(false); const [error, setError] = useState(null); const [d, setD] = useState(null)
-  const run = async () => {
-    if (!kw.trim() || loading) return
-    setLoading(true); setError(null); setD(null)
-    const competitorUrls = comp.split('\n').map(s => s.trim()).filter(Boolean)
-    try { const r = await fetch('/api/seo-ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ locale: getClientLocale(), mode: 'editor', keyword: kw, competitorUrls }) }); const j = await r.json(); j.error ? setError(j.error) : setD(j) }
-    catch { setError(t('seo.error', null, 'Errore')) } finally { setLoading(false) }
-  }
-  return (
-    <div>
-      <Row><input value={kw} onChange={e => setKw(e.target.value)} placeholder={t('seo.phEditorKw', null, 'Keyword target del contenuto')} style={inputStyle} /><button onClick={run} disabled={loading || !kw.trim()} style={btnStyle(loading)}>{loading ? t('seo.generating', null, 'Genero…') : t('seo.generateBrief', null, 'Genera brief')}</button></Row>
-      <textarea value={comp} onChange={e => setComp(e.target.value)} placeholder={t('seo.phEditorComp', null, 'URL competitor da analizzare (una per riga, opzionale)')} style={{ ...inputStyle, marginTop: 12, minHeight: 80, fontFamily: 'inherit' }} />
-      {error && <Err>{error}</Err>}
-      {d && (
-        <div style={{ marginTop: 20 }}>
-          <div style={{ display: 'flex', gap: 24, marginBottom: 16, flexWrap: 'wrap' }}>
-            <Mini label={t('seo.searchIntent', null, 'Search intent')} value={d.searchIntent} />
-            <Mini label={t('seo.recLength', null, 'Lunghezza consigliata')} value={`${d.recommendedWords || '—'} ${t('seo.wordsWord', null, 'parole')}`} />
-          </div>
-          {d.title && <div className="glass-card" style={{ padding: 16, marginBottom: 12 }}><div style={{ fontSize: 11.5, opacity: 0.55 }}>TITLE ({d.title.length})</div><div style={{ fontSize: 15, fontWeight: 600 }}>{d.title}</div><div style={{ fontSize: 11.5, opacity: 0.55, marginTop: 8 }}>META ({(d.metaDescription || '').length})</div><div style={{ fontSize: 13 }}>{d.metaDescription}</div></div>}
-          <Block title={t('seo.headingStructure', null, 'Struttura heading consigliata')}>{(d.headings || []).map((h, i) => <div key={i} style={{ fontSize: 13, padding: '3px 0', paddingLeft: h.tag === 'H3' ? 20 : 0 }}><span style={{ opacity: 0.45, fontSize: 11.5 }}>{h.tag}</span> {h.text}</div>)}</Block>
-          <Block title={t('seo.entities', null, 'Entità / argomenti da coprire')}><Chips list={d.entities || []} /></Block>
-          {(d.faq || []).length > 0 && <Block title={t('seo.faqSuggested', null, 'FAQ suggerite')}>{d.faq.map((f, i) => <div key={i} style={{ padding: '6px 0', fontSize: 13 }}><strong>{f.q}</strong><div style={{ opacity: 0.7 }}>{f.a}</div></div>)}</Block>}
-          {d.schema && <Block title="Schema (JSON-LD)"><div style={{ fontSize: 13, opacity: 0.8 }}>{d.schema}</div></Block>}
-          {(d.gaps || []).length > 0 && <Block title={t('seo.gaps', null, 'Gap / opportunità vs competitor')}>{d.gaps.map((g, i) => <div key={i} style={{ fontSize: 13, padding: '3px 0' }}>• {g}</div>)}</Block>}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '4px 0' }}><PdfButton type="editor" data={d} /></div>
-          <SeoAgent context={{ type: 'editor', data: d }} hint={t('seo.hintEditor', null, 'Esperto SEO — conosce questo brief editoriale.')} suggestions={[t('seo.sugEd1', null, 'Espandi questo brief in una bozza di articolo'), t('seo.sugEd2', null, 'Genera lo JSON-LD completo'), t('seo.sugEd3', null, 'Migliora title e meta description')]} />
-        </div>
-      )}
-    </div>
-  )
-}
-
-/* ---------- Confronto competitor on-page ---------- */
-function CompetitorPanel() {
-  const { t } = useI18n()
-  const [urls, setUrls] = useState(''); const [loading, setLoading] = useState(false); const [error, setError] = useState(null); const [rows, setRows] = useState(null)
-  const run = async () => {
-    const list = urls.split('\n').map(s => s.trim()).filter(Boolean)
-    if (list.length < 2 || loading) { if (list.length < 2) setError(t('seo.atLeast2', null, 'Inserisci almeno 2 URL (la tua + competitor).')); return }
-    setLoading(true); setError(null); setRows(null)
-    try { const r = await fetch('/api/seo-competitor', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ urls: list }) }); const j = await r.json(); j.error ? setError(j.error) : setRows(j.rows) }
-    catch { setError(t('seo.error', null, 'Errore')) } finally { setLoading(false) }
-  }
-  const ok = (b) => <span style={{ color: b ? '#22c55e' : '#ef4444' }}>{b ? '✓' : '×'}</span>
-  const host = u => { try { return new URL(u).hostname.replace(/^www\./, '') + new URL(u).pathname.replace(/\/$/, '') } catch { return u } }
-  const metrics = rows ? [
-    ['Score', r => <span style={{ color: scoreCol(r.score), fontWeight: 600 }}>{r.score}</span>],
-    [t('seo.metricTitleLen', null, 'Title (lung.)'), r => r.titleLen], [t('seo.metricDescLen', null, 'Meta desc (lung.)'), r => r.descLen], [t('seo.metricWords', null, 'Parole'), r => r.words],
-    ['JSON-LD', r => ok(r.jsonld)], ['Hreflang', r => ok(r.hreflang)], ['OG image', r => ok(r.og)],
-    ['Alt %', r => r.altCoverage == null ? '—' : `${r.altCoverage}%`], [t('seo.metricSpeed', null, 'Velocità'), r => r.speedMs == null ? '—' : `${num(r.speedMs / 1000, 1)}s`], ['HTTPS', r => ok(r.https)],
-  ] : []
-  return (
-    <div>
-      <textarea value={urls} onChange={e => setUrls(e.target.value)} placeholder={t('seo.phCompUrls', null, 'La tua URL + competitor (una per riga)\nhttps://tuosito.com/pagina\nhttps://competitor1.com/pagina')} style={{ ...inputStyle, minHeight: 100, fontFamily: 'inherit' }} />
-      <Row><button onClick={run} disabled={loading} style={{ ...btnStyle(loading), marginTop: 12 }}>{loading ? t('seo.comparing', null, 'Confronto…') : t('seo.compare', null, 'Confronta')}</button></Row>
-      {error && <Err>{error}</Err>}
-      {rows && (
-        <>
-          <Block title={t('seo.scoreCompare', null, 'Score a confronto')}>
-            <div style={{ width: '100%', height: 170 }}>
-              <ResponsiveContainer>
-                <BarChart data={rows.filter(r => !r.error).map(r => ({ name: host(r.url).slice(0, 20), score: r.score }))} margin={{ top: 6, right: 8, left: -16, bottom: 0 }}>
-                  <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
-                  <XAxis dataKey="name" tick={{ fill: 'var(--text3)', fontSize: 10 }} />
-                  <YAxis domain={[0, 100]} tick={{ fill: 'var(--text3)', fontSize: 10 }} width={34} />
-                  <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '8px 12px', fontSize: 13, color: 'var(--text)', boxShadow: '0 8px 24px rgba(0,0,0,.14)' }} />
-                  <Bar dataKey="score" radius={[4, 4, 0, 0]}>{rows.filter(r => !r.error).map((r, i) => <Cell key={i} fill={scoreCol(r.score)} />)}</Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </Block>
-          <div className="glass-card" style={{ padding: 20, marginTop: 20, overflowX: 'auto' }}>
-            <table className="tab-lyft" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-              <thead><tr><th style={thStyle}></th>{rows.map((r, i) => <th key={i} style={{ ...thStyle, textAlign: 'left' }}>{r.error ? <span style={{ color: '#ef4444' }}>{host(r.url)} {t('seo.errorParen', null, '(errore)')}</span> : host(r.url)}</th>)}</tr></thead>
-              <tbody>{metrics.map(([label, fn], mi) => (
-                <tr key={mi}><td style={{ ...tdStyle, opacity: 0.6 }}>{label}</td>{rows.map((r, i) => <td key={i} style={tdStyle}>{r.error ? '—' : fn(r)}</td>)}</tr>
-              ))}</tbody>
-            </table>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '8px 0 4px' }}><PdfButton type="competitor" data={{ rows }} /></div>
-          <SeoAgent context={{ type: 'competitor', data: { rows } }} hint={t('seo.hintCompetitor', null, 'Esperto SEO — conosce questo confronto con i competitor.')} suggestions={[t('seo.sugComp1', null, 'Come supero il competitor migliore?'), t('seo.sugComp2', null, 'Quali gap colmo per primi?'), t('seo.sugComp3', null, 'Piano on-page per batterli in SERP')]} />
-        </>
-      )}
-    </div>
-  )
-}
-
-/* ---------- AI Visibility / AEO ---------- */
-function AeoPanel() {
-  const { t } = useI18n()
-  const [brand, setBrand] = useState(''); const [site, setSite] = useState(''); const [prompts, setPrompts] = useState(''); const [loading, setLoading] = useState(false); const [error, setError] = useState(null); const [d, setD] = useState(null)
-  const run = async () => {
-    const list = prompts.split('\n').map(s => s.trim()).filter(Boolean)
-    if (!brand.trim() || !list.length || loading) { if (!brand.trim() || !list.length) setError(t('seo.brandPromptReq', null, 'Inserisci brand e almeno un prompt.')); return }
-    setLoading(true); setError(null); setD(null)
-    try { const r = await fetch('/api/seo-ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ locale: getClientLocale(), mode: 'aeo', brand, site, prompts: list }) }); const j = await r.json(); j.error ? setError(j.error) : setD(j) }
-    catch { setError(t('seo.error', null, 'Errore')) } finally { setLoading(false) }
-  }
-  return (
-    <div>
-      <div style={{ fontSize: 13, opacity: 0.55, marginBottom: 12 }}>{t('seo.aeoIntro', null, 'Verifica se gli answer engine (ChatGPT/Gemini) citano il tuo brand per certe domande. Stima basata su LLM.')}</div>
-      <Row><input value={brand} onChange={e => setBrand(e.target.value)} placeholder={t('seo.phBrand', null, 'Nome brand — es. Acme Store')} style={inputStyle} /><input value={site} onChange={e => setSite(e.target.value)} placeholder={t('seo.phSiteOpt', null, 'sito (opz.)')} style={{ ...inputStyle, flex: 'none', width: 200 }} /></Row>
-      <textarea value={prompts} onChange={e => setPrompts(e.target.value)} placeholder={t('seo.phPrompts', null, 'Prompt da testare (uno per riga)\nMigliori accessori per crossfit\nDove comprare attrezzatura crossfit online')} style={{ ...inputStyle, marginTop: 12, minHeight: 90, fontFamily: 'inherit' }} />
-      <Row><button onClick={run} disabled={loading} style={{ ...btnStyle(loading), marginTop: 12 }}>{loading ? t('seo.verifying', null, 'Verifico…') : t('seo.verifyAi', null, 'Verifica visibilità AI')}</button></Row>
-      {error && <Err>{error}</Err>}
-      {d && (
-        <div style={{ marginTop: 20 }}>
-          <div className="glass-card" style={{ padding: 24, textAlign: 'center', marginBottom: 16, maxWidth: 220 }}>
-            <div style={{ fontSize: 22, fontWeight: 640, color: scoreCol(d.visibilityScore) }}>{d.visibilityScore}</div>
-            <div style={{ fontSize: 13, opacity: 0.6 }}>AI Visibility Score</div>
-          </div>
-          {d.summary && <div className="glass-card" style={{ padding: 18, marginBottom: 16, fontSize: 15 }}>{d.summary}</div>}
-          {(d.results || []).map((r, i) => (
-            <div key={i} className="glass-card" style={{ padding: 16, marginBottom: 10 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                <span style={{ color: r.mentioned ? '#22c55e' : '#ef4444', fontWeight: 600 }}>{r.mentioned ? `${t('seo.cited', null, 'Citato')}${r.rank && r.rank !== 'n/d' ? ` (#${r.rank})` : ''}` : `× ${t('seo.notCited', null, 'Non citato')}`}</span>
-                <span style={{ fontSize: 15, opacity: 0.9 }}>{r.prompt}</span>
-              </div>
-              <div style={{ fontSize: 13, opacity: 0.7 }}>{r.why}</div>
-              {r.competitorsMentioned?.length > 0 && <div style={{ fontSize: 13, opacity: 0.55, marginTop: 4 }}>{t('seo.citedInstead', null, 'Citati invece:')} {r.competitorsMentioned.join(', ')}</div>}
-              {r.howToImprove && <div style={{ fontSize: 13, marginTop: 6, color: 'var(--text)' }}>→ {r.howToImprove}</div>}
-            </div>
-          ))}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '4px 0' }}><PdfButton type="aeo" data={d} /></div>
-          <SeoAgent context={{ type: 'aeo', data: d }} hint={t('seo.hintAeo', null, 'Esperto SEO — conosce questo report di AI Visibility.')} suggestions={[t('seo.sugAeo1', null, 'Come mi faccio citare da ChatGPT per questi prompt?'), t('seo.sugAeo2', null, 'Strategia per migliorare la AI visibility'), t('seo.sugAeo3', null, 'Che contenuti creo per gli answer engine?')]} />
-        </div>
-      )}
-    </div>
-  )
-}
-
 /* ---------- Google Search Console (dati reali) ---------- */
 const nf = (n) => num(n || 0, 0)
 // toFixed scrive all'inglese ("1.8%"): in questa tab erano 136 numeri col punto
@@ -699,7 +520,6 @@ function GSCPanel() {
 function Row({ children }) { return <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>{children}</div> }
 function Err({ children }) { return <div className="glass-card" style={{ padding: 16, color: '#ef4444', marginTop: 16 }}><Icon name="warning" size={13} /> {children}</div> }
 function Block({ title, children }) { return <div className="glass-card" style={{ padding: 20, marginBottom: 14 }}><div style={{ fontWeight: 600, fontSize: 13, marginBottom: 10, opacity: 0.85 }}>{title}</div>{children}</div> }
-function Mini({ label, value, note }) { return <div className="glass-card" style={{ padding: 16, flex: 1, minWidth: 160 }}><div style={{ fontSize: 11.5, opacity: 0.5, textTransform: 'uppercase' }}>{label}</div><div style={{ fontSize: 15, fontWeight: 600, textTransform: 'capitalize' }}>{value || '—'}</div>{note && <div style={{ fontSize: 13, opacity: 0.6, marginTop: 4 }}>{note}</div>}</div> }
 function Chips({ list }) { return <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>{(list || []).map((t, i) => <span key={i} style={{ fontSize: 13, padding: '4px 10px', borderRadius: 8, background: 'var(--glass)', border: '1px solid var(--border)' }}>{t}</span>)}</div> }
 const thStyle = { padding: '6px 10px', borderBottom: '1px solid var(--border)', fontSize: 11.5, opacity: 0.6, textAlign: 'left', whiteSpace: 'nowrap' }
 const tdStyle = { padding: '6px 10px', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }

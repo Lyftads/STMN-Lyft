@@ -6,6 +6,8 @@
 //   testimonianze: finche' non ce ne sono di vere e verificabili, non si scrivono.
 // - Tolte il 21 set 2026 e da non rimettere: Lighthouse, Performance Agent, Creative Intel,
 //   white-label, generatore di creativita', chiamate vocali con gli agenti.
+// - Tolte il 20 ott 2026: Squadra AI (resta solo il Cervello, anche in LyftTalk) e, nella SEO,
+//   Keyword AI, Editor contenuti, Competitor e AI Visibility.
 // - Le funzioni per chi rivende piu' marchi (Prezzi, marketplace, negozi fisici) si dicono
 //   come tali: agli altri negozi non compaiono.
 
@@ -150,7 +152,7 @@ const it = {
     voci: [
       { titolo: 'Chiedi, e risponde con i dati', testo: '«Perché è calato il margine questa settimana?» Legge Shopify, Meta e Google e ti dice cosa è cambiato.' },
       { titolo: 'Il briefing del mattino', testo: 'Cosa è successo ieri e cosa guardare oggi, prima ancora di aprire le tabelle.' },
-      { titolo: 'Una squadra per ogni area', testo: 'Agenti dedicati a pubblicità, SEO, sito e numeri, che lavorano tutti sugli stessi dati.' },
+      { titolo: 'Ovunque, anche in LyftTalk', testo: 'Lo stesso Cervello in ogni schermata e nella chat del team, con il quadro completo di tutti i dati.' },
     ],
     chat: {
       negozio: 'negozio demo', scrive: 'sta scrivendo…',
@@ -164,13 +166,12 @@ const it = {
   produttivita: {
     etichetta: 'Productivity AI',
     titolo: 'Il lavoro del team, accanto ai numeri.',
-    sotto: 'Progetti, calendario, ore e chat nello stesso posto dei dati del negozio. E gli agenti AI lavorano con voi, negli stessi canali.',
+    sotto: 'Progetti, calendario, ore e chat nello stesso posto dei dati del negozio. E il Cervello lavora con voi, anche dentro LyftTalk.',
     voci: [
       { id: 'tasks', titolo: 'Progetti e task', testo: 'Assegni, dai una scadenza, approvi. Lista, bacheca e grafici per ogni progetto.' },
       { id: 'calendar', titolo: 'Calendario e ferie', testo: 'Promo, riunioni, ferie e permessi del team in un calendario solo, con le richieste da approvare.' },
       { id: 'timeTracking', titolo: 'Lyftimer', testo: 'Le ore di lavoro per persona e per progetto, con timesheet, approvazioni e report.' },
       { id: 'chat', titolo: 'LyftTalk', testo: 'Canali, messaggi diretti, reazioni e file: la chat del team, con i numeri del negozio a portata di mano.' },
-      { id: 'team', titolo: 'Squadra AI', testo: 'Agenti dedicati a pubblicità, SEO, sito e numeri, che conoscono il tuo marchio e rispondono nei canali.' },
     ],
     alt: 'Productivity AI in LyftAI',
   },
@@ -206,7 +207,7 @@ const it = {
       { icona: 'search', titolo: 'Google', voci: ['KPI e dettaglio campagne', 'Prodotti e verdetti', 'Consigli sul budget'] },
       { icona: 'layers', titolo: 'Incrementalità', voci: ['Contributo incrementale', 'Curve di risposta', 'Simulatore di budget', 'Geo-lift'] },
       { icona: 'users', titolo: 'Clienti ed email', voci: ['Segmenti per comportamento', 'Idee di campagna con l’AI', 'Klaviyo, Mailchimp, Omnisend'] },
-      { icona: 'scan', titolo: 'Sito e SEO', voci: ['Audit SEO e Search Console', 'Parole chiave e visibilità nelle AI', 'Conversioni e scansione del sito'] },
+      { icona: 'scan', titolo: 'Sito e SEO', voci: ['Audit SEO e Search Console', 'Conversioni e scansione del sito'] },
       { icona: 'euro', titolo: 'Conti e report', voci: ['Conto economico', 'Corrispettivi', 'Report di settimana, mese, trimestre, anno', 'Simulatore del conto'] },
       { icona: 'kanban', titolo: 'Lavoro di squadra', voci: ['Progetti e task', 'Calendario, ferie e permessi', 'Lyftimer, le ore di lavoro', 'LyftTalk, la chat del team'] },
     ],
@@ -436,7 +437,7 @@ const en = {
     voci: [
       { titolo: 'Ask, and it answers with data', testo: '“Why did the margin drop this week?” It reads Shopify, Meta and Google and tells you what changed.' },
       { titolo: 'The morning briefing', testo: 'What happened yesterday and what to look at today, before you even open the tables.' },
-      { titolo: 'A team for every area', testo: 'Agents for advertising, SEO, the website and the numbers, all working on the same data.' },
+      { titolo: 'Everywhere, LyftTalk included', testo: 'The same Brain on every screen and in the team chat, with the full picture of all your data.' },
     ],
     chat: {
       negozio: 'demo store', scrive: 'typing…',
@@ -450,7 +451,7 @@ const en = {
   produttivita: {
     etichetta: 'Productivity AI',
     titolo: 'Your team’s work, right next to the numbers.',
-    sotto: 'Projects, calendar, hours and chat in the same place as your store data. And the AI agents work with you, in the same channels.',
+    sotto: 'Projects, calendar, hours and chat in the same place as your store data. And the Brain works with you, inside LyftTalk too.',
     voci: [
       { id: 'tasks', titolo: 'Projects and tasks', testo: 'Assign, set a deadline, approve. List, board and charts for every project.' },
       {
@@ -460,7 +461,6 @@ const en = {
       },
       { id: 'timeTracking', titolo: 'Lyftimer', testo: 'Hours worked per person and per project, with timesheets, approvals and reports.' },
       { id: 'chat', titolo: 'LyftTalk', testo: 'Channels, direct messages, reactions and files: the team chat, with your store’s numbers close at hand.' },
-      { id: 'team', titolo: 'AI Team', testo: 'Agents for advertising, SEO, the website and the numbers, that know your brand and answer in the channels.' },
     ],
     alt: 'Productivity AI in LyftAI',
   },
@@ -521,7 +521,7 @@ const en = {
       { icona: 'search', titolo: 'Google', voci: ['KPIs and campaign detail', 'Products and verdicts', 'Budget advice'] },
       { icona: 'layers', titolo: 'Incrementality', voci: ['Incremental contribution', 'Response curves', 'Budget simulator', 'Geo-lift'] },
       { icona: 'users', titolo: 'Customers and email', voci: ['Segments by behavior', 'Campaign ideas with AI', 'Klaviyo, Mailchimp, Omnisend'] },
-      { icona: 'scan', titolo: 'Website and SEO', voci: ['SEO audit and Search Console', 'Keywords and visibility in AI answers', 'Conversions and site scan'] },
+      { icona: 'scan', titolo: 'Website and SEO', voci: ['SEO audit and Search Console', 'Conversions and site scan'] },
       { icona: 'euro', titolo: 'Finance and reports', voci: ['P&L statement', 'Daily sales register', 'Weekly, monthly, quarterly and yearly reports', 'P&L simulator'] },
       { icona: 'kanban', titolo: 'Teamwork', voci: ['Projects and tasks', 'Calendar and time off', 'Lyftimer, for hours worked', 'LyftTalk, the team chat'] },
     ],
@@ -748,7 +748,7 @@ const es = {
     voci: [
       { titolo: 'Pregunta, y te responde con datos', testo: '«¿Por qué ha bajado el margen esta semana?» Lee Shopify, Meta y Google y te dice qué ha cambiado.' },
       { titolo: 'El resumen de la mañana', testo: 'Qué pasó ayer y qué mirar hoy, antes incluso de abrir las tablas.' },
-      { titolo: 'Un equipo para cada área', testo: 'Agentes dedicados a publicidad, SEO, web y números, que trabajan todos sobre los mismos datos.' },
+      { titolo: 'En todas partes, también en LyftTalk', testo: 'El mismo Cerebro en cada pantalla y en el chat del equipo, con el cuadro completo de todos los datos.' },
     ],
     chat: {
       negozio: 'tienda demo', scrive: 'escribiendo…',
@@ -762,7 +762,7 @@ const es = {
   produttivita: {
     etichetta: 'Productivity AI',
     titolo: 'El trabajo del equipo, junto a los números.',
-    sotto: 'Proyectos, calendario, horas y chat en el mismo sitio que los datos de la tienda. Y los agentes de IA trabajan con vosotros, en los mismos canales.',
+    sotto: 'Proyectos, calendario, horas y chat en el mismo sitio que los datos de la tienda. Y el Cerebro trabaja con vosotros, también dentro de LyftTalk.',
     voci: [
       { id: 'tasks', titolo: 'Proyectos y tareas', testo: 'Asignas, pones una fecha límite, apruebas. Lista, tablero y gráficos para cada proyecto.' },
       {
@@ -776,7 +776,6 @@ const es = {
         titolo: 'LyftTalk',
         testo: 'Canales, mensajes directos, reacciones y archivos: el chat del equipo, con los números de la tienda siempre a mano.',
       },
-      { id: 'team', titolo: 'Equipo IA', testo: 'Agentes dedicados a publicidad, SEO, web y números, que conocen tu marca y responden en los canales.' },
     ],
     alt: 'Productivity AI en LyftAI',
   },
@@ -837,7 +836,7 @@ const es = {
       { icona: 'search', titolo: 'Google', voci: ['KPI y detalle de campañas', 'Productos y veredictos', 'Consejos de presupuesto'] },
       { icona: 'layers', titolo: 'Incrementalidad', voci: ['Contribución incremental', 'Curvas de respuesta', 'Simulador de presupuesto', 'Geo-lift'] },
       { icona: 'users', titolo: 'Clientes y email', voci: ['Segmentos por comportamiento', 'Ideas de campaña con IA', 'Klaviyo, Mailchimp, Omnisend'] },
-      { icona: 'scan', titolo: 'Web y SEO', voci: ['Auditoría SEO y Search Console', 'Palabras clave y visibilidad en las IA', 'Conversiones y análisis de la web'] },
+      { icona: 'scan', titolo: 'Web y SEO', voci: ['Auditoría SEO y Search Console', 'Conversiones y análisis de la web'] },
       { icona: 'euro', titolo: 'Cuentas e informes', voci: ['Cuenta de resultados', 'Registro diario de ventas', 'Informes de semana, mes, trimestre, año', 'Simulador de la cuenta'] },
       { icona: 'kanban', titolo: 'Trabajo en equipo', voci: ['Proyectos y tareas', 'Calendario, vacaciones y permisos', 'Lyftimer, las horas de trabajo', 'LyftTalk, el chat del equipo'] },
     ],
@@ -1064,7 +1063,7 @@ const fr = {
     voci: [
       { titolo: 'Demandez, elle répond avec les données', testo: '« Pourquoi la marge a-t-elle baissé cette semaine ? » Elle lit Shopify, Meta et Google et vous dit ce qui a changé.' },
       { titolo: 'Le briefing du matin', testo: 'Ce qui s’est passé hier et ce qu’il faut regarder aujourd’hui, avant même d’ouvrir les tableaux.' },
-      { titolo: 'Une équipe pour chaque domaine', testo: 'Des agents dédiés à la publicité, au SEO, au site et aux chiffres, qui travaillent tous sur les mêmes données.' },
+      { titolo: 'Partout, LyftTalk compris', testo: 'Le même Cerveau sur chaque écran et dans le chat de l’équipe, avec la vue complète de toutes les données.' },
     ],
     chat: {
       negozio: 'boutique démo', scrive: 'en train d’écrire…',
@@ -1078,7 +1077,7 @@ const fr = {
   produttivita: {
     etichetta: 'Productivity AI',
     titolo: 'Le travail de l’équipe, à côté des chiffres.',
-    sotto: 'Projets, calendrier, heures et chat au même endroit que les données de la boutique. Et les agents IA travaillent avec vous, dans les mêmes canaux.',
+    sotto: 'Projets, calendrier, heures et chat au même endroit que les données de la boutique. Et le Cerveau travaille avec vous, jusque dans LyftTalk.',
     voci: [
       { id: 'tasks', titolo: 'Projets et tâches', testo: 'Vous assignez, fixez une échéance, approuvez. Liste, tableau et graphiques pour chaque projet.' },
       {
@@ -1095,11 +1094,6 @@ const fr = {
         id: 'chat',
         titolo: 'LyftTalk',
         testo: 'Canaux, messages directs, réactions et fichiers : le chat de l’équipe, avec les chiffres de la boutique à portée de main.',
-      },
-      {
-        id: 'team',
-        titolo: 'Équipe IA',
-        testo: 'Des agents dédiés à la publicité, au SEO, au site et aux chiffres, qui connaissent votre marque et répondent dans les canaux.',
       },
     ],
     alt: 'Productivity AI dans LyftAI',
@@ -1161,7 +1155,7 @@ const fr = {
       { icona: 'search', titolo: 'Google', voci: ['KPI et détail des campagnes', 'Produits et verdicts', 'Conseils sur le budget'] },
       { icona: 'layers', titolo: 'Incrémentalité', voci: ['Contribution incrémentale', 'Courbes de réponse', 'Simulateur de budget', 'Geo-lift'] },
       { icona: 'users', titolo: 'Clients et email', voci: ['Segments par comportement', 'Idées de campagne avec l’IA', 'Klaviyo, Mailchimp, Omnisend'] },
-      { icona: 'scan', titolo: 'Site et SEO', voci: ['Audit SEO et Search Console', 'Mots-clés et visibilité dans les IA', 'Conversions et analyse du site'] },
+      { icona: 'scan', titolo: 'Site et SEO', voci: ['Audit SEO et Search Console', 'Conversions et analyse du site'] },
       { icona: 'euro', titolo: 'Comptes et rapports', voci: ['Compte de résultat', 'Registre quotidien des ventes', 'Rapports hebdomadaires, mensuels, trimestriels, annuels', 'Simulateur du compte de résultat'] },
       { icona: 'kanban', titolo: 'Travail d’équipe', voci: ['Projets et tâches', 'Calendrier, congés et absences', 'Lyftimer, les heures de travail', 'LyftTalk, le chat de l’équipe'] },
     ],
@@ -1388,7 +1382,7 @@ const de = {
     voci: [
       { titolo: 'Frag, und sie antwortet mit Daten', testo: '„Warum ist die Marge diese Woche gesunken?“ Sie liest Shopify, Meta und Google und sagt dir, was sich geändert hat.' },
       { titolo: 'Das Morgen-Briefing', testo: 'Was gestern passiert ist und worauf du heute achten solltest, noch bevor du die Tabellen öffnest.' },
-      { titolo: 'Ein Team für jeden Bereich', testo: 'Agenten für Werbung, SEO, Website und Zahlen, die alle mit denselben Daten arbeiten.' },
+      { titolo: 'Überall, auch in LyftTalk', testo: 'Dasselbe Gehirn auf jedem Bildschirm und im Team-Chat, mit dem vollständigen Bild aller Daten.' },
     ],
     chat: {
       negozio: 'Demo-Shop', scrive: 'schreibt…',
@@ -1402,7 +1396,7 @@ const de = {
   produttivita: {
     etichetta: 'Productivity AI',
     titolo: 'Die Arbeit des Teams, direkt neben den Zahlen.',
-    sotto: 'Projekte, Kalender, Stunden und Chat am selben Ort wie die Daten deines Shops. Und die KI-Agenten arbeiten mit euch, in denselben Kanälen.',
+    sotto: 'Projekte, Kalender, Stunden und Chat am selben Ort wie die Daten deines Shops. Und das Gehirn arbeitet mit euch, auch in LyftTalk.',
     voci: [
       { id: 'tasks', titolo: 'Projekte und Aufgaben', testo: 'Du weist zu, setzt eine Frist, gibst frei. Liste, Board und Diagramme für jedes Projekt.' },
       {
@@ -1416,7 +1410,6 @@ const de = {
         titolo: 'LyftTalk',
         testo: 'Kanäle, Direktnachrichten, Reaktionen und Dateien: der Team-Chat, mit den Zahlen deines Shops immer griffbereit.',
       },
-      { id: 'team', titolo: 'KI-Team', testo: 'Agenten für Werbung, SEO, Website und Zahlen, die deine Marke kennen und in den Kanälen antworten.' },
     ],
     alt: 'Productivity AI in LyftAI',
   },
@@ -1477,7 +1470,7 @@ const de = {
       { icona: 'search', titolo: 'Google', voci: ['KPIs und Kampagnendetails', 'Produkte und Urteile', 'Budget-Empfehlungen'] },
       { icona: 'layers', titolo: 'Inkrementalität', voci: ['Inkrementeller Beitrag', 'Reaktionskurven', 'Budget-Simulator', 'Geo-Lift'] },
       { icona: 'users', titolo: 'Kunden und E-Mail', voci: ['Segmente nach Verhalten', 'Kampagnenideen mit KI', 'Klaviyo, Mailchimp, Omnisend'] },
-      { icona: 'scan', titolo: 'Website und SEO', voci: ['SEO-Audit und Search Console', 'Keywords und Sichtbarkeit in KI-Antworten', 'Conversions und Website-Scan'] },
+      { icona: 'scan', titolo: 'Website und SEO', voci: ['SEO-Audit und Search Console', 'Conversions und Website-Scan'] },
       { icona: 'euro', titolo: 'Finanzen und Reports', voci: ['Gewinn- und Verlustrechnung', 'Tägliches Umsatzjournal', 'Reports für Woche, Monat, Quartal, Jahr', 'GuV-Simulator'] },
       { icona: 'kanban', titolo: 'Teamarbeit', voci: ['Projekte und Aufgaben', 'Kalender, Urlaub und Abwesenheiten', 'Lyftimer, die Arbeitszeit', 'LyftTalk, der Team-Chat'] },
     ],

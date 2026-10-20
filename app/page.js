@@ -100,7 +100,6 @@ const YearAgent = PigraMuta('YearAgent', () => import('./components/YearAgent'))
 const SimulatorAgent = PigraMuta('SimulatorAgent', () => import('./components/SimulatorAgent'))
 // Le dodici tab in fondo alla coda: si usano meno delle altre, quindi il loro codice si scarica
 // per ultimo e non ruba banda alla Dashboard appena aperta.
-const TeamTab = Pigra('TeamTab', () => import('./components/TeamTab'))
 const TimeTrackingTab = Pigra('TimeTrackingTab', () => import('./components/TimeTrackingTab'))
 const BudgetAdvisorPanel = Pigra('BudgetAdvisorPanel', () => import('./components/BudgetAdvisorPanel'))
 const GoogleBudgetAdvisorPanel = Pigra('GoogleBudgetAdvisorPanel', () => import('./components/GoogleBudgetAdvisorPanel'))
@@ -4704,10 +4703,6 @@ export default function App() {
 {/* TEAM · CHAT */}
 {tab === 'chat' && (
   <ChatTab />
-)}
-
-{tab === 'team' && (
-  <TeamTab />
 )}
 
       <FloatingBrain currentTab={tab} />

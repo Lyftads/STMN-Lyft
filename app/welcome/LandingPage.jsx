@@ -487,6 +487,30 @@ function Fonti({ t }) {
 }
 
 
+// Chi lo usa (Marino, 20 ott 2026): tre marchi veri, coi loghi. Caselle SCURE in entrambi i temi:
+// il logo Saracino si usa solo bianco (o bianco e oro) su fondo medio-scuro.
+const CLIENTI = [
+  { id: 'saracino', nome: 'Saracino 1925', w: 490, h: 240 },
+  { id: 'annavirgili', nome: 'Anna Virgili', w: 530, h: 55 },
+  { id: 'bottegadalmut', nome: 'Bottega Dalmut', w: 1198, h: 110 },
+]
+function Clienti({ t }) {
+  return (
+    <section className={s.clienti} aria-label={t.clienti.etichetta}>
+      <div className={s.largo}>
+        <p className={s.etichetta}>{t.clienti.etichetta}</p>
+        <ul className={s.clientiGriglia}>
+          {CLIENTI.map(c => (
+            <li key={c.id} className={s.cliente}>
+              <img src={`/landing/clienti/${c.id}.webp`} alt={c.nome} width={c.w} height={c.h} loading="lazy" decoding="async" className={s[`logo_${c.id}`]} />
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  )
+}
+
 // ── IL FILM (29 set, v3) — «deve sembrare un vero film... si deve avvolgere all'indietro».
 // Tre ATTI a tutto schermo, girati con Higgsfield e SCRUBBATI dalla rotella: il video non va in
 // play, e' la rotella che lo fa scorrere (currentTime ∝ --vp), avanti e indietro come una moviola.
@@ -1239,6 +1263,7 @@ export default function LandingPage({ initialLang = null }) {
         <Apertura t={t} lang={lang} pagina={radice} />
         <Intro t={t} lang={lang} />
         <Fonti t={t} />
+<Clienti t={t} />
         <Viaggio t={t} />
         <Prodotto t={t} lang={lang} />
         <Cervello t={t} />

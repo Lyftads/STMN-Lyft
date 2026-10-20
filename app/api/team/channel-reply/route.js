@@ -1,5 +1,5 @@
 export const dynamic = 'force-dynamic'
-export const maxDuration = 45
+export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
 import { waitUntil } from '@vercel/functions'
@@ -8,15 +8,30 @@ import { getAdminSupabase } from '../../../../lib/supabase/server'
 import { callBrain } from '../../../../lib/agent/gateway'
 import { readSnapshot, buildBrief } from '../../../../lib/agent/brandSnapshot'
 import { ALL_TOOLS, executeToolLive } from '../../../../lib/agent/tools'
-import { getTeamAgent, findMentionedAgent, teamSkillPrompt } from '../../../../lib/agent/team'
+import { GUARD_NUMBERS, AGENT_ID, tenantSystemPrompt } from '../../../../lib/agent/cervello'
+import { persistTurnMemory } from '../../../../lib/tenant/agentContext'
+import { nomeCervello, eCervello } from '../../../../lib/agent/cervelloChat'
 
-// Ack umano: variato, come scriverebbe un collega mentre va a controllare.
-const ACKS = ['Aspetta che guardo…', 'Un attimo, controllo…', 'Ci sto guardando adesso…', 'Dammi due secondi che apro i dati…']
-const ACK_FALLBACK = () => ACKS[Math.floor(Math.random() * ACKS.length)]
+// Il Cervello in LyftTalk (20 ott 2026: la Squadra AI non c'e' piu', resta solo lui).
+// Chi scrive "@Cervello …" in un canale riceve la risposta li', dallo stesso Cervello del
+// pulsante flottante: stesso carattere, stessa memoria, stessi strumenti sui dati.
+// Prima un messaggio breve ("controllo…") cosi' il canale non resta muto, poi la risposta.
 
-// Genera la risposta di un agente del team a una menzione in un canale LyftTalk,
-// e la posta nel canale come messaggio dell'agente. Chiamato dal frontend dopo
-// che un utente ha scritto un messaggio che nomina un agente.
+const ACKS = {
+  it: ['Un attimo, controllo i numeri…', 'Ci guardo subito…', 'Apro i dati e ti dico…'],
+  en: ['One moment, checking the numbers…', 'Looking into it…', 'Opening the data…'],
+  es: ['Un momento, reviso los números…', 'Lo miro ahora…', 'Abro los datos…'],
+  fr: ['Un instant, je regarde les chiffres…', 'Je regarde tout de suite…', 'J’ouvre les données…'],
+  de: ['Einen Moment, ich prüfe die Zahlen…', 'Ich schaue gleich nach…', 'Ich öffne die Daten…'],
+}
+const ERRORE = {
+  it: 'Non riesco a leggere i dati in questo momento: riprova tra poco.',
+  en: 'I can’t read the data right now: please try again shortly.',
+  es: 'Ahora mismo no puedo leer los datos: inténtalo de nuevo en un rato.',
+  fr: 'Je n’arrive pas à lire les données pour le moment : réessaie dans un instant.',
+  de: 'Ich kann die Daten gerade nicht lesen: versuch es gleich noch einmal.',
+}
+const lingua = (l) => (ACKS[String(l || '').slice(0, 2)] ? String(l).slice(0, 2) : 'it')
 
 export async function POST(req) {
   const ws = await resolveWorkspace()
@@ -29,11 +44,10 @@ export async function POST(req) {
   try { b = await req.json() } catch {}
   const channelId = b.channel_id
   if (!channelId) return NextResponse.json({ ok: false, error: 'channel_id mancante' }, { status: 400 })
+  const l = lingua(b.locale)
+  const nome = nomeCervello(l)
 
-  // L'agente: esplicito dal frontend, altrimenti rilevato dall'ultimo messaggio.
-  let agent = getTeamAgent(b.agentId)
-
-  // Ultimi messaggi del canale per dare contesto alla risposta.
+  // Ultimi messaggi del canale: il contesto della conversazione.
   const { data: rows } = await admin
     .from('channel_messages')
     .select('author_id, author_name, body, created_at')
@@ -43,158 +57,62 @@ export async function POST(req) {
     .limit(14)
   const recent = (rows || []).reverse().filter(m => m.body)
 
-  // Quale agente risponde:
-  // 1) agentId esplicito, 2) nome menzionato nell'ultimo messaggio,
-  // 3) CONTINUA la conversazione con l'ultimo agente che ha scritto (author_id null).
-  if (!agent) {
-    const last = [...recent].reverse().find(m => m.body)
-    agent = findMentionedAgent(last?.body || '')
-  }
-  if (!agent) {
-    const lastAgentMsg = [...recent].reverse().find(m => !m.author_id && m.author_name)
-    if (lastAgentMsg) agent = findMentionedAgent(lastAgentMsg.author_name)
-  }
-  if (!agent) return NextResponse.json({ ok: false, error: 'Nessun agente in conversazione' }, { status: 400 })
-
-  const tag = `${agent.name} · ${agent.role}`
-  // Mappa lo storico canale in conversazione: i messaggi dell'agente = assistant,
-  // tutto il resto = user (prefissato col nome di chi scrive).
+  // I messaggi del Cervello (author_id nullo + uno dei suoi nomi) sono "assistant",
+  // tutto il resto "user", col nome di chi scrive davanti.
   const conversation = recent.map(m => (
-    m.author_name === tag
+    !m.author_id && eCervello(m.author_name)
       ? { role: 'assistant', content: m.body }
       : { role: 'user', content: `${String(m.author_name || 'Utente').split(' ')[0]}: ${m.body}` }
   ))
   const lastUserMsg = [...conversation].reverse().find(m => m.role === 'user')?.content || ''
+  if (!lastUserMsg) return NextResponse.json({ ok: false, error: 'Nessuna domanda' }, { status: 400 })
 
   const origin = new URL(req.url).origin
   const cookie = req.headers.get('cookie') || ''
-  const H = cookie ? { cookie } : {}
 
-  // Posta un messaggio come l'agente nel canale.
   const post = async (text) => {
     const t = String(text || '').trim()
     if (!t) return null
     const { data } = await admin.from('channel_messages').insert({
-      channel_id: channelId, workspace_id: ws.workspaceId, author_id: null, author_name: tag, body: t,
+      channel_id: channelId, workspace_id: ws.workspaceId, author_id: null, author_name: nome, body: t,
     }).select('*').single()
     return data
   }
-  const done = (data) => NextResponse.json({ ok: !!data, message: data || null, agent: { id: agent.id, name: agent.name, role: agent.role } })
+
+  const ack = await post(ACKS[l][Math.floor(Math.random() * ACKS[l].length)])
 
   try {
-    // ── 1) TRIAGE veloce (senza dati): o risponde subito (chiacchiera), o manda
-    //      un ack immediato e poi va a cercare i dati. Evita l'attesa al buio.
-    const triage = await callBrain({
-      skill: { id: `team-${agent.id}`, systemPrompt: teamSkillPrompt(agent) },
-      query: lastUserMsg,
-      messages: conversation,
-      locale: b.locale || null,
-      temperature: 0.4,
-      liveTools: false, // ack immediato: mai tool live (25s) prima di rispondere
-      guardTail: 'Decidi in base all\'ultima richiesta. Se per rispondere ti servono DATI del brand (creative, campagne, adset, numeri, prodotti, performance, vendite…), NON dare ancora i dati: scrivi un messaggio breve e naturale che (a) risponde all\'eventuale parte social/saluto del messaggio (es. se chiede "come stai?": "Ciao! Tutto bene, grazie") e (b) dice che vai a controllare (es. "dammi un attimo, controllo le creative migliori 👀"). Se invece è SOLO un saluto/chiacchiera che NON richiede dati, rispondi direttamente e fai iniziare il messaggio ESATTAMENTE con "DIRETTO: " seguito dalla risposta breve.',
-    })
-    const tr = String(triage.content || '').trim()
-
-    // Chiacchiera/saluto → risposta diretta, una volta sola (veloce).
-    if (/^DIRETTO:/i.test(tr)) {
-      return done(await post(tr.replace(/^DIRETTO:\s*/i, '').trim()))
-    }
-
-    // Domanda che richiede dati → posta SUBITO l'ack, poi cerca i dati.
-    await post(tr || ACK_FALLBACK())
-
-    // ── 2) Dati reali (agent-context include già le creative con i nomi) ──
-    // Stessi DATI PRECISI per periodo + STRUMENTI live (snapshot condiviso).
+    // Strumenti live su qualsiasi dato. Il riassunto per periodo (call_context) lo rinfrescavano
+    // le call della Squadra, che non ci sono piu': lo si usa solo se ha meno di 3 ore, mai vecchio.
     let briefBlock = null, snapData = null
-    try { const snap = await readSnapshot(ws.workspaceId); if (snap?.data) { snapData = snap.data; briefBlock = buildBrief(snap.data) } } catch {}
-
-    let liveData = null, creativeBlock = ''
     try {
-      const ctxRes = await fetch(`${origin}/api/agent-context?preset=last_30d&days=30`, { cache: 'no-store', headers: H })
-      if (ctxRes.ok) liveData = await ctxRes.json()
+      const snap = await readSnapshot(ws.workspaceId)
+      const fresco = snap?.updatedAt && (Date.now() - new Date(snap.updatedAt).getTime()) < 3 * 3600e3
+      if (snap?.data && fresco) { snapData = snap.data; briefBlock = buildBrief(snap.data) }
     } catch {}
-    if (Array.isArray(liveData?.creatives) && liveData.creatives.length) {
-      const top = [...liveData.creatives].sort((a, b) => (Number(b.spend) || 0) - (Number(a.spend) || 0)).slice(0, 25)
-      creativeBlock = 'CREATIVE REALI di questo brand (nomi, performance, copy, CTA, prodotti — puoi citare SOLO questi):\n' + top.map(c => {
-        let line = `• "${c.name || '?'}" · adset "${c.adset || '?'}" · campagna "${c.campaign || '?'}" — spend €${Math.round(Number(c.spend) || 0)}, ROAS ${c.roas ?? '-'}, CTR ${c.ctr ?? '-'}%`
-        if (c.copy) line += `\n   copy: "${String(c.copy).replace(/\s+/g, ' ').slice(0, 220)}"`
-        if (c.cta || c.description) line += `\n   CTA: ${c.cta || '-'}${c.description ? ' · ' + c.description : ''}`
-        if (Array.isArray(c.products) && c.products.length) line += `\n   prodotti (carosello): ${c.products.map(p => p.name).filter(Boolean).slice(0, 6).join(', ')}`
-        return line
-      }).join('\n')
-    }
 
-    // ── 3) Risposta VERA con i dati ──
-    const { content: reply } = await callBrain({
-      skill: {
-        id: `team-${agent.id}`,
-        systemPrompt: teamSkillPrompt(agent),
-        guard: 'REGOLA CRITICA ANTI-INVENZIONE: ogni NOME (campagna, adset, creative, prodotto, flusso) e ogni numero/percentuale che citi DEVE essere presente LETTERALMENTE nei DATI LIVE o nel blocco CREATIVE REALI. È VIETATO inventare o ipotizzare nomi e numeri. Se proprio un dato non c\'è, dillo onestamente — NON inventare MAI.',
-      },
+    const { userId, content: reply } = await callBrain({
+      skill: { id: AGENT_ID, systemPrompt: await tenantSystemPrompt(), guard: GUARD_NUMBERS },
       query: lastUserMsg,
-      data: liveData,
-      dataLabel: 'DATI LIVE (numeri e nomi REALI del brand — puoi citare SOLO questi):',
-      dataMax: 70000,
       extraSystem: [
         ...(briefBlock ? [{ role: 'system', content: briefBlock }] : []),
-        ...(creativeBlock ? [{ role: 'system', content: creativeBlock }] : []),
+        { role: 'system', content: 'STRUMENTI LIVE su QUALSIASI dato del software: get_kpis (ogni KPI, ogni periodo), list_creatives/list_adsets (Meta), get_google_campaigns, get_search_console, get_email_marketing, get_pnl, get_cro, get_customers, get_ga4_traffic, get_incrementality, get_inventory, get_ltv, list_products, list_tasks, get_time_tracking. È VIETATO rispondere "non ho il dato" senza aver PRIMA chiamato lo strumento pertinente. Ogni risultato include istruzioni "jit": seguile.' },
       ],
       messages: conversation,
-      locale: b.locale || null,
+      locale: l,
       temperature: 0.3,
-      // Tool LIVE multi-tenant (cookie della sessione che ha scritto in chat)
       tools: ALL_TOOLS,
       onToolCall: (n, a) => executeToolLive(n, a, { origin, cookie, snapshot: snapData }),
-      guardTail: 'Hai GIÀ salutato e risposto al social nel messaggio precedente ("dammi un attimo, controllo…"). ORA dai SOLO la risposta vera e diretta sui dati, come una continuazione naturale: NON risalutare, NON ringraziare di nuovo, niente un secondo saluto. Vai dritto al risultato. Sei in chat (LyftTalk): 1-3 frasi brevi, naturale, niente riassunti del ruolo né elenchi. Hai STRUMENTI LIVE per qualsiasi dato del software (get_kpis, list_creatives, list_adsets, get_google_campaigns, get_search_console, get_incrementality, get_inventory, get_ltv, list_tasks, get_time_tracking, list_products): usali quando servono e segui le istruzioni "jit" nei risultati.',
+      guardTail: `Sei il ${nome} e rispondi in una chat di team (LyftTalk), dove possono scrivere più persone: rivolgiti a chi ti ha chiamato per primo nome. Hai già scritto "controllo…": NON salutare, vai dritto alla risposta. Breve: 1-4 frasi, niente titoli, al massimo un elenco corto se serve davvero.`,
     })
-    const answerMsg = await post(reply)
-
-    // ── 4) Allega le IMMAGINI delle creative menzionate (o richieste) ──
-    try {
-      const creatives = Array.isArray(liveData?.creatives)
-        ? liveData.creatives.filter(c => c.image || (Array.isArray(c.products) && c.products.length))
-        : []
-      if (creatives.length) {
-        const r = String(reply || '')
-        let toShow = creatives.filter(c => c.name && r.includes(c.name))
-        const wantsImages = /mostr|fammi veder|farmi veder|vedere|immagin|allega|screenshot|come sono fatt|fammele/i.test(lastUserMsg)
-        if (wantsImages && toShow.length === 0) {
-          toShow = [...creatives].sort((a, b) => (Number(b.spend) || 0) - (Number(a.spend) || 0))
-        }
-        const insertImg = (body, fileUrl) => admin.from('channel_messages').insert({
-          channel_id: channelId, workspace_id: ws.workspaceId, author_id: null, author_name: tag,
-          body, file_url: fileUrl, file_type: 'image/jpeg', file_name: 'creative.jpg',
-        })
-        let imgCount = 0
-        const MAX = 6
-        for (const c of toShow) {
-          if (imgCount >= MAX) break
-          if (Array.isArray(c.products) && c.products.length) {
-            // Carosello/DPA → immagini dei singoli PRODOTTI (CDN Shopify, stabile)
-            for (const p of c.products) {
-              if (imgCount >= MAX || !p.image) continue
-              await insertImg(`${c.name || 'Creative'} — ${p.name || ''}${p.price ? ' · ' + p.price : ''}`, p.image)
-              imgCount++
-            }
-          } else if (c.image) {
-            await insertImg(c.name || 'Creative', c.image)
-            imgCount++
-          }
-        }
-      }
-    } catch {}
-
-    return done(answerMsg)
+    const answer = await post(reply)
+    if (userId && reply) {
+      waitUntil(Promise.resolve(persistTurnMemory({ agentId: AGENT_ID, userId, userMessage: lastUserMsg, assistantMessage: reply })).catch(() => {}))
+    }
+    return NextResponse.json({ ok: !!answer, messages: [ack, answer].filter(Boolean) })
   } catch (e) {
-        // L'agente aveva detto "un attimo, controllo" e poi restava muto per
-    // sempre: ora l'errore diventa un messaggio nel canale.
-    try {
-      await admin.from('channel_messages').insert({
-        channel_id: channelId, workspace_id: ws.workspaceId, author_id: null,
-        author_name: agent?.name || 'Agente',
-        body: 'Non riesco a recuperare i dati in questo momento — riprova tra poco.',
-      })
-    } catch {}
-    return NextResponse.json({ ok: false, error: e?.message || 'Errore' })
+    // Aveva detto "controllo…": l'errore diventa un messaggio, mai un silenzio.
+    const err = await post(ERRORE[l])
+    return NextResponse.json({ ok: false, error: e?.message || 'Errore', messages: [ack, err].filter(Boolean) })
   }
 }

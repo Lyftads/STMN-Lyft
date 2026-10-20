@@ -8,6 +8,8 @@ import { NewChannelDialog, ChannelMembersDialog } from './ChatDialogs'
 import { renderMarkdown } from './chatMarkdown'
 import Avvisi from './ui/Avvisi'
 import { useI18n } from '../../lib/i18n/I18nProvider'
+import { getClientLocale } from '../../lib/i18n/clientLocale'
+import { nomeCervello, eCervello, chiamaIlCervello, AVATAR_CERVELLO } from '../../lib/agent/cervelloChat'
 
 // Estetica minimale/futuristica, coerente col resto del software (glass + var CSS).
 const PANEL = { background: 'var(--glass, rgba(18,18,28,0.55))', border: '1px solid var(--border, rgba(255,255,255,0.08))', borderRadius: 16, backdropFilter: 'blur(14px)' }
@@ -56,6 +58,7 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
   const [manageMemberIds, setManageMemberIds] = useState([])
   const [replyTo, setReplyTo] = useState(null)
   const [sendError, setSendError] = useState('')
+  const [cervelloScrive, setCervelloScrive] = useState(false)
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [mentionOpen, setMentionOpen] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -207,6 +210,29 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
       return
     }
     setSendError('')
+    // Il Cervello risponde nel canale se lo chiami con @Cervello, oppure se la tua e' la
+    // risposta a lui entro 3 minuti (si continua a parlarci senza richiamarlo ogni volta).
+    const prec = messages[messages.length - 1]
+    const continua = !!(prec && !prec.author_id && eCervello(prec.author_name) &&
+      (Date.now() - new Date(prec.created_at).getTime()) < 3 * 60000)
+    if (chiamaIlCervello(body) || continua) {
+      setCervelloScrive(true)
+      fetch('/api/team/channel-reply', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel_id: active, locale: getClientLocale() }),
+      })
+        .then(x => x.json()).catch(() => ({}))
+        .then(j => {
+          // Le risposte arrivano col risultato: si dipingono subito, senza aspettare il poll.
+          const fresh = (Array.isArray(j?.messages) ? j.messages : []).filter(m => m?.id && !seenRef.current.has(m.id))
+          if (fresh.length) {
+            fresh.forEach(m => seenRef.current.add(m.id))
+            lastAtRef.current = fresh[fresh.length - 1].created_at || lastAtRef.current
+            setMessages(prev => [...prev, ...fresh]); scrollBottom()
+          }
+        })
+        .finally(() => setCervelloScrive(false))
+    }
   }
 
   function reloadMembers() { fetch('/api/team-members', { cache: 'no-store' }).then(r => r.json()).then(d => setMembers(d.members || [])).catch(() => {}) }
@@ -452,7 +478,9 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
   const mentionPool = (activeChannel && (activeChannel.is_private || activeChannel.is_dm) && activeMemberIds.length)
     ? members.filter(m => activeMemberIds.includes(m.id))
     : members
-  const mentionList = [...mentionPool].filter(m => { const n = (m.full_name || m.email || '').toLowerCase(); return !mentionQuery || n.includes(mentionQuery.toLowerCase()) }).slice(0, 12)
+  // Il Cervello e' sempre menzionabile, in cima alla lista.
+  const cervello = { id: 'cervello', full_name: nomeCervello(getClientLocale()), avatar_url: AVATAR_CERVELLO, isAgent: true }
+  const mentionList = [cervello, ...mentionPool].filter(m => { const n = (m.full_name || m.email || '').toLowerCase(); return !mentionQuery || n.includes(mentionQuery.toLowerCase()) }).slice(0, 12)
   const shownMessages = searchQ.trim() ? messages.filter(m => (m.body || '').toLowerCase().includes(searchQ.trim().toLowerCase())) : messages
   const sharedFiles = messages.filter(m => m.file_url || m.audio_url)
   const channelUnread = (ch) => { const last = lastAt[ch.id]; if (!last) return false; let read = null; try { read = localStorage.getItem('chread_' + ch.id) } catch {}; return ch.id !== active && (!read || last > read) }
@@ -470,7 +498,7 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
     const mem = memberMap[m.author_id]
     return (
       <div key={m.id} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '6px 0' }}>
-        <Avatar name={mem?.full_name || m.author_name} url={mem?.avatar_url} size={30} online={mem ? isOnline(mem) : undefined} />
+        <Avatar name={mem?.full_name || m.author_name} url={mem?.avatar_url || (!m.author_id && eCervello(m.author_name) ? AVATAR_CERVELLO : undefined)} size={30} online={mem ? isOnline(mem) : undefined} />
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontSize: 13, color: MUTED }}><b style={{ color: 'var(--text)' }}>{mem?.full_name || m.author_name || tr('ch.user', null, 'User')}</b> · {new Date(m.created_at).toLocaleString(intlLocale, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
           {m.body && <div className="ch-corpo" style={{ fontSize: 15, color: '#e8e8e8', lineHeight: 1.5, wordBreak: 'break-word' }} dangerouslySetInnerHTML={{ __html: renderMarkdown(m.body) }} />}
@@ -669,7 +697,7 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
                     setMsgMenu({ x: e.clientX, y: e.clientY, m, mine })
                   }}
                   style={{ position: 'relative', display: 'flex', gap: 10, alignItems: 'flex-start', padding: '7px 10px', borderRadius: 12 }}>
-                  <Avatar name={mem?.full_name || m.author_name || mem?.email} url={mem?.avatar_url} size={34} online={mem ? isOnline(mem) : undefined} />
+                  <Avatar name={mem?.full_name || m.author_name || mem?.email} url={mem?.avatar_url || (!m.author_id && eCervello(m.author_name) ? AVATAR_CERVELLO : undefined)} size={34} online={mem ? isOnline(mem) : undefined} />
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ fontSize: 13, color: MUTED }}>
                       <b style={{ color: 'var(--text)' }}>{mem?.full_name || m.author_name || tr('ch.user', null, 'User')}</b> · {new Date(m.created_at).toLocaleString(intlLocale, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
@@ -781,10 +809,10 @@ export default function ChatTab({ standalone = false, initialChannelId = null, h
               {/* Input con evidenziazione menzioni */}
               <div style={{ position: 'relative' }}>
                 <div aria-hidden style={{ position: 'absolute', inset: 0, padding: '10px 12px', fontSize: 15, fontFamily: 'inherit', lineHeight: 1.45, color: '#e8e8e8', whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflow: 'hidden', pointerEvents: 'none' }} dangerouslySetInnerHTML={{ __html: highlightComposer(text) }} />
-                {/* L'invio fallito si vede subito, sotto al campo. */}
-                {sendError && (
-                  <div style={{ padding: '6px 14px', fontSize: 13, color: '#fca5a5', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {sendError}
+                {/* Sotto al campo, due cose da vedere subito: il Cervello che scrive e l'invio fallito. */}
+                {(cervelloScrive || sendError) && (
+                  <div style={{ padding: '6px 14px', fontSize: 13, color: sendError ? '#fca5a5' : 'var(--text3)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {sendError || tr('chat.brainTyping', { name: nomeCervello(getClientLocale()) }, '{name} sta scrivendo…')}
                   </div>
                 )}
 

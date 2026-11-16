@@ -9,7 +9,7 @@ import { ComportamentoClienti, VenditePerProdotto } from './components/Dashboard
 import { rangeLabel } from './components/ui/BmTimeframe'
 import { Kpi, coloreFamiglia } from './components/ui/Mattoni'
 import { soldi } from '../lib/client/soldi'
-import { localeNumeri, sepDecimali } from '../lib/client/numeri'
+import { localeNumeri, sepDecimali, perc as percento } from '../lib/client/numeri'
 import { useState, useEffect, useCallback, useRef } from 'react'
 
 // anti-race fetchLive: la risposta di un preset vecchio non sovrascrive l'attivo
@@ -32,6 +32,7 @@ import FloatingBrain from './components/FloatingBrain'
 import MatriceReport from './components/ui/MatriceReport'
 import { useI18n } from '../lib/i18n/I18nProvider'
 import DriveToStoreCard from './components/DriveToStoreCard'
+import { useUtileNetto } from '../lib/client/utileNetto'
 import { TelemetriaGlobo, MossePilota } from './components/MissionControl'
 import ReportFilm from './components/ReportFilm'
 // La fascia "hai superato gli ordini del piano" e' montata sopra OGNI tab: rimandarla a un
@@ -3067,6 +3068,18 @@ export default function App() {
   const totGoog  = googleAuto.configured ? (periodTotals.googleSpend || 0) : sumMonthly('googleSpend')
   const totSpend = totMeta + totGoog
 
+  // ── Utile netto del periodo (Dashboard e KPI Brain) ──
+  // Stesso conto della tab Conto economico, ma sul periodo scelto in alto. Su «Oggi» niente
+  // confronto: quello degli altri riquadri e' con ieri ALLA STESSA ORA, e l'utile a pari ora
+  // non si puo' ricostruire — contro la giornata intera di ieri sarebbe sempre «in calo».
+  const utileNetto = useUtileNetto({
+    range: kpiRange, prevRange: kpiPrevRange,
+    spesa: totSpend, spesaPrima: (prevTotals.metaSpend || 0) + (prevTotals.googleSpend || 0),
+    marketplace: koongoFat, marketplacePrima: prevTotals.koongo || 0,
+    confronto: preset !== 'today',
+    attivo: tab === 'dashboard' || tab === 'kpiBrain', sveglia: tab,
+  })
+
   const avgAOV   = totOrd > 0 ? totFat   / totOrd : 0
   const avgAOVNC = totNC  > 0 ? totFatNC / totNC  : 0
   const avgAOVRC = totRC  > 0 ? totFatRC / totRC  : 0
@@ -3133,8 +3146,41 @@ export default function App() {
     cac: { conto: [{ nome: t('dash.totalSpend', null, 'Spesa totale'), valore: f0(totSpend), fonti: ['meta', 'google'] }, { segno: '÷', nome: t('dash.newCustomers', null, 'Nuovi clienti'), valore: fn(totNC), fonti: ['shopify'] }], nota: t('sn.nCac', null, 'Quanto costa in pubblicità acquisire un cliente nuovo. Più basso è meglio.'), formatta: f2, prima: { valore: prevTotals.nc > 0 && prevSpesa > 0 ? f2(prevSpesa / prevTotals.nc) : null, etichetta: etPrima } },
     meta: { nota: t('sn.nMeta', null, 'Spesa delle campagne Meta nel periodo, senza le campagne Drive to Store (negozi fisici).'), serie: settimane(metaWeeklyAll, 'spend'), formatta: f0, prima: { valore: prevTotals.metaSpend > 0 ? f0(prevTotals.metaSpend) : null, etichetta: etPrima } },
     google: { nota: t('sn.nGoogle', null, 'Spesa delle campagne Google Ads nel periodo.'), formatta: f0, prima: { valore: prevTotals.googleSpend > 0 ? f0(prevTotals.googleSpend) : null, etichetta: etPrima } },
+    utile: (() => {
+      const c = utileNetto.conto
+      if (!c || c.utile == null) return null
+      const e = (v) => soldi(v, 0)
+      const meno = (nome, valore, fonti) => ({ segno: '−', nome, valore: e(valore), fonti })
+      return {
+        conto: [
+          { nome: t('pnl.lineNet', null, 'Ricavi netti (ex-IVA)'), valore: e(c.net), fonti: ['shopify'] },
+          meno(t('pnl.lineCogs', null, 'COGS (costo prodotti)'), c.cogs, ['shopify']),
+          meno(t('pnl.lineAds', null, 'Advertising'), c.pubblicita, ['meta', 'google']),
+          meno(t('pnl.lineFee', null, 'Fee gateway'), c.fee),
+          c.feeMarketplace > 0 && meno(t('pnl.lineMarketplaceFee', { pct: c.pctMarketplace }, `Commissioni marketplace (${c.pctMarketplace}%)`), c.feeMarketplace),
+          c.imballo > 0 && meno(t('pnl.linePackaging', null, 'Packaging'), c.imballo),
+          c.spedizioni > 0 && meno(t('pnl.lineShipping', null, 'Spedizione (corriere)'), c.spedizioni),
+          c.fissi > 0 && meno(t('pnl.lineFixed', null, 'Costi fissi (OPEX)'), c.fissi),
+        ].filter(Boolean),
+        nota: t('sn.nNetProfit', null, 'Quello che resta dei ricavi senza IVA dopo TUTTI i costi: prodotti, pubblicità, commissioni, imballo, spedizioni e costi fissi. È lo stesso conto della tab Conto economico, fatto sul periodo scelto: i costi fissi mensili si contano in proporzione ai giorni. Imposte sul reddito escluse.')
+          + (c.cogsMancante ? ' ' + t('sn.nNetProfitNoCogs', null, 'ATTENZIONE: su Shopify non risulta nessun costo dei prodotti, quindi qui non è stato tolto. Inseriscilo su Shopify o nelle impostazioni del Conto economico.') : '')
+          + (c.feeStimata ? ' ' + t('sn.nNetProfitFeeEst', null, 'Le commissioni di pagamento sono stimate con le percentuali impostate nel Conto economico.') : ''),
+        formatta: e,
+        prima: { valore: utileNetto.prima != null ? e(utileNetto.prima) : null, etichetta: etPrima },
+      }
+    })(),
     spesa: { conto: [{ nome: t('dash.metaSpend', null, 'Spesa Meta'), valore: f0(totMeta), fonti: ['meta'] }, { segno: '+', nome: t('dash.googleSpendFull', null, 'Spesa Google'), valore: f0(totGoog), fonti: ['google'] }], nota: t('sn.nSpend', null, 'Tutta la pubblicità online del periodo.'), formatta: f0, prima: { valore: prevSpesa > 0 ? f0(prevSpesa) : null, etichetta: etPrima } },
   }
+
+  // ── Utile netto: una scheda sola, in Dashboard e in KPI Brain ──
+  const schedaUtile = (
+    <Stat spiega={SN.utile || undefined} label={t('dash.netProfit', null, 'Utile netto')} sources={['shopify','meta','google']}
+          value={utileNetto.utile != null ? soldi(utileNetto.utile, 0) : '—'}
+          sub={utileNetto.conto?.cogsMancante ? t('dash.netProfitNoCogs', null, 'manca il costo dei prodotti')
+            : utileNetto.pct != null ? t('dash.netProfitSub', { p: percento(utileNetto.pct, 1) }, `${percento(utileNetto.pct, 1)} dei ricavi netti · dopo tutti i costi`)
+            : t('dash.netProfitAfter', null, 'dopo tutti i costi')}
+          current={utileNetto.utile} previous={utileNetto.prima} />
+  )
 
   // ── Cio' che e' uscito dalla Dashboard e sta in cima a KPI Brain: niente si e' perso ─────────
   const totSess = hasSr ? Number(sr.sessions || 0) : (periodTotals.sessions || 0)
@@ -3162,6 +3208,11 @@ export default function App() {
         <Stat spiega={SN.spesa} label={t('dash.totalSpend', null, 'Spesa totale')} value={totSpend>0?f0(totSpend):'—'} sources={['meta','google']} sub="Meta + Google" />
         <Stat spiega={SN.ratio} label={t('dash.ratioLtvCacLabel', null, 'Ratio LTV:CAC')} value={avgRatio != null ? `${fr(avgRatio)}:1` : '—'} sources={['shopify','meta','google']}
               sub={t('dash.ratioStatus.' + ratioStatus(avgRatio), null, ratioLabel(avgRatio))} />
+      </div>
+      <div className="stagger-zoom m-grid2" style={{display:'grid',gridTemplateColumns:'repeat(2, minmax(0, 1fr))',gap:14,marginBottom:14}}>
+        {schedaUtile}
+        <Stat label={t('dash.netMargin', null, 'Margine netto')} value={utileNetto.pct != null ? percento(utileNetto.pct, 1) : '—'} sources={['shopify','meta','google']}
+              sub={t('dash.netMarginSub', null, 'Utile netto ÷ ricavi senza IVA')} />
       </div>
       {koongoFat > 0 && (
             <div className="stagger-zoom m-grid2" style={{display:'grid',gridTemplateColumns:'repeat(2, minmax(0, 1fr))',gap:14,marginBottom:20}}>
@@ -3231,6 +3282,7 @@ export default function App() {
               <MossePilota />
               <LiveStatsCards solo="visitatori" />
               <div className="lv-griglia">
+                <div style={{ gridColumn: '1 / -1' }}>{schedaUtile}</div>
                 <Stat label={t('dash.sessions', null, 'Sessioni')} value={totSess > 0 ? fn(totSess) : '—'} sources={['shopify']}
                   current={totSess} previous={prevTotals.sessions} />
                 <Stat spiega={SN.ordini} label={t('dash.orders', null, 'Ordini')} value={totOrd>0?fn(totOrd):'—'} sources={['shopify']}

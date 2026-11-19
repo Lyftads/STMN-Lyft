@@ -71,11 +71,14 @@
 
   /* ——— la conversazione: stato della voce, risposta, domanda ——— */
   .conv { gap: 16px; }
-  .conv-testa { display: flex; align-items: center; gap: 14px; min-width: 0; }
+  /* (19 nov) Il cervello di Lyft è il protagonista: grande, al centro, con lo stato della voce sotto. */
+  .conv-testa { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; min-width: 0; position: relative; padding: 4px 0 2px; }
   .hero { flex: none; }
-  .scena { width: 64px; height: 64px; }
+  .scena { width: min(340px, 70vw); height: min(340px, 70vw); }
+  .conv-testa .stato-sistema { position: absolute; top: 0; right: 0; }
+  .conv-testa .cm-voce-stato { justify-content: center; }
   #particelle { display: block; width: 100%; height: 100%; }
-  .lato-voce { flex: 1; min-width: 0; }
+  .lato-voce { flex: none; min-width: 0; }
   .titoletto { font-size: 10px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--text3); }
   .cm-voce-stato { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; color: var(--text); margin-top: 2px; }
   .cm-voce-stato::before { content: ""; width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--green); }
@@ -232,9 +235,9 @@
     .righe li:nth-child(2) { border-top: 1px solid var(--border); padding-top: 9px; }
     .cmd-griglia { grid-template-columns: minmax(0, 1fr); }
     .conv-testa { flex-wrap: wrap; }
-    .lato-voce { flex-basis: calc(100% - 80px); }
+    .conv-testa .stato-sistema { position: static; order: 3; }
     .stato-sistema { max-width: 100%; }
-    .scena { width: 56px; height: 56px; }
+    .scena { width: min(250px, 66vw); height: min(250px, 66vw); }
     .scrivi { flex-basis: calc(100% - 48px); min-width: 0; }
     .parla { flex: 1; justify-content: center; }
     .gauge, .gauge svg { width: 84px; } .gauge svg, .gauge b { height: 84px; }

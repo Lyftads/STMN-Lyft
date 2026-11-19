@@ -1199,7 +1199,7 @@ export default function SettingsTab() {
           {t('gdpr.title', null, 'Privacy e dati (GDPR)')}
         </div>
         <div style={{ fontSize: 12.5, color: 'var(--text3)', marginTop: 6, lineHeight: 1.5 }}>
-          {t('gdpr.controller', null, 'Titolare del trattamento: Lyft SRL · Via Corso Giuseppe Mazzini 223, San Benedetto del Tronto (AP) 63074 · P.IVA IT02600730440 · info@lyftads.agency')}
+          {t('gdpr.controller', null, 'Titolare del trattamento: Marino Catasta · Via Santa Rita 8, 63074 San Benedetto del Tronto (AP) · P.IVA IT02542880444 · info@marinocatasta.it')}
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16 }}>
           <a href="/api/account/export" style={{ padding: '10px 18px', borderRadius: 10, fontSize: 13, fontWeight: 800, textDecoration: 'none', background: 'var(--glass)', border: '1px solid var(--border)', color: 'var(--text)' }}>
@@ -1221,8 +1221,8 @@ export default function SettingsTab() {
               try {
                 const r = await fetch('/api/account/delete', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ confirm: 'ELIMINA' }) })
                 if (r.ok) { window.location.href = '/login' }
-                else { alert(t('gdpr.deleteErr', null, 'Errore durante la cancellazione. Riprova o scrivici a info@lyftads.agency.')) }
-              } catch { alert(t('gdpr.deleteErr', null, 'Errore durante la cancellazione. Riprova o scrivici a info@lyftads.agency.')) }
+                else { alert(t('gdpr.deleteErr', null, 'Errore durante la cancellazione. Riprova o scrivici a info@marinocatasta.it.')) }
+              } catch { alert(t('gdpr.deleteErr', null, 'Errore durante la cancellazione. Riprova o scrivici a info@marinocatasta.it.')) }
             }}
             style={{ padding: '10px 18px', borderRadius: 10, fontSize: 13, fontWeight: 800, cursor: 'pointer', background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.4)', color: '#f87171' }}
           >

@@ -64,7 +64,7 @@ export async function POST(req) {
   const endHHMMSS = `${pad(Math.floor(endMin / 60) % 24)}${pad(endMin % 60)}00`
 
   const jitsi = `https://meet.jit.si/LyftAI-Team-${ws.workspaceId.slice(0, 8)}`
-  const org = process.env.REPORT_FROM_EMAIL || process.env.REPLY_TO || 'info@lyftads.agency'
+  const org = process.env.REPORT_FROM_EMAIL || process.env.REPLY_TO || 'info@marinocatasta.it'
 
   // Destinatari: membri attivi non-guest con email.
   const { data: members } = await admin.from('team_members')

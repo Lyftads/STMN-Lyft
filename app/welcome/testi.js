@@ -278,7 +278,7 @@ const it = {
     invio: 'Invio…',
     fattoTitolo: 'Messaggio arrivato.',
     fattoTesto: 'Ti rispondiamo entro 24 ore via email.',
-    avvertenza: 'I dati vanno a LYFT SRL e servono solo per risponderti. Nessuna newsletter.',
+    avvertenza: 'I dati vanno a Marino Catasta e servono solo per risponderti. Nessuna newsletter.',
   },
   chiusura: {
     titolo: 'Smetti di indovinare.',
@@ -593,7 +593,7 @@ const en = {
     invio: 'Sending…',
     fattoTitolo: 'Message received.',
     fattoTesto: 'We’ll reply by email within 24 hours.',
-    avvertenza: 'Your details go to LYFT SRL and are used only to reply to you. No newsletter.',
+    avvertenza: 'Your details go to Marino Catasta and are used only to reply to you. No newsletter.',
   },
   chiusura: {
     titolo: 'Stop guessing.',
@@ -909,7 +909,7 @@ const es = {
     invio: 'Enviando…',
     fattoTitolo: 'Mensaje recibido.',
     fattoTesto: 'Te respondemos por email en menos de 24 horas.',
-    avvertenza: 'Los datos van a LYFT SRL y solo sirven para responderte. Sin newsletter.',
+    avvertenza: 'Los datos van a Marino Catasta y solo sirven para responderte. Sin newsletter.',
   },
   chiusura: {
     titolo: 'Deja de adivinar.',
@@ -1229,7 +1229,7 @@ const fr = {
     invio: 'Envoi…',
     fattoTitolo: 'Message reçu.',
     fattoTesto: 'Nous vous répondons par email sous 24 heures.',
-    avvertenza: 'Vos données vont à LYFT SRL et servent uniquement à vous répondre. Pas de newsletter.',
+    avvertenza: 'Vos données vont à Marino Catasta et servent uniquement à vous répondre. Pas de newsletter.',
   },
   chiusura: {
     titolo: 'Arrêtez de deviner.',
@@ -1545,7 +1545,7 @@ const de = {
     invio: 'Wird gesendet…',
     fattoTitolo: 'Nachricht angekommen.',
     fattoTesto: 'Wir antworten dir innerhalb von 24 Stunden per E-Mail.',
-    avvertenza: 'Deine Daten gehen an LYFT SRL und dienen nur dazu, dir zu antworten. Kein Newsletter.',
+    avvertenza: 'Deine Daten gehen an Marino Catasta und dienen nur dazu, dir zu antworten. Kein Newsletter.',
   },
   chiusura: {
     titolo: 'Hör auf zu raten.',

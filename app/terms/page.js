@@ -55,7 +55,7 @@ export default function TermsOfService() {
           <p>{t('terms.p7', null, 'The merchant may stop using the Service at any time. We may suspend or close an account in case of breach of these Terms. Upon termination, access to connected platforms is revoked.')}</p>
 
           <h2 style={h2}>{t('terms.h8', null, '8. Contacts')}</h2>
-          <p><strong style={{ color: '#fff' }}>LYFT SRL</strong> — P. IVA 02600730440. {t('terms.p8', null, 'For requests regarding these Terms:')} <a href="mailto:info@lyftads.agency" style={{ color: BLUE }}>info@lyftads.agency</a></p>
+          <p><strong style={{ color: '#fff' }}>Marino Catasta</strong> — P. IVA 02542880444. {t('terms.p8', null, 'For requests regarding these Terms:')} <a href="mailto:info@marinocatasta.it" style={{ color: BLUE }}>info@marinocatasta.it</a></p>
 
           <p style={{ marginTop: 46, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>{t('legal.draftNote', null, 'This document is a technical draft and must be validated by a legal advisor before final publication.')}</p>
         </div>

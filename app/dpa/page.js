@@ -10,7 +10,7 @@ const h2 = { fontSize: 21, fontWeight: 800, marginTop: 38, marginBottom: 10, col
 const card = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: '14px 18px', margin: '12px 0' }
 
 // Pagina pubblica — Data Processing Agreement (Accordo sul trattamento dei dati,
-// art. 28 GDPR) tra il merchant (Titolare) e Lyft SRL (Responsabile).
+// art. 28 GDPR) tra il merchant (Titolare) e Marino Catasta (Responsabile).
 // ⚠️ BOZZA da far validare a un legale prima del go-live.
 export default function DPA() {
   const { t } = useI18n()
@@ -33,10 +33,10 @@ export default function DPA() {
         <div style={{ padding: '40px 0 80px' }}>
           <h1 style={{ fontSize: 34, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', marginBottom: 8 }}>{t('dpa.title', null, 'Data Processing Agreement (DPA)')}</h1>
           <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13.5, marginBottom: 8 }}>{t('dpa.updated', null, 'Last updated:')} {updated}</p>
-          <p>{t('dpa.intro', null, 'This Data Processing Agreement (“DPA”) governs the processing of personal data carried out by Lyft SRL (“Processor”) on behalf of the customer/merchant who uses LyftAI (“Controller”), pursuant to Article 28 of Regulation (EU) 2016/679 (“GDPR”). It forms an integral part of the Terms of Service.')}</p>
+          <p>{t('dpa.intro', null, 'This Data Processing Agreement (“DPA”) governs the processing of personal data carried out by Marino Catasta (“Processor”) on behalf of the customer/merchant who uses LyftAI (“Controller”), pursuant to Article 28 of Regulation (EU) 2016/679 (“GDPR”). It forms an integral part of the Terms of Service.')}</p>
 
           <h2 style={h2}>{t('dpa.h1', null, '1. Parties')}</h2>
-          <p><strong style={{ color: '#fff' }}>{t('dpa.processor', null, 'Processor')}:</strong> LYFT SRL — Via Corso Giuseppe Mazzini 223, San Benedetto del Tronto (AP) 63074 — P. IVA IT02600730440 — <a href="mailto:info@lyftads.agency" style={{ color: BLUE }}>info@lyftads.agency</a>.</p>
+          <p><strong style={{ color: '#fff' }}>{t('dpa.processor', null, 'Processor')}:</strong> Marino Catasta — Via Santa Rita 8, 63074 San Benedetto del Tronto (AP) — P. IVA IT02542880444 — <a href="mailto:info@marinocatasta.it" style={{ color: BLUE }}>info@marinocatasta.it</a>.</p>
           <p><strong style={{ color: '#fff' }}>{t('dpa.controller', null, 'Controller')}:</strong> {t('dpa.controllerDesc', null, 'the merchant/customer who connects their data sources and uses the LyftAI service.')}</p>
 
           <h2 style={h2}>{t('dpa.h2', null, '2. Subject matter, duration, nature and purpose')}</h2>
@@ -70,9 +70,9 @@ export default function DPA() {
           <p>{t('dpa.p9', null, 'Where personal data is transferred outside the EEA (e.g. to sub-processors hosted in the United States), such transfers are based on appropriate safeguards, including the European Commission’s Standard Contractual Clauses (SCCs) and supplementary measures where required.')}</p>
 
           <h2 style={h2}>{t('dpa.h10', null, '10. Contacts')}</h2>
-          <p>{t('dpa.p10', null, 'For any request related to this DPA:')} <a href="mailto:info@lyftads.agency" style={{ color: BLUE }}>info@lyftads.agency</a>.</p>
+          <p>{t('dpa.p10', null, 'For any request related to this DPA:')} <a href="mailto:info@marinocatasta.it" style={{ color: BLUE }}>info@marinocatasta.it</a>.</p>
 
-          <div style={card}>{t('dpa.signNote', null, 'By using the LyftAI service, the Controller accepts this DPA. A countersigned copy can be requested by writing to info@lyftads.agency.')}</div>
+          <div style={card}>{t('dpa.signNote', null, 'By using the LyftAI service, the Controller accepts this DPA. A countersigned copy can be requested by writing to info@marinocatasta.it.')}</div>
 
           <p style={{ marginTop: 46, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>{t('legal.draftNote', null, 'This document is a technical draft and must be validated by a legal advisor before final publication.')}</p>
         </div>

@@ -1041,10 +1041,10 @@ function Piede({ t }) {
           <div>
             <p className={s.piedeTitolo}>{p.azienda}</p>
             <ul className={s.nota} style={{ gap: 4 }}>
-              <li>LYFT SRL</li>
-              <li>Via Corso Giuseppe Mazzini 223</li>
-              <li>San Benedetto del Tronto (AP) 63074</li>
-              <li>P. IVA: 02600730440</li>
+              <li>Marino Catasta</li>
+              <li>Via Santa Rita 8</li>
+              <li>63074 San Benedetto del Tronto (AP)</li>
+              <li>P. IVA: 02542880444</li>
             </ul>
           </div>
           <div>
@@ -1062,7 +1062,7 @@ function Piede({ t }) {
         </div>
         <div className={s.piedeLogo}><ScrittaPuntini testo="LYFTAI" /></div>
         <div className={`${s.piedeSotto} ${s.nota}`}>
-          <span>© {new Date().getFullYear()} LYFT SRL. {p.diritti}</span>
+          <span>© {new Date().getFullYear()} Marino Catasta. {p.diritti}</span>
         </div>
       </div>
     </footer>

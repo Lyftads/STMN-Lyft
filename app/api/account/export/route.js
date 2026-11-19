@@ -41,7 +41,7 @@ export async function GET() {
     brandIdentity: company?.brand_identity || null,
     brandAssets: Array.isArray(company?.brand_assets) ? company.brand_assets : [],
     connectedIntegrations: [...new Set(connectedIntegrations)],
-    note: 'Token e credenziali di accesso sono esclusi per sicurezza. Titolare: Lyft SRL — info@lyftads.agency.',
+    note: 'Token e credenziali di accesso sono esclusi per sicurezza. Titolare: Marino Catasta — info@marinocatasta.it.',
   }
 
   return new NextResponse(JSON.stringify(payload, null, 2), {

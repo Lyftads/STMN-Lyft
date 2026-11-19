@@ -68,6 +68,7 @@ const PRESETS = [
 ]
 
 export default function AppShell({
+  fissi = null,   // tab che restano montate anche quando non sono in vista (vedi page.js)
   tab = 'dashboard',
   setTab,
   live,
@@ -269,6 +270,15 @@ export default function AppShell({
         { id: 'incrCurves', label: 'Curve di risposta', icon: <Icon name="chart-line" /> },
         { id: 'incrSimulator', label: 'Simulatore budget', icon: <Icon name="gauge" /> },
         { id: 'geolift', label: 'Geo-lift', icon: <Icon name="target" /> },
+      ],
+    },
+    {
+      title: 'Studio',
+      color: 'var(--accent)',
+      items: [
+        { id: 'lyft', label: 'Lyft', icon: <Icon name="star" /> },
+        { id: 'motoreCreativo', label: 'Motore Creativo', icon: <Icon name="image" /> },
+        { id: 'squadra', label: 'Squadra agent', icon: <Icon name="users" /> },
       ],
     },
     {
@@ -702,6 +712,9 @@ export default function AppShell({
           <TabContent key={tab}>
             {children}
           </TabContent>
+          {/* Fuori dal contenitore qui sopra, che ha key={tab} e quindi si ricrea a ogni cambio: queste
+              restano vive, e mostrarle o nasconderle non le ricarica. */}
+          {fissi}
         </div>
       </main>
       <RicercaRapida gruppi={groups} onVai={goTo} t={t} azioni={[

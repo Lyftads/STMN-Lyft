@@ -1,0 +1,218 @@
+{
+  "aggiornato": "2026-11-06",
+  "metodo": [
+    {
+      "titolo": "Struttura",
+      "testo": "Buyer persona → un cluster di pubblico per ogni angolo → due avatar per cluster, diversi per genere, età, città, abitudini e situazione → per ogni avatar tutti i 10 formati."
+    },
+    {
+      "titolo": "Ogni creatività completamente diversa",
+      "testo": "In un lotto non basta cambiare formato e testo: cambiano anche scena, ambiente, persone, inquadratura, luce, composizione e trattamento grafico. Andromeda abbina inserzioni e persone leggendo come è fatta l'immagine: varianti dello stesso annuncio contano come un annuncio solo."
+    },
+    {
+      "titolo": "Headline e copy",
+      "testo": "Devono richiamare un sentimento, un problema e una soluzione. La headline è un gancio, non un'etichetta."
+    },
+    {
+      "titolo": "Doppio formato",
+      "testo": "Ogni creatività esce quadrata 1080 × 1080 e verticale 1080 × 1920."
+    },
+    {
+      "titolo": "Template",
+      "testo": "I template scaricati sono schemi di impaginazione: vanno sempre riadattati a colori, logo, prodotti, headline e offerte di Saracino, mai usati così come sono."
+    },
+    {
+      "titolo": "Niente città nei testi",
+      "testo": "Headline, copy e CTA non nominano mai una città (7 nov 2026): non «consegnato a Torino» ma «consegnato dove vivi per lavoro». La città dell'avatar serve solo all'ambientazione della scena."
+    },
+    {
+      "titolo": "Noi vs loro: olio dal frantoio",
+      "testo": "Nel confronto il nostro lato si chiama «l'olio dal frantoio», mai «l'olio della nonna» (7 nov 2026): si promette la provenienza, non un ricordo."
+    },
+    {
+      "titolo": "Niente dati inventati",
+      "testo": "Offerte, prezzi, recensioni, numeri su acidità o polifenoli e premi entrano solo se veri. Le recensioni sono quelle di Trustpilot: 4,9 di media su oltre 2.300."
+    }
+  ],
+  "confezione": [
+    {
+      "titolo": "Scatola di spedizione vera",
+      "testo": "È gialla (giallo limone), di cartone ondulato, con il logo SARACINO 1925 rosso e grandi rosoni bianchi con trattini rossi. Mai un cartone marrone anonimo. Vale per ogni scena con un pacco: unboxing, consegna alla porta, corriere. Misure vere (7 nov 2026): 30 × 22 × 20 cm; le due bag in box ci stanno coricate una sull'altra, quindi lo scatolone è solo un po' più lungo di una bag.",
+      "riferimenti": [
+        "scatola-gialla-in-mano",
+        "scatola-gialla-aperta",
+        "bag-dentro-la-scatola"
+      ]
+    },
+    {
+      "titolo": "Grandezza della bag in box",
+      "testo": "Misure vere (schizzo del cliente, 7 nov 2026): larghezza 22 cm, altezza 26 cm, profondità 10 cm. Il fronte è quasi quadrato, un po' più alto che largo; il rubinetto sta in basso al centro del lato stretto da 10 cm e ha il tappo NERO (mai rosso). È poco più bassa di una bottiglia di vino e alta il doppio di un barattolo da conserve. Nelle scene resta in scala con mani, barattoli e mobili: né gigante né minuscola.",
+      "riferimenti": [
+        "bag-fronte",
+        "bag-lato-rubinetto"
+      ]
+    },
+    {
+      "titolo": "Stampa vera della bag",
+      "testo": "Fondo crema. Logo «SARACINO 1925» VERDE OLIVA SCURO/bronzo (mai rosso: il rosso è solo sullo scatolone giallo). «Angelino» in corsivo verde oliva scuro, «QUESTO È OLIO!» verde oliva, scritta ad arco «OLIO EXTRA VERGINE DI OLIVA · 100% ITALIANO», un rosone grande e due piccoli a puntini verde chiaro/giallo/oro con pochi punti rossi e blu, «BAG IN BOX» in basso. Il modello non deve ridisegnare rosone né scritte: si replica la foto.",
+      "riferimenti": [
+        "bag-fronte"
+      ]
+    },
+    {
+      "titolo": "Come si mostra",
+      "testo": "Sempre di tre quarti, intera, con il fronte ben leggibile (logo, «Angelino», rosone) e il lato stretto col rubinetto accanto. Mai vista solo dal lato stretto, mai tagliata dall'inquadratura. Nell'unboxing la bag è coricata nello scatolone e si vede SOLO il fronte, senza il lato col rubinetto. Per le scene col rubinetto: scatola sul bordo del piano, rubinetto che sporge, sotto il DOSATORE SARACINO vero (vetro trasparente, testa nera con beccuccio a leva, manico nero, logo bianco), alto circa 18 cm cioè più basso e più stretto della bag; quando si riempie, il tappo nero è TOLTO e appoggiato accanto e l'olio entra dal collo aperto. Mai oliere di ceramica o bottiglie generiche.",
+      "riferimenti": [
+        "dosatore-saracino"
+      ]
+    }
+  ],
+  "ambienti": {
+    "regola": "Case, cucine, dispense e tavole cambiano stile da una creatività all'altra. Mai un lotto tutto nello stesso ambiente.",
+    "stili": [
+      "rustica",
+      "moderna",
+      "minimale",
+      "mediterranea",
+      "chiara",
+      "scura",
+      "industrial"
+    ]
+  },
+  "formati": [
+    {
+      "nome": "Still life",
+      "motore": "PRODUCT-HERO",
+      "cosa": "Foto ambientata del prodotto, senza persone o con sole mani"
+    },
+    {
+      "nome": "Sfondo bianco con offerta",
+      "motore": "OFFERTA",
+      "cosa": "Prodotto su fondo pulito con l'offerta in grande"
+    },
+    {
+      "nome": "Noi vs loro",
+      "motore": "NOI-VS-LORO",
+      "cosa": "Confronto a due colonne con l'alternativa del cluster"
+    },
+    {
+      "nome": "Prima e dopo",
+      "motore": "PRIMA-DOPO",
+      "cosa": "Il problema e la situazione risolta"
+    },
+    {
+      "nome": "Recensione",
+      "motore": "SOCIAL-PROOF",
+      "cosa": "Prova sociale: voto, numero di recensioni, citazione vera"
+    },
+    {
+      "nome": "Unboxing",
+      "motore": "UGC-NATIVE",
+      "cosa": "Apertura del pacco, con la scatola gialla vera"
+    },
+    {
+      "nome": "UGC",
+      "motore": "UGC-NATIVE",
+      "cosa": "Foto o video dall'aria amatoriale, girati col telefono"
+    },
+    {
+      "nome": "Carosello",
+      "motore": "LISTICLE",
+      "cosa": "3-6 schede che raccontano o spiegano"
+    },
+    {
+      "nome": "Reel",
+      "motore": null,
+      "cosa": "Video verticale: il motore non lo produce, resta come scaletta"
+    },
+    {
+      "nome": "Provenienza",
+      "motore": "FEATURE-CALLOUT",
+      "cosa": "Uliveti, raccolta, frantoio, famiglia"
+    }
+  ],
+  "ondate": [
+    {
+      "n": 1,
+      "quando": "Subito",
+      "cluster": [
+        "1A",
+        "2A",
+        "5B"
+      ],
+      "perche": "Olio nuovo e Natale sono adesso"
+    },
+    {
+      "n": 2,
+      "quando": "Entro fine novembre",
+      "cluster": [
+        "1B",
+        "2C",
+        "5A",
+        "5C"
+      ],
+      "perche": "Regali aziendali e scorta prima delle feste"
+    },
+    {
+      "n": 3,
+      "quando": "Black Friday",
+      "cluster": [
+        "4A",
+        "4C"
+      ],
+      "perche": "Solo nei giorni di offerta"
+    },
+    {
+      "n": 4,
+      "quando": "Da gennaio",
+      "cluster": [
+        "1C",
+        "2B",
+        "3A",
+        "3B",
+        "3C",
+        "4B",
+        "6A",
+        "6B",
+        "6C"
+      ],
+      "perche": "Temi validi tutto l'anno"
+    }
+  ],
+  "mercato": [
+    {
+      "dato": "Il 42% degli italiani compra l'extravergine dal produttore (azienda, frantoio o mercato). Il 70% pensa che la qualità sia migliore ed è disposto a pagare in media 2 € in più al litro.",
+      "fonte": "Nomisma per SOL Expo, marzo 2026",
+      "url": "https://winenews.it/it/olio-evo-la-qualita-vince-sul-prezzo-4-italiani-su-10-lo-comprano-direttamente-dal-produttore_583901/"
+    },
+    {
+      "dato": "Origine italiana e marchi DOP/IGP guidano la scelta per il 54% degli acquirenti. Un italiano su tre non considera un olio che arriva da fuori Europa.",
+      "fonte": "Nomisma, Osservatorio SOL Expo",
+      "url": "https://www.cronachedigusto.it/scenari/lolio-extravergine-e-il-terzo-simbolo-della-cucina-italiana/"
+    },
+    {
+      "dato": "Per il 49% dei consumatori contano le storie del produttore e le informazioni su come viene fatto l'olio.",
+      "fonte": "Nomisma",
+      "url": "https://www.larena.it/rubriche/wine-food/olio-extravergine-ricerca-nomisma-1.12577925"
+    },
+    {
+      "dato": "All'origine l'extravergine italiano è a 4,37 €/kg a metà ottobre 2026, il 52,8% in meno di un anno prima. Al supermercato in promozione si trova a circa 4 € al litro: il concorrente vero è l'olio economico, quindi il messaggio è «perché vale la differenza», non «ti faccio risparmiare».",
+      "fonte": "ISMEA, ripreso da frantoio.biz",
+      "url": "https://www.frantoio.biz/olio-evo-made-in-italy/prezzo-olio-extra-vergine-di-oliva/"
+    },
+    {
+      "dato": "Molti consumatori scambiano amaro e piccante per difetti, mentre sono il segno di un olio fresco.",
+      "fonte": "AIFO, luglio 2026",
+      "url": "https://www.ansa.it/canale_terraegusto/notizie/in_breve/2026/07/22/aifo-amaro-e-piccante-non-sono-difetti-dellolio-extravergine-di-oliva_4dd1b76d-10d5-4804-8f1c-969cd22756c6.html"
+    }
+  ],
+  "da_confermare": [
+    "Misure esatte della bag in box da 5 litri",
+    "Lettera della famiglia e bigliettino su amaro e piccante dentro il pacco (righe 1B-06 e 6B-16)",
+    "Orci dipinti a mano (riga 5A-10)",
+    "Spedizione all'estero, biglietti personalizzati, sconti per quantità e fattura per le aziende (cluster 5A e 5C)",
+    "Vendita a ristoranti e pizzerie (cluster 4B, righe di Ciro)",
+    "Codice sconto sul primo ordine e soglia di spedizione gratuita (cluster 4C)",
+    "Foto e video veri di famiglia, frantoio e raccolta per il formato Provenienza"
+  ]
+}

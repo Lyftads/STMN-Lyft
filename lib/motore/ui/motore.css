@@ -1,0 +1,1059 @@
+/* ============================================================================
+   Motore Creativo — sistema visivo di LyftAI, in chiave minimale e futurista.
+   Gli stessi token del SaaS (app/globals.css di STMN-Lyft): nero pieno, vetri
+   scuri, hairline luminose, azzurro #2997ff come unico accento.
+
+   Tre principi tenuti per tutta la scheda di stile:
+   1. UN SOLO accento. Il colore, qui, è informazione: verdetto e fase del
+      funnel devono restare gli unici elementi cromatici forti della pagina, o
+      smettono di saltare all'occhio.
+   2. Le linee sono hairline sfumate, non bordi pieni. È ciò che distingue una
+      superficie di vetro da un riquadro.
+   3. Le creatività sono chiare e piene di colore: tutto il resto deve stare
+      indietro. La cornice non compete con il contenuto.
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Barlow+Condensed:wght@500;600;700&display=swap');
+
+:root{
+  --bg:#000000; --bg2:#050510; --surface:#0a0a14; --surface2:#0f0f1a;
+  --glass:rgba(255,255,255,.03); --glass2:rgba(255,255,255,.06);
+  --border:rgba(255,255,255,.06); --border2:rgba(255,255,255,.10); --border3:rgba(255,255,255,.15);
+  --text:#f5f5f7; --text2:#e9e9ee; --text3:#c4c4cc; --text4:#8b8b96;
+  --accent:#2997ff; --accent2:#6366f1;
+  --green:#30d158; --red:#ff453a; --yellow:#ffd60a; --orange:#ff9f0a;
+  --purple:#bf5af2; --cyan:#64d2ff;
+  --eyebrow:'Barlow Condensed','Inter',system-ui,sans-serif;
+}
+
+*{box-sizing:border-box}
+html,body{padding:0;margin:0;background:var(--bg);color:var(--text);
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',system-ui,sans-serif;
+  letter-spacing:-.01em;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+a{color:inherit;text-decoration:none}
+.mono{font-variant-numeric:tabular-nums;font-feature-settings:'tnum' 1}
+::selection{background:rgba(41,151,255,.32);color:#fff}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.14)}
+
+@keyframes scan{0%{transform:translateX(0)}100%{transform:translateX(320%)}}
+@keyframes salita{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* L'occhiello tecnico: condensato, spaziato, piccolo. È il tono "strumento di
+   misura" che regge tutta l'interfaccia senza aggiungere un solo colore. */
+.et,.menu-titolo,.kpi .lab,th,.mt-titolo{
+  font-family:var(--eyebrow);font-weight:600;letter-spacing:.14em;text-transform:uppercase}
+
+/* --------------------------------------------------------------- guscio --*/
+.shell{width:100%;max-width:1760px;margin:0 auto;padding:0 30px 90px}
+
+header.top{display:flex;align-items:center;gap:20px;padding:26px 0 20px;flex-wrap:wrap;
+  position:relative}
+/* La hairline sotto l'intestazione sfuma ai lati invece di tagliare la pagina
+   da bordo a bordo: è la differenza fra una riga di separazione e un tratto. */
+header.top::after{content:'';position:absolute;left:0;right:0;bottom:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--border2) 18%,var(--border2) 82%,transparent)}
+.brand{font-size:15px;font-weight:700;letter-spacing:-.02em}
+.brand span{color:var(--text4);font-weight:400;letter-spacing:0}
+
+nav.menu{display:flex;gap:4px;background:var(--glass);border:1px solid var(--border);
+  border-radius:999px;padding:4px;backdrop-filter:blur(20px)}
+nav.menu button{background:none;border:0;color:var(--text4);font:inherit;font-size:12.5px;
+  font-weight:600;padding:8px 18px;border-radius:999px;cursor:pointer;
+  transition:color .18s ease,background .18s ease}
+nav.menu button:hover{color:var(--text3)}
+nav.menu button[data-on="1"]{background:rgba(41,151,255,.14);color:var(--accent);
+  box-shadow:inset 0 0 0 1px rgba(41,151,255,.28)}
+nav.menu button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ------------------------------------------------------ banner crediti ----
+   Sta nell'intestazione perché la domanda "mi bastano i crediti?" arriva
+   PRIMA di lanciare una tornata, non dopo. */
+.crediti{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:12px;
+  color:var(--text4);padding:7px 14px;border-radius:999px;
+  border:1px solid var(--border);background:var(--glass);backdrop-filter:blur(20px);
+  font-variant-numeric:tabular-nums}
+.crediti b{color:var(--text2);font-weight:700;letter-spacing:-.01em}
+.crediti-sep{opacity:.28}
+.crediti-eta{opacity:.45;margin-left:3px;font-size:11px}
+.crediti[data-liv="basso"]{border-color:rgba(255,214,10,.32);color:var(--yellow);background:rgba(255,214,10,.06)}
+.crediti[data-liv="basso"] b{color:var(--yellow)}
+.crediti[data-liv="critico"]{border-color:rgba(255,69,58,.42);color:var(--red);background:rgba(255,69,58,.08)}
+.crediti[data-liv="critico"] b{color:var(--red)}
+.crediti[data-liv="ignoto"]{opacity:.45}
+nav.menu{margin-left:0}
+
+/* ------------------------------------------------------------ vetri KPI --*/
+.strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:10px;margin:20px 0}
+.kpi{position:relative;isolation:isolate;overflow:hidden;padding:15px 16px 16px;border-radius:16px;
+  background:rgba(255,255,255,.02);backdrop-filter:blur(40px) saturate(1.25);
+  border:1px solid var(--border);border-top-color:var(--border2);
+  box-shadow:0 12px 30px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.05)}
+/* Barra d'accento in cima, dietro al contenuto: sta a z-index -1 perché
+   davanti scurirebbe i numeri (è il difetto già visto su LyftAI). */
+.kpi::before{content:'';position:absolute;top:0;left:12%;right:12%;height:1.5px;z-index:-1;
+  background:linear-gradient(90deg,transparent,rgba(41,151,255,.45),transparent);
+  filter:blur(.3px)}
+.kpi .lab{font-size:10px;color:var(--text4)}
+.kpi .val{font-size:25px;font-weight:800;letter-spacing:-.035em;line-height:1;margin-top:8px;
+  font-variant-numeric:tabular-nums}
+.kpi .sub{font-size:11px;color:var(--text4);margin-top:6px;letter-spacing:0;line-height:1.4}
+.kpi.void .val{color:var(--text4);font-size:13px;font-weight:500;letter-spacing:-.01em}
+
+/* ----------------------------------------------------- barre e pastiglie --*/
+.bar{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:14px 0}
+.chip{font:inherit;font-size:12px;font-weight:500;padding:6px 13px;border-radius:999px;
+  border:1px solid var(--border);background:var(--glass);color:var(--text4);cursor:pointer;
+  transition:color .16s ease,border-color .16s ease,background .16s ease,transform .16s ease}
+.chip:hover:not(:disabled){color:var(--text2);border-color:var(--border2);transform:translateY(-1px)}
+.chip[data-on="1"]{background:rgba(41,151,255,.13);border-color:rgba(41,151,255,.42);color:var(--accent)}
+.chip:disabled{opacity:.3;cursor:default}
+.chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.chip.forte:not(:disabled){color:var(--accent);border-color:rgba(41,151,255,.34)}
+.count{margin-left:auto;font-size:11.5px;color:var(--text4);font-variant-numeric:tabular-nums}
+.count.allarme{color:var(--red)}
+.bar-sel{margin-top:6px}
+
+/* verdetti sui chip: stessa famiglia semantica di LyftAI */
+.chip.v-scale[data-on="1"]{background:rgba(48,209,88,.13);border-color:rgba(48,209,88,.42);color:var(--green)}
+.chip.v-good[data-on="1"] {background:rgba(255,214,10,.12);border-color:rgba(255,214,10,.4); color:var(--yellow)}
+.chip.v-kill[data-on="1"] {background:rgba(255,69,58,.13); border-color:rgba(255,69,58,.42); color:var(--red)}
+
+/* -------------------------------------------------------------- tabella --*/
+.tw{overflow-x:auto;border:1px solid var(--border);border-radius:16px;background:rgba(255,255,255,.015);
+  backdrop-filter:blur(30px)}
+table{border-collapse:collapse;width:100%;min-width:980px;font-size:12.5px}
+th{text-align:left;padding:12px;border-bottom:1px solid var(--border2);color:var(--text4);
+  font-size:10px;white-space:nowrap;background:rgba(10,10,20,.9);position:sticky;top:0;cursor:pointer;
+  backdrop-filter:blur(20px)}
+td{padding:11px 12px;border-bottom:1px solid var(--border);color:var(--text3);white-space:nowrap;
+  font-variant-numeric:tabular-nums}
+tbody tr{transition:background .14s ease}
+tbody tr:hover{background:var(--glass)}
+td.nm{white-space:normal;min-width:260px;color:var(--text2);font-variant-numeric:normal}
+.thumb{width:38px;height:38px;border-radius:8px;object-fit:cover;background:var(--surface2);
+  border:1px solid var(--border);flex:0 0 auto}
+.cellname{display:flex;gap:10px;align-items:center}
+.band{font-size:10px;font-weight:700;padding:3px 9px;border-radius:6px;letter-spacing:.06em;
+  font-family:var(--eyebrow);text-transform:uppercase}
+.b-scale{background:rgba(48,209,88,.14);color:var(--green)}
+.b-hold{background:rgba(255,214,10,.14);color:var(--yellow)}
+.b-exc{background:rgba(255,214,10,.08);color:rgba(255,214,10,.72)}
+.b-kill{background:rgba(255,69,58,.14);color:var(--red)}
+.b-none{background:var(--glass2);color:var(--text4)}
+.seg{font-size:10.5px;color:var(--text4)}
+.num{text-align:right}
+
+.empty{border:1px dashed var(--border2);border-radius:16px;padding:44px 26px;text-align:center;color:var(--text4)}
+.empty b{display:block;color:var(--text2);font-size:15px;font-weight:650;margin-bottom:8px;letter-spacing:-.01em}
+.empty p{margin:0 auto;max-width:52ch;font-size:13px;line-height:1.65}
+.note,.perche{font-size:12.5px;line-height:1.6;color:var(--text3);background:var(--glass);
+  border-left:2px solid rgba(41,151,255,.6);border-radius:0 10px 10px 0;padding:11px 15px;margin:14px 0}
+.note b{color:var(--text2)}
+
+/* ------------------------------------------------ pannello di dettaglio --*/
+.drawer-bg{position:fixed;inset:0;background:rgba(0,0,0,.66);backdrop-filter:blur(4px);z-index:50;
+  display:flex;justify-content:flex-end}
+.drawer{width:min(560px,100%);height:100%;overflow-y:auto;background:rgba(10,10,20,.94);
+  backdrop-filter:blur(40px);border-left:1px solid var(--border2);padding:28px 28px 64px;position:relative;
+  animation:salita .22s ease}
+.drawer h2{font-size:17px;font-weight:700;margin:14px 0 10px;line-height:1.32;letter-spacing:-.025em}
+.drawer h3{font-family:var(--eyebrow);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--text4);font-weight:600;margin:28px 0 12px;padding-top:20px;border-top:1px solid var(--border)}
+.chiudi{position:absolute;top:18px;right:20px;background:var(--glass2);border:1px solid var(--border2);
+  color:var(--text3);width:30px;height:30px;border-radius:9px;cursor:pointer;font-size:13px}
+.chiudi:hover{border-color:var(--border3);color:var(--text)}
+.chiudi:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.anteprima{width:100%;max-height:320px;object-fit:contain;border-radius:12px;background:var(--surface2);
+  border:1px solid var(--border)}
+.riga-band{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.mini{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);
+  border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-top:18px}
+.mini div{background:var(--surface2);padding:11px 12px;display:flex;flex-direction:column;gap:5px}
+.mini span{font-family:var(--eyebrow);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text4)}
+.mini b{font-size:14px;font-weight:700;color:var(--text2);font-variant-numeric:tabular-nums}
+.et{font-size:10px;color:var(--text4);margin:16px 0 6px}
+.copy{margin:0;font-size:13.5px;line-height:1.7;color:var(--text2);white-space:pre-wrap;word-break:break-word}
+.copy a{color:var(--accent)}
+.copy.vuoto{color:var(--text4)}
+.ctapill{display:inline-block;background:rgba(41,151,255,.14);border:1px solid rgba(41,151,255,.38);
+  color:var(--accent);padding:5px 13px;border-radius:8px;font-size:12px;font-weight:650;letter-spacing:.02em}
+.anteprima-video{width:100%;aspect-ratio:9/16;max-height:520px;border:1px solid var(--border);
+  border-radius:12px;background:var(--surface2)}
+.anteprima-fallback{display:flex;flex-direction:column;gap:8px}
+.nota-media{font-size:11.5px;color:var(--text4)}
+
+/* ================================================== Produzione: la tela ==*/
+.conBarra{display:grid;grid-template-columns:268px 1fr;gap:18px;align-items:start}
+
+.menu-prodotti{background:rgba(255,255,255,.018);backdrop-filter:blur(30px);
+  border:1px solid var(--border);border-radius:18px;padding:12px;display:flex;flex-direction:column;
+  gap:4px;position:sticky;top:16px;max-height:calc(100vh - 180px);overflow-y:auto}
+.menu-titolo{font-size:10px;color:var(--text4);padding:6px 8px 10px}
+.voce{display:flex;gap:11px;align-items:center;text-align:left;background:none;
+  border:1px solid transparent;border-radius:13px;padding:9px;cursor:pointer;font:inherit;
+  color:var(--text3);width:100%;transition:background .16s ease,border-color .16s ease}
+.voce:hover{background:var(--glass)}
+.voce[data-on="1"]{background:rgba(41,151,255,.10);border-color:rgba(41,151,255,.3)}
+.voce:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.voce-foto{width:42px;height:42px;flex:0 0 auto;border-radius:10px;background:#fff;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;border:1px solid var(--border)}
+.voce-foto img{width:100%;height:100%;object-fit:contain;padding:3px}
+.voce-testo{display:flex;flex-direction:column;gap:3px;min-width:0}
+.voce-testo b{font-size:12.5px;font-weight:600;color:var(--text2);line-height:1.3;letter-spacing:-.01em;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.voce-testo i{font-style:normal;font-size:11px;color:var(--text4)}
+.voce[data-on="1"] .voce-testo b{color:var(--text)}
+.voce-vuota{font-size:12px;color:var(--text4);padding:10px 8px}
+.area-tela{min-width:0}
+
+/* ---- tela infinita, griglia di punti ---- */
+.tela-box{position:relative;height:calc(100vh - 208px);min-height:520px;overflow:hidden;
+  border:1px solid var(--border);border-radius:18px;background-color:#000;
+  background-image:radial-gradient(circle,rgba(255,255,255,.085) 1px,transparent 1px);
+  touch-action:none;user-select:none}
+.tela-contenuto{position:absolute;top:0;left:0;transform-origin:0 0;padding:48px;will-change:transform}
+.tela-comandi{position:absolute;right:16px;bottom:16px;display:flex;align-items:center;gap:6px;
+  background:rgba(10,10,20,.78);backdrop-filter:blur(24px);border:1px solid var(--border2);
+  border-radius:14px;padding:6px 8px;z-index:5;box-shadow:0 10px 34px rgba(0,0,0,.6)}
+.tela-comandi button{background:var(--glass2);border:1px solid var(--border);color:var(--text2);
+  width:28px;height:28px;border-radius:9px;cursor:pointer;font-size:15px;line-height:1;font:inherit;
+  transition:background .14s ease,border-color .14s ease}
+.tela-comandi button.testo{width:auto;padding:0 12px;font-size:12px;font-weight:500}
+.tela-comandi button:hover{background:var(--border2);border-color:var(--border3)}
+.tela-comandi button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tela-comandi .mono{font-size:12px;color:var(--text3);min-width:44px;text-align:center}
+.tela-comandi .conta{font-size:11px;color:var(--text4);margin-left:6px;padding-left:11px;
+  border-left:1px solid var(--border2)}
+.tela-aiuto{position:absolute;left:18px;bottom:18px;z-index:4;pointer-events:none;
+  font-size:11px;color:var(--text4);opacity:.4}
+.banda{position:absolute;z-index:4;pointer-events:none;border:1px solid rgba(41,151,255,.85);
+  background:rgba(41,151,255,.14);border-radius:4px;
+  box-shadow:0 0 22px rgba(41,151,255,.22),inset 0 0 22px rgba(41,151,255,.08)}
+
+/* ---- albero: prodotto radice → rami per angolo ----
+   I rami sono pseudo-elementi invece che SVG: non serve misurare posizioni e
+   restano allineati a qualunque zoom della tela. */
+.albero{display:flex;align-items:flex-start;gap:0}
+
+.radice{flex:0 0 auto;width:300px;border-radius:18px;padding:14px;display:flex;flex-direction:column;
+  gap:11px;position:relative;z-index:2;isolation:isolate;overflow:hidden;
+  background:rgba(255,255,255,.025);backdrop-filter:blur(40px) saturate(1.2);
+  border:1px solid var(--border2);border-top-color:var(--border3);
+  box-shadow:0 22px 60px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.07)}
+.radice::before{content:'';position:absolute;top:0;left:10%;right:10%;height:1.5px;z-index:-1;
+  background:linear-gradient(90deg,transparent,rgba(41,151,255,.5),transparent)}
+.radice-foto{aspect-ratio:1/1;border-radius:14px;background:#fff;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;border:1px solid var(--border);padding:11px}
+.radice-foto img{width:100%;height:100%;object-fit:contain}
+.radice-foto .attesa{font-size:11px;color:#8b8b96;text-align:center}
+.radice-nome{font-size:14px;font-weight:650;line-height:1.35;letter-spacing:-.015em}
+.radice-meta{font-family:var(--eyebrow);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--text4)}
+
+/* Gli angoli si aprono IN ORIZZONTALE dal prodotto, non incolonnati sotto.
+   Il tronco verticale con gli stacchi ad angolo retto è sparito: al suo posto
+   ci sono archi in SVG che partono dalla radice e arrivano su ogni gruppo —
+   la struttura si legge come sullo schizzo, un prodotto e i suoi rami. */
+.albero{position:relative}
+.rami{display:flex;flex-direction:row;align-items:flex-start;gap:64px;
+  padding-left:96px;padding-top:34px;flex:0 0 auto}
+.ramo{position:relative}
+/* il pallino d'innesto in cima al gruppo: è dove arriva l'arco */
+.ramo::after{content:"";position:absolute;left:6px;top:2px;width:7px;height:7px;border-radius:50%;
+  background:var(--accent);box-shadow:0 0 0 3px rgba(41,151,255,.14),0 0 14px rgba(41,151,255,.5)}
+
+.collegamenti{position:absolute;left:0;top:0;pointer-events:none;z-index:1;overflow:visible}
+.collegamenti path{fill:none;stroke:rgba(41,151,255,.42);stroke-width:1.5;
+  stroke-linecap:round}
+
+/* Il gruppo è largo quanto le sue schede in fila. Il minimo tiene leggibile
+   l'intestazione anche quando l'angolo ha una sola coppia. */
+.gruppo,.gruppo.ramo{display:flex;flex-direction:column;gap:14px;width:max-content;min-width:340px;
+  max-width:1352px;flex:0 0 auto;position:relative;z-index:2}
+.gruppo-testa{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;max-width:660px}
+.gruppo-testa h3{font-size:14.5px;font-weight:650;letter-spacing:-.02em;margin:0}
+.gruppo-testa .meta{font-family:var(--eyebrow);font-size:10.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--text4)}
+.perche{margin:0;max-width:660px}
+
+/* ------------------------------------------------------------- schede ----*/
+/* Le schede di un angolo stanno in FILA, non in colonna a due.
+   La tela è infinita in orizzontale: incolonnarle a due sprecava la direzione
+   in cui c'è spazio e allungava ogni ramo verso il basso, costringendo a
+   scorrere per vedere le varianti dello stesso angolo — che è esattamente il
+   confronto che si vuole fare a colpo d'occhio. */
+.griglia{display:flex;flex-direction:row;flex-wrap:wrap;gap:18px;align-items:flex-start;
+  width:max-content;max-width:1352px}
+.griglia > .scheda{flex:0 0 320px;width:320px}
+.scheda{position:relative;isolation:isolate;border-radius:18px;overflow:hidden;display:flex;
+  flex-direction:column;background:rgba(255,255,255,.022);backdrop-filter:blur(30px) saturate(1.15);
+  border:1px solid var(--border);border-top-color:var(--border2);
+  box-shadow:0 18px 46px rgba(0,0,0,.62),inset 0 1px 0 rgba(255,255,255,.05);
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+.scheda:hover{transform:translateY(-3px);border-color:var(--border3);
+  box-shadow:0 26px 60px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.08)}
+.scheda[data-sel="1"]{border-color:rgba(41,151,255,.6);
+  box-shadow:0 0 0 1px rgba(41,151,255,.4),0 22px 54px rgba(0,0,0,.66),0 0 34px rgba(41,151,255,.14)}
+
+.tela{aspect-ratio:1/1;background:var(--surface2);position:relative;display:flex;align-items:center;
+  justify-content:center;border-bottom:1px solid var(--border)}
+.tela.v{aspect-ratio:9/16}
+.tela img{width:100%;height:100%;object-fit:cover}
+.tela .attesa{font-size:11.5px;color:var(--text4);text-align:center;padding:0 22px;line-height:1.6}
+/* L'etichetta del formato sta in basso: l'angolo in alto a sinistra è della
+   spunta di selezione, e sovrapposte diventavano illeggibili entrambe. */
+.tag-ratio{position:absolute;bottom:10px;left:10px;font-family:var(--eyebrow);font-size:10px;
+  font-weight:600;letter-spacing:.1em;padding:4px 9px;border-radius:7px;background:rgba(0,0,0,.6);
+  color:var(--text2);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.08)}
+
+.spunta{position:absolute;top:10px;left:10px;z-index:3;cursor:pointer;line-height:0}
+.spunta input{position:absolute;opacity:0;width:0;height:0}
+.spunta span{display:block;width:20px;height:20px;border-radius:7px;
+  border:1px solid rgba(255,255,255,.4);background:rgba(0,0,0,.55);backdrop-filter:blur(10px);
+  transition:background .14s ease,border-color .14s ease}
+.spunta input:checked + span{background:var(--accent);border-color:var(--accent);
+  box-shadow:0 0 16px rgba(41,151,255,.5)}
+.spunta input:checked + span::after{content:'';position:absolute;left:6px;top:2px;width:5px;height:10px;
+  border:solid #fff;border-width:0 2px 2px 0;transform:rotate(43deg)}
+.spunta input:focus-visible + span{outline:2px solid var(--accent);outline-offset:3px}
+
+.scarica-uno{position:absolute;top:10px;right:10px;z-index:3;width:26px;height:26px;display:flex;
+  align-items:center;justify-content:center;border-radius:8px;font-size:14px;line-height:1;
+  color:var(--text2);border:1px solid rgba(255,255,255,.16);background:rgba(0,0,0,.55);
+  backdrop-filter:blur(10px);opacity:0;transition:opacity .16s ease,background .16s ease}
+.scheda:hover .scarica-uno,.scarica-uno:focus-visible{opacity:1}
+.scarica-uno:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+
+.corpo{padding:15px 16px 16px;display:flex;flex-direction:column;gap:10px;flex:1}
+.pillole{display:flex;gap:6px;flex-wrap:wrap}
+.pillola{font-family:var(--eyebrow);font-size:10px;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;padding:4px 9px;border-radius:7px;background:var(--glass2);color:var(--text4);
+  border:1px solid transparent}
+.pillola.sper{background:rgba(255,255,255,.07);color:var(--text2);border-color:var(--border2)}
+.scheda h4{font-size:15px;font-weight:650;line-height:1.32;margin:0;letter-spacing:-.02em}
+.scheda .sub{font-size:12.5px;line-height:1.55;color:var(--text3);margin:0}
+.scheda .primario{font-size:12px;line-height:1.6;color:var(--text4);margin:0;
+  border-top:1px solid var(--border);padding-top:11px}
+.piede{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:auto;padding-top:10px}
+.cta-pill{font-family:var(--eyebrow);font-size:11px;font-weight:600;letter-spacing:.09em;
+  text-transform:uppercase;padding:7px 14px;border-radius:999px;background:var(--glass2);
+  color:var(--text2);border:1px solid var(--border2)}
+.link-dest{font-size:11px;color:var(--accent);text-overflow:ellipsis;overflow:hidden;
+  white-space:nowrap;max-width:52%}
+.nome-file{font-size:9.5px;color:var(--text4);word-break:break-all;line-height:1.5;
+  border-top:1px solid var(--border);padding-top:10px;letter-spacing:.02em}
+
+/* Il copy resta selezionabile: è l'unica parte della tela che si deve poter
+   trascinare col cursore invece di spostare la vista. */
+.tela-box .copiabile{user-select:text;cursor:text;border-radius:6px;
+  transition:background .14s ease,box-shadow .14s ease}
+.tela-box .copiabile:hover{background:rgba(41,151,255,.07);box-shadow:0 0 0 5px rgba(41,151,255,.07)}
+.blocco-copy{position:relative}
+
+/* --------------------------------------------------- flag e microazioni --*/
+.azioni{display:flex;flex-direction:column;align-items:stretch;gap:6px;
+  margin-top:10px;padding-top:11px;border-top:1px solid var(--border)}
+.verdetti{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.azione{font:inherit;font-size:11px;font-weight:500;letter-spacing:.01em;padding:5px 10px;
+  border-radius:8px;cursor:pointer;color:var(--text4);background:transparent;
+  border:1px solid var(--border);white-space:nowrap;text-align:center;
+  transition:color .14s ease,border-color .14s ease,background .14s ease}
+.azione:hover{color:var(--text2);border-color:var(--border2)}
+.azione.lancio[data-on="1"]{color:var(--accent);border-color:rgba(41,151,255,.42);background:rgba(41,151,255,.11)}
+.azione.v-scale[data-on="1"]{color:var(--green); border-color:rgba(48,209,88,.42); background:rgba(48,209,88,.12)}
+.azione.v-good[data-on="1"] {color:var(--yellow);border-color:rgba(255,214,10,.4);  background:rgba(255,214,10,.11)}
+.azione.v-kill[data-on="1"] {color:var(--red);   border-color:rgba(255,69,58,.42);  background:rgba(255,69,58,.12)}
+.azione.copia{position:absolute;right:0;top:-3px;opacity:0;transition:opacity .16s ease;
+  /* fondo pieno: comparendo sopra la prima riga del testo, se fosse
+     trasparente si leggerebbero le due cose sovrapposte */
+  background:rgba(14,14,24,.96);backdrop-filter:blur(10px);
+  box-shadow:0 4px 16px rgba(0,0,0,.6)}
+.scheda:hover .azione.copia,.azione.copia:focus-visible{opacity:1}
+.azione.copia:hover{color:var(--accent);border-color:rgba(41,151,255,.42)}
+.azione:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* Il verdetto si legge dal bordo: scorrendo la board si vede subito cosa è
+   stato ucciso e cosa scala, senza leggere un solo bottone. */
+.scheda[data-giudizio="scale"]{border-color:rgba(48,209,88,.42)}
+.scheda[data-giudizio="good"] {border-color:rgba(255,214,10,.38)}
+.scheda[data-giudizio="kill"] {border-color:rgba(255,69,58,.4);opacity:.6}
+.scheda[data-giudizio="kill"]:hover{opacity:1}
+
+/* -------------------------------------------------- fase del funnel -------
+   Il funnel NON è uno stato d'allarme: è una sequenza. Perciò non prende una
+   tinta propria — che avrebbe aggiunto tre colori in gara con i verdetti e
+   fatto sembrare una scheda TOFU una scheda da spegnere — ma una scala di
+   luminosità: fioco chi non ci conosce, pieno chi è pronto a comprare.
+   Il colore resta riservato alle decisioni; la brillantezza dice la categoria. */
+.pillola.funnel[data-f="TOFU"]{color:rgba(255,255,255,.48);background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.09)}
+.pillola.funnel[data-f="MOFU"]{color:rgba(255,255,255,.74);background:rgba(255,255,255,.075);border-color:rgba(255,255,255,.16)}
+.pillola.funnel[data-f="BOFU"]{color:#ffffff;           background:rgba(255,255,255,.13); border-color:rgba(255,255,255,.28)}
+
+/* Fascia in cima alla scheda: scorrendo la board si vede la distribuzione fra
+   le fasi senza leggere un'etichetta. Sta in alto perché il bordo porta il
+   verdetto e l'alone porta la selezione. */
+.scheda[data-funnel]::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;z-index:4}
+.scheda[data-funnel=""]::before{display:none}
+.scheda[data-funnel="TOFU"]::before{background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent)}
+.scheda[data-funnel="MOFU"]::before{background:linear-gradient(90deg,transparent,rgba(255,255,255,.48),transparent)}
+.scheda[data-funnel="BOFU"]::before{background:linear-gradient(90deg,transparent,rgba(255,255,255,.9),transparent)}
+
+.chip.f-TOFU[data-on="1"]{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.16);color:rgba(255,255,255,.62)}
+.chip.f-MOFU[data-on="1"]{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.24);color:rgba(255,255,255,.82)}
+.chip.f-BOFU[data-on="1"]{background:rgba(255,255,255,.13);border-color:rgba(255,255,255,.36);color:#fff}
+
+/* ------------------------------------------------------- menu del destro --*/
+.menu-tendina{position:fixed;z-index:60;min-width:246px;padding:6px;border-radius:14px;
+  border:1px solid var(--border2);background:rgba(10,10,20,.9);backdrop-filter:blur(40px) saturate(1.3);
+  box-shadow:0 24px 60px rgba(0,0,0,.78),inset 0 1px 0 rgba(255,255,255,.06);
+  font-size:12.5px;animation:salita .14s ease}
+.mt-titolo{padding:8px 10px 9px;color:var(--text4);font-size:10px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mt-sep{height:1px;margin:5px 4px;background:linear-gradient(90deg,transparent,var(--border2),transparent)}
+.mt-voce{display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;
+  padding:7px 10px;border:0;border-radius:9px;background:transparent;color:var(--text3);
+  font:inherit;text-align:left;cursor:pointer;transition:background .12s ease,color .12s ease}
+.mt-voce:hover:not(:disabled){background:var(--glass2);color:var(--text)}
+.mt-voce:disabled{opacity:.3;cursor:default}
+.mt-voce i{font-style:normal;color:var(--text4);font-size:11px}
+.mt-voce.forte{color:var(--accent)}
+.mt-voce.v-scale:hover{background:rgba(48,209,88,.12);color:var(--green)}
+.mt-voce.v-good:hover {background:rgba(255,214,10,.1); color:var(--yellow)}
+.mt-voce.v-kill:hover {background:rgba(255,69,58,.12); color:var(--red)}
+
+@media (max-width:900px){
+  .conBarra{grid-template-columns:1fr}
+  .menu-prodotti{position:static;max-height:none;flex-direction:row;overflow-x:auto}
+  .voce{min-width:210px}
+  .shell{padding:0 16px 70px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none !important;transition:none !important}
+  .scheda:hover,.chip:hover{transform:none}
+}
+
+/* ============================================ Performance: le decisioni ==
+   Tre metriche sopra tutto il resto, ognuna con la sua soglia accanto. Un
+   numero senza il suo riferimento non è una decisione, è una curiosità. */
+.decisioni{display:grid;grid-template-columns:repeat(auto-fit,minmax(272px,1fr));gap:12px;margin:22px 0 14px}
+.metrica{position:relative;isolation:isolate;overflow:hidden;padding:18px 20px 19px;border-radius:18px;
+  background:rgba(255,255,255,.025);backdrop-filter:blur(40px) saturate(1.25);
+  border:1px solid var(--border);border-top-color:var(--border2);
+  box-shadow:0 18px 44px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.06)}
+.metrica::before{content:'';position:absolute;top:0;left:10%;right:10%;height:1.5px;z-index:-1;
+  background:linear-gradient(90deg,transparent,rgba(41,151,255,.42),transparent)}
+.metrica .lab{font-family:var(--eyebrow);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--text4);font-weight:600}
+.metrica .val{font-size:40px;font-weight:800;letter-spacing:-.04em;line-height:1;margin-top:10px;
+  font-variant-numeric:tabular-nums}
+.metrica .rif{font-size:11.5px;color:var(--text3);margin-top:11px;line-height:1.45}
+.metrica .sub{font-size:11px;color:var(--text4);margin-top:5px;line-height:1.45}
+/* La barra colloca il valore rispetto alla soglia: la tacca è la soglia, il
+   riempimento è dove siamo. Senza la tacca sarebbe una decorazione. */
+.scala{position:relative;height:4px;border-radius:2px;background:var(--glass2);margin-top:14px;overflow:hidden}
+.scala-riemp{position:absolute;left:0;top:0;bottom:0;border-radius:2px;opacity:.85}
+.scala-tacca{position:absolute;top:-3px;bottom:-3px;width:1.5px;background:var(--text3);opacity:.75;z-index:2}
+
+/* ------------------------------------- distribuzione della spesa ---------*/
+.distribuzione{margin:20px 0 8px}
+.distribuzione .et{color:var(--text4);font-size:10px;margin-bottom:9px}
+.dist-barra{display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--glass);
+  border:1px solid var(--border)}
+.dist-fetta{border:0;padding:0;cursor:pointer;opacity:.85;transition:opacity .16s ease,filter .16s ease}
+.dist-fetta:hover{opacity:1;filter:brightness(1.25)}
+.dist-fetta[data-on="1"]{opacity:1;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.65)}
+.dist-legenda{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}
+.voce-leg{display:flex;align-items:center;gap:7px;font:inherit;font-size:11.5px;padding:5px 11px;
+  border-radius:999px;border:1px solid var(--border);background:var(--glass);color:var(--text4);
+  cursor:pointer;transition:border-color .16s ease,background .16s ease}
+.voce-leg:hover{border-color:var(--border2);background:var(--glass2)}
+.voce-leg[data-on="1"]{border-color:var(--border3);background:var(--glass2);color:var(--text2)}
+.voce-leg i{width:7px;height:7px;border-radius:2px;flex:0 0 auto}
+.voce-leg b{font-family:var(--eyebrow);font-weight:600;letter-spacing:.09em;text-transform:uppercase;
+  font-size:10.5px;color:var(--text3)}
+.voce-leg span{color:var(--text2);font-weight:600;font-variant-numeric:tabular-nums}
+.voce-leg em{font-style:normal;opacity:.55;font-variant-numeric:tabular-nums}
+.bar .et{margin:0;color:var(--text3)}
+
+/* --------------------------------- barra della spesa dentro la tabella ---*/
+.spesa-cella{position:relative}
+.spesa-barra{position:absolute;right:12px;top:50%;transform:translateY(-50%);height:15px;
+  border-radius:3px;background:linear-gradient(90deg,rgba(255,255,255,.02),rgba(255,255,255,.1));
+  pointer-events:none;max-width:calc(100% - 24px)}
+.spesa-num{position:relative;z-index:1}
+
+/* Il verdetto con un perché sotto porta un punto: dice che c'è una spiegazione
+   da leggere, senza aggiungere una colonna a una tabella già larga. */
+.band[data-perche="1"]{position:relative;padding-right:15px;cursor:help}
+.band[data-perche="1"]::after{content:'';position:absolute;right:6px;top:50%;
+  transform:translateY(-50%);width:3px;height:3px;border-radius:50%;background:currentColor;opacity:.6}
+.perche b{color:var(--text2)}
+
+/* Il banner crediti è un bottone: dopo una ricarica il saldo si reimposta da
+   lì. L'asterisco dice che il numero è una stima, non una lettura. */
+button.crediti{font:inherit;font-size:12px;cursor:pointer}
+button.crediti:hover{border-color:var(--border2);color:var(--text3)}
+.crediti-form{gap:8px}
+.crediti-form label{font-family:var(--eyebrow);font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--text4)}
+.crediti-form input{width:80px;font:inherit;font-size:12.5px;padding:4px 8px;border-radius:8px;
+  border:1px solid var(--border2);background:var(--surface2);color:var(--text);
+  font-variant-numeric:tabular-nums}
+.crediti-form input:focus{outline:2px solid var(--accent);outline-offset:1px}
+.crediti-form button{font:inherit;font-size:11.5px;padding:4px 11px;border-radius:8px;cursor:pointer;
+  border:1px solid rgba(41,151,255,.4);background:rgba(41,151,255,.12);color:var(--accent)}
+.crediti-form button.annulla{border-color:var(--border);background:transparent;color:var(--text4)}
+
+/* Il bottone per aprire un ramo per intero. */
+.chip.espandi{align-self:flex-start;margin-top:2px}
+
+/* La riga della QUALITÀ: giudizio sul motore, non sulla resa. Colori tenuti
+   volutamente NEUTRI — verde, ambra e rosso sono già impegnati dai verdetti
+   sulle performance, e usarli qui farebbe leggere "male" come "spegni". */
+.qualita-riga{margin-top:2px}
+.azione.q-ottima[data-on="1"]{color:#fff;border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.14)}
+.azione.q-buona[data-on="1"]{color:rgba(255,255,255,.82);border-color:rgba(255,255,255,.3);background:rgba(255,255,255,.08)}
+.azione.q-male[data-on="1"]{color:rgba(255,255,255,.5);border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.03);
+  text-decoration:line-through}
+.mt-voce.q-ottima:hover,.mt-voce.q-buona:hover,.mt-voce.q-male:hover{background:var(--glass2);color:var(--text)}
+
+/* ------------------------------------------- trascinare per riassegnare --
+   Il bersaglio si illumina solo mentre qualcosa gli sta sopra: un contorno
+   permanente su ogni ramo trasformerebbe la board in una griglia di caselle. */
+.scheda[draggable="true"]{cursor:grab}
+.scheda[draggable="true"]:active{cursor:grabbing}
+.gruppo[data-bersaglio="1"]{outline:2px dashed rgba(41,151,255,.7);outline-offset:10px;border-radius:14px}
+.voce[data-bersaglio="1"]{outline:2px dashed rgba(41,151,255,.7);outline-offset:2px;
+  background:rgba(41,151,255,.12)}
+
+/* ------------------------------------------------- import manuale --------*/
+.importa{flex:1 1 100%;display:flex;flex-direction:column;gap:12px;margin-top:8px;
+  padding:16px 18px;border-radius:16px;border:1px solid var(--border2);
+  background:rgba(255,255,255,.022);backdrop-filter:blur(30px)}
+.importa-testa{display:flex;align-items:center;justify-content:space-between}
+.importa-testa b{font-size:13.5px;font-weight:650;letter-spacing:-.01em}
+.campo{display:flex;flex-direction:column;gap:5px;min-width:0}
+.campo > span{font-family:var(--eyebrow);font-size:10px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--text4)}
+.campo > span i{font-style:normal;opacity:.6;letter-spacing:.06em}
+.campo input,.campo select{font:inherit;font-size:12.5px;padding:8px 11px;border-radius:9px;
+  border:1px solid var(--border2);background:var(--surface2);color:var(--text);max-width:440px}
+.campo input[type="file"]{padding:7px;color:var(--text3)}
+.campo input:focus,.campo select:focus{outline:2px solid var(--accent);outline-offset:1px}
+.campo > i{font-style:normal;font-size:11px;color:var(--text4)}
+.campo-doppio{display:flex;gap:14px;flex-wrap:wrap}
+.importa-piede{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  padding-top:10px;border-top:1px solid var(--border)}
+.importa-piede .count{margin-left:0}
+
+/* Le creatività accoppiate portano un segno discreto: senza, "sono vicine"
+   e "sono legate" sarebbero indistinguibili, e si scioglierebbe la coppia
+   sbagliata. */
+.scheda[data-coppia="1"] .tela::after{content:'';position:absolute;left:10px;bottom:34px;
+  width:14px;height:14px;border-radius:4px;z-index:3;
+  border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.5);backdrop-filter:blur(6px);
+  box-shadow:3px 3px 0 -1px rgba(0,0,0,.5),3px 3px 0 rgba(255,255,255,.28)}
+/* Il bersaglio dell'accoppiamento è diverso da quello dello spostamento:
+   una linea continua invece che tratteggiata, perché lega e non trasferisce. */
+.scheda[data-bersaglio="1"]{outline:2px solid rgba(41,151,255,.85);outline-offset:4px}
+
+/* I prodotti nascosti restano in fondo al menu: nascondere senza poter tornare
+   indietro è un cassetto che non si riapre. */
+.nascosti{margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+.voce-nascosta{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;
+  font:inherit;font-size:11.5px;text-align:left;padding:6px 9px;border-radius:9px;cursor:pointer;
+  border:1px solid transparent;background:transparent;color:var(--text4)}
+.voce-nascosta:hover{background:var(--glass);color:var(--text3)}
+.voce-nascosta i{font-style:normal;font-size:10.5px;color:var(--accent);opacity:0;flex:0 0 auto}
+.voce-nascosta:hover i{opacity:1}
+
+/* ==================================================== Analitiche =========*/
+.blocco{margin:22px 0}
+.blocco > .et{margin:0 0 10px}
+.due{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:22px 0}
+@media (max-width:1100px){ .due{grid-template-columns:1fr} }
+
+/* Una composizione: un intero diviso in fette. Il distacco di 2px fra le fette
+   le tiene distinte anche quando due tinte sono vicine. */
+.comp-barra{display:flex;height:26px;border-radius:7px;overflow:hidden;background:var(--glass);
+  border:1px solid var(--border);gap:2px;padding:2px}
+.comp-fetta{border-radius:4px;transition:filter .16s ease}
+.comp-fetta:hover{filter:brightness(1.2)}
+.comp-legenda{display:flex;flex-wrap:wrap;gap:7px 16px;margin-top:11px}
+.comp-voce{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text4)}
+.comp-voce i{width:9px;height:9px;border-radius:3px;flex:0 0 auto}
+.comp-voce b{font-family:var(--eyebrow);font-weight:600;letter-spacing:.09em;text-transform:uppercase;
+  font-size:10.5px;color:var(--text3)}
+.comp-voce span{color:var(--text);font-weight:650;font-variant-numeric:tabular-nums}
+.comp-voce em{font-style:normal;opacity:.6;font-variant-numeric:tabular-nums}
+
+/* Classifica: una tinta sola. Sono la stessa misura su soggetti diversi, non
+   categorie che competono. */
+.classifica{display:flex;flex-direction:column;gap:7px}
+.cl-riga{display:grid;grid-template-columns:190px 1fr 140px;gap:12px;align-items:center}
+.cl-nome{font-family:var(--eyebrow);font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cl-barra{height:14px;border-radius:4px;background:var(--glass);overflow:hidden}
+.cl-barra i{display:block;height:100%;border-radius:4px;
+  background:linear-gradient(90deg,rgba(61,130,216,.55),rgba(61,130,216,.95))}
+.cl-val{font-size:12px;color:var(--text3);text-align:right;font-variant-numeric:tabular-nums}
+
+.conteggi{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:10px}
+.conta{padding:13px 15px;border-radius:14px;border:1px solid var(--border);
+  background:rgba(255,255,255,.02);backdrop-filter:blur(30px)}
+.conta .lab{font-family:var(--eyebrow);font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--text4)}
+.conta .val{font-size:23px;font-weight:800;letter-spacing:-.03em;margin-top:7px;font-variant-numeric:tabular-nums}
+.conta .val .q{font-size:13px;font-weight:600;color:var(--text4);letter-spacing:0}
+.conta .sub{font-size:11px;color:var(--text4);margin-top:5px}
+
+/* Le carte degli insight. Il tipo si legge dalla striscia a sinistra E dalla
+   parola scritta: il colore da solo non basta mai. */
+.insight{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.carta{position:relative;padding:14px 16px 15px 18px;border-radius:14px;
+  border:1px solid var(--border);background:rgba(255,255,255,.022);backdrop-filter:blur(30px)}
+.carta::before{content:'';position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:0 3px 3px 0;
+  background:var(--text4)}
+.carta[data-tipo="occasione"]::before{background:#2f9e63}
+.carta[data-tipo="allarme"]::before,.carta[data-tipo="rischio"]::before{background:#d4483c}
+.carta[data-tipo="buco"]::before{background:#b8891c}
+.carta[data-tipo="todo"]::before{background:#3d82d8}
+.carta-tipo{font-family:var(--eyebrow);font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--text4)}
+.carta h4{font-size:14px;font-weight:650;letter-spacing:-.015em;margin:5px 0 6px;line-height:1.35}
+.carta p{font-size:12.5px;line-height:1.55;color:var(--text3);margin:0}
+
+/* --- serie temporale ------------------------------------------------------
+   Due grafici affiancati che condividono l'asse dei giorni. MAI due assi sullo
+   stesso grafico: spesa e ROAS hanno scale incompatibili e sovrapporle fa
+   leggere incroci che non significano niente. */
+.serie{display:grid;grid-template-columns:1fr 1fr;gap:20px;cursor:crosshair}
+@media (max-width:1100px){ .serie{grid-template-columns:1fr} }
+.serie-uno{padding:14px 16px 8px;border-radius:16px;border:1px solid var(--border);
+  background:rgba(255,255,255,.02);backdrop-filter:blur(30px);overflow:hidden;position:relative}
+.serie-uno::before{content:'';position:absolute;top:0;left:10%;right:10%;height:1.5px;
+  background:linear-gradient(90deg,transparent,rgba(41,151,255,.4),transparent)}
+.serie-testa{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:8px}
+.serie-ora{font-size:19px;font-weight:750;letter-spacing:-.02em;color:var(--text);
+  display:flex;align-items:baseline;gap:9px;font-variant-numeric:tabular-nums}
+.serie-ora i{font-style:normal;font-size:11px;font-weight:400;color:var(--text4);letter-spacing:0}
+.serie-svg{width:100%;height:118px;display:block}
+/* La linea si disegna all'ingresso: il movimento dice "questi sono dati che
+   cambiano nel tempo" meglio di qualsiasi etichetta. */
+.serie-linea{stroke-dasharray:2400;stroke-dashoffset:2400;animation:traccia 1.1s ease forwards}
+@keyframes traccia{to{stroke-dashoffset:0}}
+.serie-area{animation:sfuma .9s ease .25s both}
+@keyframes sfuma{from{opacity:0}to{opacity:1}}
+
+/* Le barre crescono da zero: la grandezza si percepisce meglio se la si vede
+   arrivare. */
+.cl-barra i{animation:cresci .8s cubic-bezier(.22,1,.36,1) both}
+@keyframes cresci{from{width:0 !important}}
+.comp-fetta{animation:apri .7s cubic-bezier(.22,1,.36,1) both}
+@keyframes apri{from{transform:scaleX(0);transform-origin:left}}
+@media (prefers-reduced-motion:reduce){
+  .serie-linea,.cl-barra i,.comp-fetta,.serie-area{animation:none}
+  .serie-linea{stroke-dashoffset:0}
+}
+
+/* Nella classifica delle migliori la miniatura serve a RICONOSCERE la
+   creatività, non a decorare la riga: a 38px non si distingue un'immagine da
+   un'altra e tanto valeva non metterla. */
+.blocco table img.thumb{width:58px;height:58px;border-radius:9px}
+.blocco table .cellname{gap:13px}
+.blocco table td.nm{padding-top:7px;padding-bottom:7px}
+
+/* ------------------------------------------------------------ il cervello --*/
+.cervello{padding:18px 20px 16px;border-radius:18px;border:1px solid var(--border2);
+  background:rgba(255,255,255,.025);backdrop-filter:blur(40px) saturate(1.2);position:relative;
+  isolation:isolate;overflow:hidden;
+  box-shadow:0 18px 44px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.06)}
+.cervello::before{content:'';position:absolute;top:0;left:8%;right:8%;height:1.5px;z-index:-1;
+  background:linear-gradient(90deg,transparent,rgba(41,151,255,.5),transparent)}
+.cv-vuoto p{font-size:12.5px;line-height:1.6;color:var(--text3);margin:0 0 12px;max-width:74ch}
+.cv-spunti{display:flex;flex-wrap:wrap;gap:7px}
+
+.cv-storia{display:flex;flex-direction:column;gap:14px;max-height:520px;overflow-y:auto;
+  padding:4px 4px 8px;margin-bottom:12px}
+.cv-msg{display:flex;flex-direction:column;gap:5px;max-width:88%}
+.cv-io{align-self:flex-end;align-items:flex-end}
+.cv-io .cv-testo{background:rgba(41,151,255,.12);border:1px solid rgba(41,151,255,.28);
+  border-radius:14px 14px 4px 14px;padding:9px 14px;color:var(--text2)}
+.cv-lui .cv-testo{background:var(--glass);border:1px solid var(--border);
+  border-radius:14px 14px 14px 4px;padding:12px 16px}
+.cv-chi{font-family:var(--eyebrow);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--text4)}
+.cv-testo{font-size:13px;line-height:1.62;color:var(--text3)}
+.cv-testo p{margin:0 0 9px}
+.cv-testo p:last-child{margin-bottom:0}
+.cv-testo b{color:var(--text);font-weight:650}
+.cv-testo ul{margin:0 0 10px;padding-left:18px;display:flex;flex-direction:column;gap:5px}
+.cv-testo li{line-height:1.55}
+.cv-attesa{color:var(--text4);font-style:italic}
+
+.cv-riga{display:flex;gap:9px;align-items:center;padding-top:12px;border-top:1px solid var(--border)}
+.cv-riga input{flex:1;min-width:0;font:inherit;font-size:12.5px;padding:10px 14px;border-radius:11px;
+  border:1px solid var(--border2);background:var(--surface2);color:var(--text)}
+.cv-riga input:focus{outline:2px solid var(--accent);outline-offset:1px}
+.cv-riga input:disabled{opacity:.5}
+
+/* Gli angoli del prodotto attivo, annidati sotto di lui. Stanno nel menu e non
+   sopra la tela perché è lì che si sceglie cosa guardare: prima il prodotto,
+   poi il suo angolo, senza spostare gli occhi da un'altra parte. */
+.gruppo-prodotto{display:flex;flex-direction:column}
+.angoli-elenco{display:flex;flex-direction:column;gap:2px;margin:2px 0 8px;padding-left:12px;
+  border-left:1px solid var(--border2);margin-left:18px}
+.voce-angolo{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;
+  font:inherit;font-size:11.5px;text-align:left;padding:6px 10px;border-radius:8px;cursor:pointer;
+  border:1px solid transparent;background:transparent;color:var(--text4);
+  transition:background .14s ease,color .14s ease}
+.voce-angolo:hover{background:var(--glass);color:var(--text3)}
+.voce-angolo[data-on="1"]{background:rgba(41,151,255,.12);border-color:rgba(41,151,255,.3);color:var(--accent)}
+.voce-angolo span{font-size:11px;opacity:.6;flex:0 0 auto}
+.voce-angolo[data-on="1"] span{opacity:1}
+
+/* Un angolo solo: griglia piena, niente albero. Radice e ramo unico sarebbero
+   ingombro, e le schede finivano incolonnate a quattro in una striscia alta
+   tredicimila pixel. */
+.griglia-piena{display:flex;flex-direction:column;gap:16px;width:2044px;max-width:2044px}
+.griglia-testa{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.griglia-testa h3{font-size:17px;font-weight:650;letter-spacing:-.02em;margin:0}
+.griglia-testa .meta{font-family:var(--eyebrow);font-size:10.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--text4)}
+/* Sei schede per riga: senza un limite finivano tutte su una riga sola, larga
+   quindicimila pixel, e "Centra" scendeva all'8% — leggibile quanto una
+   miniatura di francobollo. */
+.griglia.griglia-larga{max-width:2044px;width:2044px}
+
+/* Il trascinamento appartiene alla SCHEDA, non a ciò che sta dentro: partendo
+   col mouse da sopra la foto il browser trascinava l'immagine e il gesto di
+   accoppiamento non si innescava. */
+/* SOLO l'immagine non si trascina: mettendo -webkit-user-drag:none anche su
+   .tela avevo bloccato il gesto proprio dove lo si inizia — sulla foto. La
+   scheda invece deve essere trascinabile, ed è quello che dichiara qui. */
+.scheda img{-webkit-user-drag:none}
+.scheda{-webkit-user-drag:element}
+.scheda .tela{user-select:none}
+
+/* ------------------------------------------------------------- accesso ----*/
+.entra-schermo{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.entra-carta{width:min(420px,100%);display:flex;flex-direction:column;gap:14px;
+  padding:28px 30px 26px;border-radius:20px;position:relative;isolation:isolate;overflow:hidden;
+  background:rgba(255,255,255,.025);backdrop-filter:blur(40px) saturate(1.2);
+  border:1px solid var(--border2);border-top-color:var(--border3);
+  box-shadow:0 30px 80px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.07)}
+.entra-carta::before{content:'';position:absolute;top:0;left:10%;right:10%;height:1.5px;z-index:-1;
+  background:linear-gradient(90deg,transparent,rgba(41,151,255,.5),transparent)}
+.entra-marchio{font-size:15px;font-weight:700;letter-spacing:-.02em}
+.entra-marchio span{color:var(--text4);font-weight:400;letter-spacing:0}
+.entra-nota{font-size:12.5px;line-height:1.6;color:var(--text4);margin:0}
+.entra-carta .campo input{max-width:none;width:100%}
+.entra-carta .chip.forte{align-self:flex-start;padding:9px 20px;font-size:13px}
+.entra-errore{font-size:12.5px;color:var(--red);margin:0}
+.esci{background:none;border:0;font:inherit;font-size:11px;color:var(--text4);cursor:pointer;
+  padding:0 0 0 12px;margin-left:2px;border-left:1px solid var(--border2)}
+.esci:hover{color:var(--text3)}
+
+/* --- spaccato della spesa per pubblico -------------------------------------
+   Un solo colore in tre intensita', non tre colori. I pubblici hanno un ordine
+   naturale (freddo -> caldo) quindi una scala di intensita' dice qualcosa di
+   vero, mentre tre tinte diverse suggerirebbero categorie senza relazione. E
+   verde/ambra/rosso restano riservati ai verdetti: qui non si decide niente,
+   si descrive. */
+.pub-barra { display:flex; width:100%; height:3px; margin-top:5px; border-radius:2px;
+  overflow:hidden; background:var(--border); }
+.pub-barra.alta { height:10px; margin:14px 0 4px; border-radius:5px; }
+.pub-fetta { display:block; height:100%; }
+.pub-new       { background:var(--accent); }
+.pub-engaged   { background:color-mix(in srgb, var(--accent) 55%, transparent); }
+.pub-returning { background:color-mix(in srgb, var(--accent) 28%, transparent); }
+.pub-unknown   { background:var(--border3, rgba(255,255,255,.16)); }
+
+.pub-punto { display:inline-block; width:8px; height:8px; border-radius:2px; margin-right:8px;
+  vertical-align:baseline; }
+
+/* `table` globale porta min-width:980px per la tabella grande delle
+   performance: qui dentro il cassetto, largo 560, faceva uscire dal bordo
+   quattro colonne su sei. */
+.pub-tab { width:100%; min-width:0; border-collapse:collapse; margin-top:6px; }
+.pub-tab th { font:600 10px/1 var(--eyebrow); letter-spacing:.08em; text-transform:uppercase;
+  color:var(--text4); text-align:left; padding:0 0 8px; }
+.pub-tab th.num, .pub-tab td.num { text-align:right; }
+.pub-tab td { padding:7px 0; border-top:1px solid var(--border); color:var(--text3); font-size:13px; }
+
+.pub-quota { display:block; margin-top:4px; font:600 9.5px/1 var(--eyebrow); letter-spacing:.06em;
+  text-transform:uppercase; color:var(--text4); }
+
+/* I campi del testo, in importazione e in modifica. */
+.importa-testi { display:flex; flex-direction:column; gap:12px; padding:14px; margin-top:2px;
+  background:var(--surface2); border:1px solid var(--border); border-radius:12px; }
+.importa-testi .nota-testi, .nota-testi { font-size:11.5px; color:var(--text4); font-style:normal; line-height:1.5; }
+.importa-testi textarea { width:100%; resize:vertical; font:inherit; font-size:13px; line-height:1.5;
+  background:var(--glass); color:var(--text); border:1px solid var(--border2); border-radius:9px; padding:9px 11px; }
+.importa-testi textarea:focus { outline:none; border-color:var(--accent); }
+.drawer.stretto { max-width:560px; }
+.azioni-riga { display:flex; gap:8px; margin-top:18px; }
+.azioni-riga .chip { padding:9px 18px; }
+
+/* Il riquadro dei testi seguiva la larghezza del contenitore invece di quella
+   dei campi sopra, e dentro l'importazione stonava: largo il doppio, con gli
+   input stretti in mezzo per via del tetto di 440px sugli input del modulo. */
+.importa-testi { max-width:620px; }
+.importa-testi input, .importa-testi textarea { max-width:none; width:100%; }
+.importa-testi .campo-doppio { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
+/* --- matrice angolo x formato ---
+   La classe si chiama `matrice` e NON `griglia`: `.griglia` esiste gia' per le
+   schede della board ed e' un display:flex. La tabella se lo prendeva, thead e
+   tbody diventavano due blocchi indipendenti e le colonne non combaciavano —
+   cosa che sembrava un problema di table-layout e non lo era. ----------------------------------------------
+   Il colore lo prendono SOLO le celle leggibili, e solo sul numero: una cella
+   da nove euro di spesa ha un costo per ordine bellissimo e non vuol dire
+   niente. Tinta di fondo appena accennata, il resto lo dice la tipografia. */
+table.matrice { min-width:0; border-spacing:3px; border-collapse:separate; }
+table.matrice th.gcol { padding:0 4px 12px; text-align:center; vertical-align:bottom; }
+table.matrice th.grow { padding:0 16px 0 2px; text-align:left; vertical-align:middle; white-space:nowrap; }
+.gnome { display:block; font:600 11.5px/1.35 var(--eyebrow); letter-spacing:.08em;
+  text-transform:uppercase; color:var(--text2); }
+.gsub  { display:block; margin-top:4px; font-size:11px; color:var(--text4);
+  font-variant-numeric:tabular-nums; font-weight:400; letter-spacing:0; text-transform:none; }
+.gcell { height:64px; text-align:center; border:1px solid var(--border);
+  border-radius:10px; padding:0; }
+.gcell b { display:block; font-size:17px; font-weight:600; letter-spacing:-.01em;
+  font-variant-numeric:tabular-nums; line-height:1.1; }
+.gcell i { display:block; margin-top:4px; font-style:normal; font-size:11px; color:var(--text4); }
+.gvuota  { color:var(--text4); border-style:dashed; font-size:17px; opacity:.5; }
+.gprovata { background:rgba(255,255,255,.014); }
+.gprovata b { color:var(--text3); font-weight:500; }
+.gletta  { background:var(--glass2); border-color:var(--border2); }
+.glegenda { display:flex; flex-wrap:wrap; gap:24px; margin-top:18px; font-size:12.5px; color:var(--text3); }
+.glegenda b { font-variant-numeric:tabular-nums; font-size:14px; }
+.glegenda b.gm { color:var(--text3); }
+
+/* Le colonne devono combaciare fra intestazione e corpo.
+   Con `table-layout:fixed` non combaciavano: la larghezza della tabella
+   restava al 100% ereditato dalla regola globale, il browser ridistribuiva lo
+   spazio in avanzo a modo suo e le celle uscivano a 62px sotto intestazioni da
+   112. La larghezza dichiarata in percentuale SIA sull'intestazione SIA sulla
+   cella non lascia margine di interpretazione. */
+table.matrice { width:100%; }
+table.matrice th.grow { width:13%; }
+table.matrice th.gcol, table.matrice .gcell { width:8.7%; }
+
+/* Col layout a colonne fisse comanda la PRIMA riga: la casella vuota in alto a
+   sinistra deve portare la stessa larghezza dell'etichetta di riga, altrimenti
+   tutte le intestazioni scivolano di una colonna. */
+
+/* --- calendario dei test --- */
+.cal { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; }
+.calbox { padding:16px 18px; border:1px solid var(--border); border-radius:14px; background:var(--glass); }
+.calbox span { display:block; font:600 10px/1 var(--eyebrow); letter-spacing:.12em;
+  text-transform:uppercase; color:var(--text4); }
+.calbox b { display:block; margin:10px 0 6px; font-size:30px; font-weight:600; letter-spacing:-.03em;
+  color:var(--text); font-variant-numeric:tabular-nums; }
+.calbox i { display:block; font-style:normal; font-size:11.5px; line-height:1.45; color:var(--text4); }
+.calriga { display:flex; flex-wrap:wrap; gap:26px; margin-top:16px; font-size:12.5px; color:var(--text3); }
+.calriga b { color:var(--text2); }
+.calallarme { color:var(--orange); }
+
+/* --- selettore del periodo -------------------------------------------------
+   Preset a sinistra, due mesi a destra, conferma esplicita. Nulla si applica
+   al primo clic: scegliendo un intervallo si clicca due volte, e senza
+   conferma il primo clic farebbe partire una lettura che nessuno ha chiesto. */
+.persel { position:relative; margin-left:auto; }
+
+.perpill { display:inline-flex; align-items:center; gap:9px; padding:9px 13px;
+  border-radius:11px; border:1px solid var(--border2); background:var(--glass2);
+  color:var(--text2); font-size:13px; font-weight:500; cursor:pointer; }
+.perpill:hover { color:var(--text); border-color:var(--border3,rgba(255,255,255,.16)); }
+.perpill[data-on="1"] { color:var(--text); border-color:var(--accent); }
+.perpill svg { opacity:.65; }
+.percaret { width:0; height:0; margin-left:2px;
+  border-left:4px solid transparent; border-right:4px solid transparent;
+  border-top:5px solid var(--text4); }
+
+.perpanel { position:absolute; top:calc(100% + 10px); right:0; z-index:60;
+  display:flex; min-width:800px; border-radius:16px; overflow:hidden;
+  border:1px solid var(--border2); background:var(--surface2);
+  box-shadow:0 24px 60px rgba(0,0,0,.6); }
+
+.perlista { width:212px; flex:0 0 212px; padding:14px 10px; display:flex; flex-direction:column;
+  gap:1px; border-right:1px solid var(--border); max-height:440px; overflow-y:auto; }
+.perlista-testa { font:600 10px/1 var(--eyebrow); letter-spacing:.13em; text-transform:uppercase;
+  color:var(--text4); padding:4px 12px 12px; }
+.pervoce { display:flex; align-items:center; gap:11px; padding:10px 12px; border-radius:9px;
+  border:0; background:transparent; color:var(--text3); font-size:13px; text-align:left; cursor:pointer; }
+.pervoce:hover { background:var(--glass); color:var(--text2); }
+.pervoce[data-on="1"] { background:var(--glass2); color:var(--text); }
+.perradio { width:13px; height:13px; flex:0 0 13px; border-radius:50%;
+  border:1.5px solid var(--border3,rgba(255,255,255,.22)); }
+.pervoce[data-on="1"] .perradio { border-color:var(--accent);
+  box-shadow:inset 0 0 0 3px var(--surface2), inset 0 0 0 9px var(--accent); }
+
+.percal { flex:1; padding:16px 18px 14px; display:flex; flex-direction:column; }
+.percal-testa { display:flex; align-items:center; gap:12px; }
+.percal-mesi { flex:1; display:flex; }
+.percal-mesi span { flex:1; text-align:center; font-size:13.5px; color:var(--text2); }
+.pernav { width:26px; height:26px; border-radius:8px; border:1px solid var(--border);
+  background:transparent; color:var(--text3); font-size:15px; line-height:1; cursor:pointer; }
+.pernav:hover { background:var(--glass); color:var(--text); }
+
+.percal-corpo { display:flex; gap:26px; margin-top:14px; }
+.permese { flex:1; }
+.permese-testa { display:none; }
+.pergg, .pergriglia { display:grid; grid-template-columns:repeat(7,1fr); }
+.pergg span { text-align:center; padding:6px 0 8px; font-size:10.5px; color:var(--text4); }
+.pergiorno { height:30px; border:0; background:transparent; color:var(--text2);
+  font-size:12.5px; cursor:pointer; border-radius:8px; font-variant-numeric:tabular-nums; }
+.pergiorno:hover:not(:disabled) { background:var(--glass2); }
+.pergiorno.vuoto { visibility:hidden; }
+.pergiorno.futuro { color:var(--text4); opacity:.4; cursor:default; }
+.pergiorno.dentro { background:color-mix(in srgb, var(--accent) 18%, transparent); border-radius:0; }
+.pergiorno.estremo { background:var(--accent); color:#fff; font-weight:600; border-radius:8px; }
+
+.perconfronta { display:flex; align-items:center; gap:9px; margin-top:16px; cursor:pointer;
+  font-size:13px; color:var(--text2); }
+.perconfronta input { width:14px; height:14px; accent-color:var(--accent); cursor:pointer; }
+.perconfronta i { font-style:normal; font-size:11.5px; color:var(--text4); }
+
+.perpiede { display:flex; align-items:center; gap:10px; margin-top:14px; padding-top:14px;
+  border-top:1px solid var(--border); }
+.perrange { flex:1; font-size:12.5px; color:var(--text3); }
+.perrange i { font-style:normal; color:var(--text4); margin-left:9px; }
+.perbtn { padding:9px 18px; border-radius:10px; font-size:13px; font-weight:500; cursor:pointer;
+  border:1px solid var(--border2); background:transparent; color:var(--text2); }
+.perbtn:hover { background:var(--glass); color:var(--text); }
+.perbtn.forte { background:var(--accent); border-color:var(--accent); color:#fff; }
+.perbtn.forte:hover { filter:brightness(1.08); }
+
+@media (max-width:900px) {
+  .perpanel { min-width:0; width:calc(100vw - 32px); flex-direction:column; }
+  .perlista { width:auto; flex:0 0 auto; border-right:0; border-bottom:1px solid var(--border);
+    max-height:180px; }
+  .percal-corpo .permese:last-child { display:none; }
+}
+
+/* La variazione contro il periodo precedente. Il verso non e' sempre lo stesso
+   — sulla spesa "in salita" e' cattiva notizia, sul fatturato e' buona — quindi
+   il colore lo decide chi chiama, non la direzione della freccia. */
+.delta { margin-top:6px; font-size:11.5px; font-variant-numeric:tabular-nums; color:var(--text4); }
+.delta[data-verso="su"]    { color:var(--green); }
+.delta[data-verso="giu"]   { color:var(--red); }
+.delta[data-verso="fermo"] { color:var(--text4); }
+.delta i { font-style:normal; color:var(--text4); margin-left:8px; }
+
+/* Gli spegnimenti che non si possono leggere, col loro perché. Dirlo vale
+   quanto la misura: un numero senza le condizioni che lo reggono è peggio di
+   nessun numero. */
+.scartate { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:9px; }
+.scartate li { font-size:12.5px; line-height:1.55; color:var(--text4);
+  padding-left:15px; border-left:2px solid var(--border2); }
+.scartate b { color:var(--text3); font-variant-numeric:tabular-nums; margin-right:4px; }
+
+/* ================================================== Griglia (tab) ========
+   Due assi a scelta, un pubblico, una metrica. Il colore resta ai giudizi:
+   verde "fai di piu'", ambra "prova"; la tinta di fondo delle celle e' bianco
+   neutro proporzionale alla spesa (dice "qui ci sono soldi", non "qui va bene"). */
+.gfrase{font-size:14px;line-height:1.65;color:var(--text2);max-width:900px;margin:8px 0 18px}
+.gliste{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:860px){.gliste{grid-template-columns:1fr}}
+.gcarta{position:relative;isolation:isolate;border:1px solid var(--border);border-radius:16px;background:var(--glass);padding:16px 18px}
+.gcarta-testa{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:650;color:var(--text2);margin-bottom:6px}
+.gcarta-testa .count{margin-left:auto}
+.gpunto{width:9px;height:9px;border-radius:3px;display:inline-block;flex:none}
+.gpunto.tratteggio{background:none;border:1.5px dashed}
+.gvoce{display:block;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--border);padding:9px 0;color:inherit;font:inherit;cursor:default}
+.gvoce:first-of-type{border-top:0}
+button.gvoce{cursor:pointer}
+button.gvoce:hover b{color:var(--accent)}
+.gvoce b{display:block;font-size:13.5px;font-weight:600;color:var(--text2);letter-spacing:-.01em}
+.gvoce span{display:block;font-size:11.5px;color:var(--text4);margin-top:2px;line-height:1.45}
+.gvuoto{font-size:12.5px;color:var(--text4);margin:6px 0 0;line-height:1.55}
+.gcontrolli{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:22px 0 12px}
+.gcontrolli label{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--text4)}
+.gcontrolli select{font:inherit;font-size:12.5px;padding:7px 11px;border:1px solid var(--border2);border-radius:9px;
+  background:var(--surface2);color:var(--text);cursor:pointer}
+.gcontrolli select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.gcontrolli .azione{padding:7px 12px}
+table.incrocio{table-layout:auto;width:100%}
+table.incrocio th.gcol,table.incrocio .gcell{width:auto;min-width:78px}
+table.incrocio th.grow{width:auto;min-width:120px;padding-right:14px}
+table.incrocio .gcell{position:relative;cursor:pointer;transition:border-color .12s}
+table.incrocio .gcell:hover{border-color:var(--border3)}
+table.incrocio .gvuota,table.incrocio .gvuota:hover{cursor:default;border-color:var(--border)}
+.gcell em{display:block;font:600 9.5px/1 var(--eyebrow);letter-spacing:.09em;text-transform:uppercase;
+  color:#2f9e63;margin:7px 0 4px;font-style:normal}
+.gcell.gfai{border-color:rgba(47,158,99,.42)}
+.gcell.gfai b{color:#2f9e63}
+.gcell.gprova{border:1px dashed rgba(184,137,28,.62);background:none;cursor:default}
+.gcell.gprova b{color:#b8891c;font-size:13px;font-weight:600;letter-spacing:.01em}
+.gcell.gprova i{color:rgba(184,137,28,.75)}
+.gcell.gtot,.gcell.gtot:hover{background:none;border-color:transparent;cursor:default}
+.gcell.gtot b{color:var(--text3);font-weight:600;font-size:15px}
+tr.gtotali th.grow .gnome{color:var(--text4)}
+tr.gtotali td{border-top:1px solid var(--border2);border-radius:0}
+.gcassetto table.gdentro{min-width:0;width:100%}
+.gdentro td.nm{max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+.gapri{display:inline-block;margin-top:16px;text-decoration:none;color:var(--accent);border-color:rgba(41,151,255,.38)}
+/* Il valore di una cella che ha speso ma non abbastanza per essere letta sta in
+   grigio: la legenda lo promette, e un numero bianco a 17px sembra un giudizio. */
+table.incrocio .gprovata b{color:var(--text4);font-weight:500}
+table.incrocio .gprovata.gprova b{color:#b8891c;font-weight:600}
+.gcell b.gparola{font-size:11px;font-weight:500;color:var(--text4);letter-spacing:.01em;line-height:1.2}
+
+/* ============================================================================
+   Scheda MATRICE — personas, cluster, avatar, righe, template, regole.
+   Solo neutri: la scheda descrive, non decide. I colori restano dei verdetti.
+   ========================================================================== */
+.mx-avviso{margin:10px 0;padding:10px 14px;border:1px dashed var(--border2);border-radius:12px;font-size:12.5px;color:var(--text3)}
+.mx-su{font-size:14px;font-weight:500;color:var(--text4);letter-spacing:0}
+.mx-scheda{position:relative;padding:18px 20px 20px;border-radius:16px;background:var(--glass);border:1px solid var(--border)}
+.mx-scheda h3{margin:0 0 6px;font-size:17px;font-weight:700;letter-spacing:-.02em}
+.mx-sintesi{margin:0 0 14px;font-size:13.5px;line-height:1.6;color:var(--text3);max-width:92ch}
+.mx-dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px 26px;margin:0}
+.mx-dl > div{min-width:0}
+.mx-dl dt{font-family:var(--eyebrow);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text4);margin-bottom:3px}
+.mx-dl dd{margin:0;font-size:13px;line-height:1.55;color:var(--text2)}
+.mx-avatar{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:12px;margin-top:16px}
+.mx-avatar .carta p{margin-top:5px}
+.mx-avatar .carta p b{color:var(--text2);font-weight:600}
+.mx-frase{font-style:italic;color:var(--text2) !important;margin-top:9px !important}
+.mx-cerca{flex:1 1 280px;max-width:420px;font:inherit;font-size:12.5px;color:var(--text);background:var(--glass);
+  border:1px solid var(--border2);border-radius:999px;padding:7px 14px;outline:none}
+.mx-cerca:focus{border-color:rgba(41,151,255,.5)}
+.mx-cerca::placeholder{color:var(--text4)}
+.mx-tabella{overflow-x:auto;border:1px solid var(--border);border-radius:14px;background:var(--glass)}
+.mx-tabella table{min-width:1900px}
+.mx-tabella th{position:sticky;top:0;text-align:left;padding:10px 12px;background:var(--surface);white-space:nowrap}
+.mx-tabella table{table-layout:auto}
+.mx-tabella td{padding:10px 12px;vertical-align:top;line-height:1.5;border-top:1px solid var(--border);color:var(--text3);
+  min-width:150px;max-width:340px;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
+.mx-tabella td.mx-id{min-width:0}
+.mx-tabella td.mx-id{color:var(--text2);white-space:nowrap;font-weight:600}
+.mx-tabella td.mx-head{color:var(--text);font-weight:600;min-width:200px}
+.mx-tabella td.copiabile{cursor:copy}
+.mx-tabella td.copiabile:hover{background:rgba(255,255,255,.03)}
+.mx-nota{font-size:11px;color:var(--text4);font-weight:400}
+.mx-griglia{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:6px}
+.mx-tpl{font:inherit;color:inherit;text-align:left;padding:0;cursor:pointer;display:flex;flex-direction:column;gap:2px;
+  border-radius:14px;overflow:hidden;background:var(--glass);border:1px solid var(--border);transition:transform .15s,border-color .15s}
+.mx-tpl:hover{transform:translateY(-2px);border-color:var(--border3)}
+.mx-tpl img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;background:#111}
+.mx-tpl-id{font-size:11.5px;color:var(--text2);padding:8px 11px 0}
+.mx-tpl-tipo{font-size:11px;color:var(--text4);padding:0 11px 10px}
+.mx-velo{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.72);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:28px}
+.mx-foglio{display:grid;grid-template-columns:minmax(0,520px) minmax(0,420px);gap:24px;max-width:1000px;max-height:calc(100vh - 56px);overflow:auto;
+  padding:22px;border-radius:18px;background:var(--surface);border:1px solid var(--border2)}
+.mx-foglio img{width:100%;border-radius:12px;display:block}
+.mx-foglio h3{margin:6px 0 14px;font-size:17px;font-weight:700;line-height:1.35}
+.mx-foglio .mx-dl{grid-template-columns:1fr}
+@media (max-width:860px){.mx-foglio{grid-template-columns:1fr}}
+.mx-foto{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;margin-top:14px}
+.mx-foto a{display:block;border-radius:12px;overflow:hidden;border:1px solid var(--border);background:var(--glass)}
+.mx-foto img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover}
+.mx-foto span{display:block;padding:7px 10px 9px;font-size:11.5px;color:var(--text3)}
+.mx-fonte{margin-top:8px !important;font-size:11.5px !important}
+.mx-fonte a{color:var(--accent)}
+.mx-lista{margin:0;padding-left:18px;font-size:13px;line-height:1.8;color:var(--text3)}

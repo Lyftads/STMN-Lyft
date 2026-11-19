@@ -1,0 +1,839 @@
+{
+ "cliente": "saracino",
+ "aggiornato": "2026-11-06",
+ "documento": "https://claude.ai/artifact/2FtgSyQo6JzCzM9HVHx7bb",
+ "segmenti": [
+  {
+   "n": 1,
+   "codice": "CUSTODE",
+   "nome": "Custode della scorta",
+   "avatar_principale": "Rosaria, la custode della scorta",
+   "sintesi": "Donna, 64 anni, Lecce. Ogni autunno compra l'olio per tutto l'anno e, se si trova bene, torna dallo stesso produttore senza guardare altro.",
+   "persone_storiche": [
+    "FAMIGLIA"
+   ],
+   "scheda": {
+    "Vita": "Pensionata, ex maestra. Sposata, due figli fuori casa, tre nipoti. La domenica a pranzo sono in dieci.",
+    "Casa": "Cucina tradizionale con le maioliche bianche, tavolo di legno, dispensa piena di barattoli e conserve.",
+    "La scena": "Domenica mattina, il ragù sul fuoco dalle otto. Travasa l'olio dal bag da 5 litri nell'oliera di ceramica e si accorge che è quasi finito.",
+    "Cosa pensa": "\"L'olio non deve mai mancare. Quello del supermercato non lo uso nemmeno per friggere.\"",
+    "Dubbi": "Sarà buono come quello del frantoio dove andava il marito? Arriva integro? Chi le risponde se c'è un problema?",
+    "Cosa lo convince": "Una famiglia che fa olio dal 1925, la data di raccolta, il consiglio della vicina o della figlia, poter telefonare.",
+    "Prodotti": "Bag 5 L Angelino, 10 L 2 bag Angelino.",
+    "Quando compra": "Ottobre-dicembre con l'olio nuovo; un secondo ordine in primavera. Spesso ordina la figlia per lei.",
+    "Dove la trovi": "Facebook, gruppi di ricette, passaparola in famiglia, WhatsApp.",
+    "Messaggio": "\"L'olio di casa, come una volta. Fa la scorta per tutto l'anno.\"",
+    "Idea di inserzione": "Video verticale in una cucina vera: mani anziane che travasano l'olio dal bag, il ragù sullo sfondo, testo \"È arrivato l'olio nuovo\"."
+   }
+  },
+  {
+   "n": 2,
+   "codice": "FUORISEDE",
+   "nome": "Fuorisede nostalgico",
+   "avatar_principale": "Davide, il fuorisede nostalgico",
+   "sintesi": "Uomo, 34 anni, nato a Taranto, vive a Milano da dieci anni. Compra l'olio per sentirsi a casa: per lui è un pezzo di Puglia consegnato alla porta.",
+   "persone_storiche": [
+    "FAMIGLIA",
+    "GOURMET"
+   ],
+   "scheda": {
+    "Vita": "Ingegnere in una società di consulenza. Convive con la compagna, milanese. Torna giù a Natale e ad agosto.",
+    "Casa": "Bilocale moderno in zona Isola, cucina a vista piccola, finestra sulle luci della città.",
+    "La scena": "Martedì sera, rientra alle 20. Sul bancone c'è il pacco da 10 litri arrivato in giornata. Lo apre, versa l'olio sul pane e manda un vocale alla madre: \"Questo sì che sa di olio.\"",
+    "Cosa pensa": "\"Prima me lo portavano i miei in macchina. Ora che non scendono più così spesso, dove lo trovo uno buono?\"",
+    "Dubbi": "Quanto costa la spedizione fino a Milano? La confezione regge il viaggio? Dieci litri in un bilocale dove li tengo?",
+    "Cosa lo convince": "Le parole del Salento, le facce della famiglia, le recensioni di altri pugliesi fuori sede, la spedizione gratuita.",
+    "Prodotti": "10 L 2 bag Angelino, 10 L mix Angelino + Fruttato. Ogni tanto un orcio da regalare ai colleghi.",
+    "Quando compra": "Ogni 4-6 mesi; picco a novembre e prima delle feste.",
+    "Dove lo trovi": "Instagram, Reels, Google (\"olio pugliese a domicilio\").",
+    "Messaggio": "\"L'olio di giù, a casa tua. Dal frantoio alla tua porta.\"",
+    "Idea di inserzione": "Reel in stile racconto personale: il pacco aperto in una cucina milanese, il pane che si inzuppa, la telefonata con la madre in sottofondo."
+   }
+  },
+  {
+   "n": 3,
+   "codice": "SALUTISTA",
+   "nome": "Salutista di città",
+   "avatar_principale": "Giulia, la salutista di città",
+   "sintesi": "Donna, 42 anni, Bologna. Sceglie l'olio come sceglie gli integratori: legge l'etichetta, vuole i dati e paga di più se capisce perché.",
+   "persone_storiche": [
+    "GOURMET",
+    "DIFFIDENTE"
+   ],
+   "scheda": {
+    "Vita": "Fisioterapista, separata, un figlio di 10 anni. Corre tre volte a settimana e cucina \"pulito\".",
+    "Casa": "Appartamento luminoso in centro, cucina minimal in legno chiaro, piante sul davanzale.",
+    "La scena": "Sabato mattina, dopo la corsa. Prepara una bowl di ceci e verdure, versa l'olio dalla bottiglia scura da 500 ml e intanto rilegge l'etichetta: annata, varietà, polifenoli.",
+    "Cosa pensa": "\"Se pizzica in gola vuol dire che è ricco di polifenoli. Quello dolce del supermercato non mi dice niente.\"",
+    "Dubbi": "È davvero extravergine? Di che annata è? Quanti polifenoli ha? Il bag in box di plastica è sicuro?",
+    "Cosa la convince": "Dati chiari in etichetta e sul sito, analisi di laboratorio, la spiegazione di amaro e piccante, il Fruttato.",
+    "Prodotti": "Bottiglia 500 ml Fruttato, Bag 5 L Fruttato quando si fida.",
+    "Quando compra": "Ogni 6-8 settimane, sempre lo stesso olio se la convince.",
+    "Dove la trovi": "Instagram (nutrizionisti, ricette sane), newsletter, Google (\"olio extravergine polifenoli\").",
+    "Messaggio": "\"Amaro e piccante non sono difetti: sono il segno di un olio fresco e ricco di polifenoli.\"",
+    "Idea di inserzione": "Carosello educativo: \"3 cose che l'etichetta deve dirti\", con annata, varietà e data di raccolta del Fruttato."
+   }
+  },
+  {
+   "n": 4,
+   "codice": "PREZZO",
+   "nome": "Attento al prezzo",
+   "avatar_principale": "Massimo, il padre attento al prezzo",
+   "sintesi": "Uomo, 52 anni, Casoria (Napoli). Oggi compra l'olio in offerta al supermercato: passa al produttore solo se il conto al litro torna.",
+   "persone_storiche": [
+    "SMART-SHOPPER"
+   ],
+   "scheda": {
+    "Vita": "Impiegato in un'azienda di trasporti, moglie casalinga, tre figli fra i 12 e i 20 anni. In casa si cucina tutti i giorni per cinque.",
+    "Casa": "Appartamento in un condominio di periferia, cucina abitabile sempre affollata, tavolo con la tovaglia cerata.",
+    "La scena": "Giovedì sera, dopo cena. Sul tavolo il volantino del supermercato, lo scontrino della settimana e il telefono aperto su un sito di olio. Fa i conti con la calcolatrice.",
+    "Cosa pensa": "\"In casa ne usiamo una bottiglia a settimana. Se lo prendo a 4 euro in offerta, perché dovrei spenderne il doppio?\"",
+    "Dubbi": "Quanto costa davvero al litro, spedizione compresa? È tanto più buono da valere la differenza? L'olio in offerta è davvero italiano?",
+    "Cosa lo convince": "Il conto al litro del formato grande messo nero su bianco, la differenza fra olio di quest'anno e olio vecchio o importato, uno sconto sul primo ordine.",
+    "Prodotti": "Bag 5 L Angelino, Promo 3 latte 3 L.",
+    "Quando compra": "Quando c'è una promozione; nel resto dell'anno torna al supermercato. È il cliente meno fedele.",
+    "Dove lo trovi": "Facebook, gruppi di offerte, Google Shopping (\"olio extravergine 5 litri prezzo\").",
+    "Messaggio": "\"Un olio di quest'anno, italiano, al prezzo al litro del supermercato.\" (da usare solo se i conti di Saracino lo permettono)",
+    "Idea di inserzione": "Immagine statica a confronto: bottiglia in offerta contro bag da 5 litri, con prezzo al litro, origine e annata dei due oli."
+   }
+  },
+  {
+   "n": 5,
+   "codice": "REGALO",
+   "nome": "Professionista che regala",
+   "avatar_principale": "Alessandro, il professionista che regala",
+   "sintesi": "Uomo, 47 anni, Firenze. Non compra l'olio per sé ma per fare bella figura: cerca un regalo che abbia una storia e arrivi in tempo.",
+   "persone_storiche": [
+    "GOURMET"
+   ],
+   "scheda": {
+    "Vita": "Architetto con uno studio di otto persone. Sposato, una figlia. Ogni Natale manda un regalo a una ventina di clienti e fornitori.",
+    "Casa": "Studio in un palazzo storico in Oltrarno: travi a vista, scrivanie di legno, lampade calde, a dicembre l'albero all'ingresso.",
+    "La scena": "Primi di dicembre, tardo pomeriggio. Sulla scrivania gli orci di ceramica decorati, scatole di carta kraft, nastri e bigliettini. Scrive a mano un biglietto per ogni cliente.",
+    "Cosa pensa": "\"Il panettone lo regalano tutti. Voglio qualcosa di italiano, bello da vedere e che si ricordino.\"",
+    "Dubbi": "Arriva prima di Natale? Si può aggiungere un biglietto? Ci sono sconti per 20 pezzi? La fattura intestata allo studio?",
+    "Cosa lo convince": "Confezioni curate, i nomi dei luoghi (Leuca, Otranto, Gallipoli, Lecce), la storia della famiglia dal 1925, una data di consegna garantita.",
+    "Prodotti": "Orci 500 ml Leuca, Otranto, Gallipoli e Lecce, Box assaggio 1,5 L, 6 bottiglie 500 ml.",
+    "Quando compra": "Tra metà novembre e il 15 dicembre, una volta l'anno, in quantità.",
+    "Dove lo trovi": "Instagram, LinkedIn, Google (\"regali aziendali gastronomici\", \"regalo olio extravergine\").",
+    "Messaggio": "\"Un regalo che racconta il Salento. Quattro orci, quattro luoghi.\"",
+    "Idea di inserzione": "Foto still life calda: i quattro orci su una scrivania con biglietti scritti a mano e la data entro cui ordinare per riceverli prima di Natale."
+   }
+  },
+  {
+   "n": 6,
+   "codice": "CURIOSA",
+   "nome": "Curiosa che vuole provare",
+   "avatar_principale": "Sara, la curiosa che vuole provare",
+   "sintesi": "Donna, 27 anni, Roma. Non ha mai comprato olio online e non rischia 5 litri al buio: parte da un assaggio e, se le piace, lo racconta.",
+   "persone_storiche": [
+    "GOURMET",
+    "SMART-SHOPPER"
+   ],
+   "scheda": {
+    "Vita": "Social media manager in un'agenzia, vive da sola. Cucina poco nei giorni feriali, molto quando invita gli amici.",
+    "Casa": "Monolocale al Pigneto con le lucine, divano, tavolino basso, piante e poster alle pareti.",
+    "La scena": "Venerdì sera, aperitivo con due amiche. Sul tavolino il box assaggio aperto, pane casereccio, pomodorini. Fanno la prova alla cieca dei tre oli e un'amica filma per le storie.",
+    "Cosa pensa": "\"Non avevo idea che l'olio potesse avere sapori così diversi.\"",
+    "Dubbi": "E se non mi piace? Cosa cambia fra un olio e l'altro? Cinque litri non li finisco mai. Cos'è l'olio novello?",
+    "Cosa la convince": "Un formato piccolo a basso rischio, un'esperienza da condividere, creator e recensioni di persone come lei, un codice sconto per il secondo ordine.",
+    "Prodotti": "Box assaggio 1,5 L, Bottiglia 250 ml, poi Bottiglia 500 ml Fruttato.",
+    "Quando compra": "Primo ordine d'impulso dopo un video; secondo ordine se arriva il promemoria giusto.",
+    "Dove la trovi": "TikTok, Instagram Reels, creator di cucina.",
+    "Messaggio": "\"Tre oli, un pane, una sera con gli amici: scopri qual è il tuo.\"",
+    "Idea di inserzione": "Video UGC verticale: la prova d'assaggio fra amiche con le reazioni a ogni olio, chiusa sul box."
+   }
+  }
+ ],
+ "cluster": [
+  {
+   "id": "1A",
+   "segmento": "CUSTODE",
+   "nome": "Olio nuovo, scorta per l'anno",
+   "chi": "Over 55 del Sud, famiglie numerose, chi fa conserve",
+   "cosa_li_accomuna": "Comprano una o due volte l'anno, in autunno, a litri",
+   "leva": "Olio appena franto, formati da 5 e 10 litri, \"è arrivato l'olio nuovo\"",
+   "angolo_motore": "SCORTA",
+   "ondata": 1
+  },
+  {
+   "id": "1B",
+   "segmento": "CUSTODE",
+   "nome": "Fiducia nella famiglia",
+   "chi": "Chi aveva un frantoio o ulivi di famiglia, intenditori",
+   "cosa_li_accomuna": "Diffidano dell'olio industriale, scelgono il produttore",
+   "leva": "Famiglia dal 1925, facce vere, assaggio, garanzia",
+   "angolo_motore": "ORIGINE",
+   "ondata": 2
+  },
+  {
+   "id": "1C",
+   "segmento": "CUSTODE",
+   "nome": "Comodità a domicilio",
+   "chi": "Anziani senza auto, figli che ordinano per i genitori",
+   "cosa_li_accomuna": "Non possono o non vogliono portare pesi",
+   "leva": "Consegna a casa, riordino facile, un solo pacco per l'inverno",
+   "angolo_motore": "CONVENIENZA",
+   "ondata": 4
+  },
+  {
+   "id": "2A",
+   "segmento": "FUORISEDE",
+   "nome": "Il sapore di casa",
+   "chi": "Meridionali al Centro-Nord da più di 5 anni, 25-45 anni",
+   "cosa_li_accomuna": "Associano l'olio alla madre, alla nonna, all'estate giù",
+   "leva": "Salento, ricordi, \"sa di casa\"",
+   "angolo_motore": "ORIGINE",
+   "ondata": 1
+  },
+  {
+   "id": "2B",
+   "segmento": "FUORISEDE",
+   "nome": "Portare il Sud nella nuova famiglia",
+   "chi": "Fuorisede in coppia con un partner del Nord, genitori giovani, chi ospita amici",
+   "cosa_li_accomuna": "Vogliono far conoscere le proprie radici a chi gli sta vicino",
+   "leva": "Condivisione, cene, tradizione da passare ai figli",
+   "angolo_motore": "ORIGINE",
+   "ondata": 4
+  },
+  {
+   "id": "2C",
+   "segmento": "FUORISEDE",
+   "nome": "Niente più olio in valigia",
+   "chi": "Chi prima se lo portava in auto o in valigia, studenti fuorisede",
+   "cosa_li_accomuna": "Il viaggio verso casa è diventato raro o scomodo",
+   "leva": "Spedizione sicura, confezione che regge, scorta senza fatica",
+   "angolo_motore": "CONVENIENZA",
+   "ondata": 2
+  },
+  {
+   "id": "3A",
+   "segmento": "SALUTISTA",
+   "nome": "Polifenoli e benefici",
+   "chi": "Chi ha avuto un'indicazione dal medico, professionisti della nutrizione",
+   "cosa_li_accomuna": "L'olio è un alimento per la salute, non solo un condimento",
+   "leva": "Polifenoli, dieta mediterranea, \"amaro e piccante sono un pregio\"",
+   "angolo_motore": "QUALITA",
+   "ondata": 4
+  },
+  {
+   "id": "3B",
+   "segmento": "SALUTISTA",
+   "nome": "Trasparenza contro le frodi",
+   "chi": "Lettori di etichette, chi ha visto inchieste sull'olio falso",
+   "cosa_li_accomuna": "Diffidano di quello che c'è scritto sulla bottiglia",
+   "leva": "Annata, varietà, frantoio, analisi, tracciabilità",
+   "angolo_motore": "QUALITA",
+   "ondata": 4
+  },
+  {
+   "id": "3C",
+   "segmento": "SALUTISTA",
+   "nome": "Cucina sana di tutti i giorni",
+   "chi": "Sportivi, chi fa meal prep, donne che cambiano alimentazione",
+   "cosa_li_accomuna": "Cucinano semplice e vogliono ingredienti di qualità",
+   "leva": "Olio a crudo, ricette veloci, il Fruttato sul piatto",
+   "angolo_motore": "QUALITA",
+   "ondata": 4
+  },
+  {
+   "id": "4A",
+   "segmento": "PREZZO",
+   "nome": "Prezzo al litro del formato grande",
+   "chi": "Famiglie numerose, pensionati con budget fisso",
+   "cosa_li_accomuna": "Consumano tanto olio e contano ogni euro",
+   "leva": "Il conto al litro del bag da 5 litri, messo a confronto",
+   "angolo_motore": "RISPARMIO",
+   "ondata": 3
+  },
+  {
+   "id": "4B",
+   "segmento": "PREZZO",
+   "nome": "Olio di quest'anno contro olio qualunque",
+   "chi": "Chi ha scoperto che l'olio in offerta era miscela o vecchio, piccoli ristoratori",
+   "cosa_li_accomuna": "Hanno capito che il prezzo basso nasconde qualcosa",
+   "leva": "Annata, origine italiana, \"a parità di prezzo sai cosa compri\"",
+   "angolo_motore": "QUALITA",
+   "ondata": 4
+  },
+  {
+   "id": "4C",
+   "segmento": "PREZZO",
+   "nome": "Caccia alla promozione",
+   "chi": "Giovani coppie, cacciatori di offerte e Black Friday",
+   "cosa_li_accomuna": "Comprano quando c'è uno sconto, poi spariscono",
+   "leva": "Sconto sul primo ordine, promo a tempo, spedizione gratuita",
+   "angolo_motore": "URGENZA",
+   "ondata": 3
+  },
+  {
+   "id": "5A",
+   "segmento": "REGALO",
+   "nome": "Regali aziendali",
+   "chi": "Titolari di studi e aziende, uffici del personale",
+   "cosa_li_accomuna": "Regalano in quantità, a novembre-dicembre, con fattura",
+   "leva": "Confezioni curate, prezzo per 10-50 pezzi, consegna garantita",
+   "angolo_motore": "REGALO",
+   "ondata": 2
+  },
+  {
+   "id": "5B",
+   "segmento": "REGALO",
+   "nome": "Regalo di Natale in famiglia",
+   "chi": "Figli, nuore, generi, nipoti",
+   "cosa_li_accomuna": "Vogliono un regalo che faccia bella figura senza spendere troppo",
+   "leva": "Orci decorati, box assaggio, la storia dal 1925",
+   "angolo_motore": "REGALO",
+   "ondata": 1
+  },
+  {
+   "id": "5C",
+   "segmento": "REGALO",
+   "nome": "Regalo per un'occasione",
+   "chi": "Sposi, invitati a cena, chi festeggia un anniversario",
+   "cosa_li_accomuna": "Cercano un pensiero diverso dal solito vino o dai fiori",
+   "leva": "Formati piccoli e belli, i luoghi del Salento, biglietto",
+   "angolo_motore": "REGALO",
+   "ondata": 2
+  },
+  {
+   "id": "6A",
+   "segmento": "CURIOSA",
+   "nome": "L'assaggio come esperienza",
+   "chi": "Under 35 che organizzano cene e aperitivi, creator di cucina",
+   "cosa_li_accomuna": "Vogliono qualcosa da fare e da condividere",
+   "leva": "Prova d'assaggio fra amici, box, video da pubblicare",
+   "angolo_motore": "SCELTA",
+   "ondata": 4
+  },
+  {
+   "id": "6B",
+   "segmento": "CURIOSA",
+   "nome": "Scoprire l'olio come il vino",
+   "chi": "Appassionati di vino e cucina, studenti fuori casa",
+   "cosa_li_accomuna": "Sono curiosi: vogliono imparare le differenze",
+   "leva": "Varietà, novello contro maturo, come si assaggia",
+   "angolo_motore": "QUALITA",
+   "ondata": 4
+  },
+  {
+   "id": "6C",
+   "segmento": "CURIOSA",
+   "nome": "Il primo olio \"mio\"",
+   "chi": "Chi va a vivere da solo o in coppia, neo-genitori",
+   "cosa_li_accomuna": "Per la prima volta scelgono da soli cosa mettere in dispensa",
+   "leva": "Formati piccoli, consigli d'uso, olio buono per la famiglia",
+   "angolo_motore": "SCELTA",
+   "ondata": 4
+  }
+ ],
+ "avatar": [
+  {
+   "id": "1A-1",
+   "cluster": "1A",
+   "segmento": "CUSTODE",
+   "nome": "Antonio",
+   "genere_eta": "Uomo, 71",
+   "eta": [
+    71
+   ],
+   "dove_con_chi": "Brindisi, vedovo, vive solo",
+   "abitudini": "Cucina ogni giorno da quando è rimasto solo; fa ordinare il nipote",
+   "situazione": "Novembre: in dispensa il bag è vuoto e il frantoio dove andava ha chiuso",
+   "frase": "L'olio nuovo quest'anno me lo porto a casa senza uscire."
+  },
+  {
+   "id": "1A-2",
+   "cluster": "1A",
+   "segmento": "CUSTODE",
+   "nome": "Carmela e Pino",
+   "genere_eta": "Coppia, 60 e 63",
+   "eta": [
+    60,
+    63
+   ],
+   "dove_con_chi": "Matera, figli sposati in zona",
+   "abitudini": "Fanno conserve, passata e sottoli: 20 litri l'anno",
+   "situazione": "Settembre: preparano la dispensa per l'inverno con le melanzane già tagliate",
+   "frase": "Prima dei sottoli, l'olio. Senza quello buono non si comincia."
+  },
+  {
+   "id": "1B-1",
+   "cluster": "1B",
+   "segmento": "CUSTODE",
+   "nome": "Lucia",
+   "genere_eta": "Donna, 58",
+   "eta": [
+    58
+   ],
+   "dove_con_chi": "Bari, sposata, figlia all'università",
+   "abitudini": "Insegnante; legge le storie dei produttori prima di comprare",
+   "situazione": "Pranzo dalla suocera, che critica ogni olio che non sia \"quello di una volta\"",
+   "frase": "Da quando la famiglia ha venduto gli ulivi, cerco chi lo fa come loro."
+  },
+  {
+   "id": "1B-2",
+   "cluster": "1B",
+   "segmento": "CUSTODE",
+   "nome": "Franco",
+   "genere_eta": "Uomo, 66",
+   "eta": [
+    66
+   ],
+   "dove_con_chi": "Foggia, sposato, nonno",
+   "abitudini": "Ex agricoltore, intenditore e diffidente; assaggia col cucchiaio",
+   "situazione": "Assaggia un campione davanti agli amici al bar, pronto a bocciarlo",
+   "frase": "Se un olio è buono lo capisco al primo sorso. Fammi sentire."
+  },
+  {
+   "id": "1C-1",
+   "cluster": "1C",
+   "segmento": "CUSTODE",
+   "nome": "Anna",
+   "genere_eta": "Donna, 69",
+   "eta": [
+    69
+   ],
+   "dove_con_chi": "Taranto, terzo piano senza ascensore",
+   "abitudini": "Non guida più; la latta da 5 kg non riesce a portarla",
+   "situazione": "Il corriere le lascia il pacco alla porta mentre prepara le orecchiette",
+   "frase": "Finalmente non devo chiedere a nessuno di portarmi l'olio."
+  },
+  {
+   "id": "1C-2",
+   "cluster": "1C",
+   "segmento": "CUSTODE",
+   "nome": "Michele",
+   "genere_eta": "Uomo, 45",
+   "eta": [
+    45
+   ],
+   "dove_con_chi": "Lecce, sposato, genitori anziani a 10 km",
+   "abitudini": "Ordina online per sé e per i suoi, in pausa pranzo",
+   "situazione": "Dal telefono rifà due ordini uguali, uno a casa sua e uno dai genitori",
+   "frase": "Due clic e ai miei arriva l'olio per l'inverno."
+  },
+  {
+   "id": "2A-1",
+   "cluster": "2A",
+   "segmento": "FUORISEDE",
+   "nome": "Chiara",
+   "genere_eta": "Donna, 29",
+   "eta": [
+    29
+   ],
+   "dove_con_chi": "Torino, single, coinquilina",
+   "abitudini": "Infermiera a turni; cena tardi con quello che c'è",
+   "situazione": "Torna dal turno di notte e si fa una frisa con pomodoro e olio",
+   "frase": "Dopo dodici ore di turno, una frisa così mi rimette al mondo."
+  },
+  {
+   "id": "2A-2",
+   "cluster": "2A",
+   "segmento": "FUORISEDE",
+   "nome": "Raffaele",
+   "genere_eta": "Uomo, 41",
+   "eta": [
+    41
+   ],
+   "dove_con_chi": "Bologna, separato, un figlio nel weekend",
+   "abitudini": "Cuoco in una trattoria; a casa cucina pugliese",
+   "situazione": "Domenica fa le orecchiette col figlio e gli racconta del nonno",
+   "frase": "In cucina uso l'olio che usava mio padre."
+  },
+  {
+   "id": "2B-1",
+   "cluster": "2B",
+   "segmento": "FUORISEDE",
+   "nome": "Marta",
+   "genere_eta": "Donna, 36",
+   "eta": [
+    36
+   ],
+   "dove_con_chi": "Milano, sposata con un milanese, due bambini",
+   "abitudini": "Cucina per i figli, cerca sapori \"veri\"",
+   "situazione": "Prepara la pappa della più piccola con l'olio, come faceva sua madre con lei",
+   "frase": "Voglio che i miei figli crescano con il sapore della nonna."
+  },
+  {
+   "id": "2B-2",
+   "cluster": "2B",
+   "segmento": "FUORISEDE",
+   "nome": "Simone e Luca",
+   "genere_eta": "Coppia di uomini, 38 e 35",
+   "eta": [
+    38,
+    35
+   ],
+   "dove_con_chi": "Torino, convivono, molti amici",
+   "abitudini": "Organizzano cene a tema; Simone è salentino",
+   "situazione": "Cena salentina per sei amici: Simone presenta l'olio come il vino",
+   "frase": "Stasera vi faccio assaggiare da dove vengo."
+  },
+  {
+   "id": "2C-1",
+   "cluster": "2C",
+   "segmento": "FUORISEDE",
+   "nome": "Giorgio",
+   "genere_eta": "Uomo, 52",
+   "eta": [
+    52
+   ],
+   "dove_con_chi": "Verona, sposato, figli grandi",
+   "abitudini": "Manager; per anni ha caricato le latte in auto ad agosto",
+   "situazione": "Quest'anno scende in aereo e la latta non entra in valigia",
+   "frase": "Vent'anni di latte in macchina. Ora me lo spediscono."
+  },
+  {
+   "id": "2C-2",
+   "cluster": "2C",
+   "segmento": "FUORISEDE",
+   "nome": "Federica",
+   "genere_eta": "Donna, 24",
+   "eta": [
+    24
+   ],
+   "dove_con_chi": "Padova, studentessa, tre coinquiline",
+   "abitudini": "Budget stretto, cucina per tutte la domenica",
+   "situazione": "Divide un bag da 5 litri con le coinquiline, ognuna paga la sua parte",
+   "frase": "Diviso in quattro, l'olio buono diventa alla portata di tutte."
+  },
+  {
+   "id": "3A-1",
+   "cluster": "3A",
+   "segmento": "SALUTISTA",
+   "nome": "Paolo",
+   "genere_eta": "Uomo, 58",
+   "eta": [
+    58
+   ],
+   "dove_con_chi": "Padova, sposato",
+   "abitudini": "Commerciale, mangiava fuori; ora controlla tutto",
+   "situazione": "Dopo la visita il cardiologo gli ha detto colesterolo alto e dieta mediterranea",
+   "frase": "Se devo cambiare, voglio farlo con l'olio giusto."
+  },
+  {
+   "id": "3A-2",
+   "cluster": "3A",
+   "segmento": "SALUTISTA",
+   "nome": "Elena",
+   "genere_eta": "Donna, 33",
+   "eta": [
+    33
+   ],
+   "dove_con_chi": "Milano, convive",
+   "abitudini": "Biologa nutrizionista, consiglia gli oli ai pazienti",
+   "situazione": "Prepara un post su come scegliere l'extravergine",
+   "frase": "Ai miei pazienti dico: scegli quello che pizzica."
+  },
+  {
+   "id": "3B-1",
+   "cluster": "3B",
+   "segmento": "SALUTISTA",
+   "nome": "Stefano",
+   "genere_eta": "Uomo, 45",
+   "eta": [
+    45
+   ],
+   "dove_con_chi": "Torino, sposato, due figli",
+   "abitudini": "Ingegnere, guarda le inchieste TV, confronta le etichette",
+   "situazione": "Al supermercato gira la bottiglia e trova \"miscela di oli comunitari\"",
+   "frase": "Se non mi dici da dove viene e di che anno è, non lo compro."
+  },
+  {
+   "id": "3B-2",
+   "cluster": "3B",
+   "segmento": "SALUTISTA",
+   "nome": "Valentina",
+   "genere_eta": "Donna, 38",
+   "eta": [
+    38
+   ],
+   "dove_con_chi": "Firenze, mamma single",
+   "abitudini": "Compra biologico e a km zero, legge ogni ingrediente",
+   "situazione": "Fotografa l'etichetta e la manda nel gruppo delle mamme",
+   "frase": "Voglio sapere esattamente cosa do da mangiare a mio figlio."
+  },
+  {
+   "id": "3C-1",
+   "cluster": "3C",
+   "segmento": "SALUTISTA",
+   "nome": "Marco",
+   "genere_eta": "Uomo, 29",
+   "eta": [
+    29
+   ],
+   "dove_con_chi": "Brescia, single",
+   "abitudini": "Personal trainer, meal prep la domenica per tutta la settimana",
+   "situazione": "Domenica sera, dieci contenitori in fila, l'olio a crudo su ognuno",
+   "frase": "Sei giorni di pasti, un solo condimento: deve essere quello buono."
+  },
+  {
+   "id": "3C-2",
+   "cluster": "3C",
+   "segmento": "SALUTISTA",
+   "nome": "Laura",
+   "genere_eta": "Donna, 50",
+   "eta": [
+    50
+   ],
+   "dove_con_chi": "Genova, sposata, figli grandi",
+   "abitudini": "Yoga, ha cambiato alimentazione in menopausa",
+   "situazione": "Pranzo leggero sul terrazzo: verdure grigliate e un filo di Fruttato",
+   "frase": "Mangio meno, ma voglio che ogni cosa nel piatto sia buona."
+  },
+  {
+   "id": "4A-1",
+   "cluster": "4A",
+   "segmento": "PREZZO",
+   "nome": "Rita",
+   "genere_eta": "Donna, 47",
+   "eta": [
+    47
+   ],
+   "dove_con_chi": "Palermo, sposata, quattro figli",
+   "abitudini": "Spesa grossa al discount ogni sabato, lista e calcolatrice",
+   "situazione": "Al discount confronta il prezzo al litro della bottiglia con quello del bag visto online",
+   "frase": "Con sei persone in casa, l'olio va comprato a litri, non a bottiglie."
+  },
+  {
+   "id": "4A-2",
+   "cluster": "4A",
+   "segmento": "PREZZO",
+   "nome": "Giuseppe",
+   "genere_eta": "Uomo, 63",
+   "eta": [
+    63
+   ],
+   "dove_con_chi": "Cagliari, pensionato, sposato",
+   "abitudini": "Budget mensile fisso, segna le spese su un quaderno",
+   "situazione": "A inizio mese decide cosa comprare in grande per risparmiare",
+   "frase": "Se lo prendo una volta sola e mi dura tre mesi, ci guadagno."
+  },
+  {
+   "id": "4B-1",
+   "cluster": "4B",
+   "segmento": "PREZZO",
+   "nome": "Daniela",
+   "genere_eta": "Donna, 39",
+   "eta": [
+    39
+   ],
+   "dove_con_chi": "Roma, convive, un figlio",
+   "abitudini": "Impiegata, compra in offerta senza guardare troppo",
+   "situazione": "Legge sull'etichetta \"oli di oliva comunitari\" e si sente presa in giro",
+   "frase": "Pensavo fosse italiano. Da oggi guardo da dove viene."
+  },
+  {
+   "id": "4B-2",
+   "cluster": "4B",
+   "segmento": "PREZZO",
+   "nome": "Ciro",
+   "genere_eta": "Uomo, 55",
+   "eta": [
+    55
+   ],
+   "dove_con_chi": "Salerno, titolare di una piccola pizzeria",
+   "abitudini": "Compra l'olio a latte per il locale, guarda il costo per pizza",
+   "situazione": "Un cliente gli chiede che olio usa sulla margherita",
+   "frase": "Sulla pizza l'olio si sente: non posso mettere quello che costa meno."
+  },
+  {
+   "id": "4C-1",
+   "cluster": "4C",
+   "segmento": "PREZZO",
+   "nome": "Andrea",
+   "genere_eta": "Uomo, 31",
+   "eta": [
+    31
+   ],
+   "dove_con_chi": "Bergamo, appena andato a convivere",
+   "abitudini": "Usa coupon, cashback e app di confronto prezzi",
+   "situazione": "Black Friday: salva nel carrello tutto quello che è scontato",
+   "frase": "Se c'è lo sconto sul primo ordine, provo."
+  },
+  {
+   "id": "4C-2",
+   "cluster": "4C",
+   "segmento": "PREZZO",
+   "nome": "Patrizia",
+   "genere_eta": "Donna, 60",
+   "eta": [
+    60
+   ],
+   "dove_con_chi": "Pescara, vedova, vive con la sorella",
+   "abitudini": "Segue le pagine delle offerte su Facebook",
+   "situazione": "Vede una promo a tempo e la gira subito alla sorella",
+   "frase": "Ne prendiamo due e dividiamo la spedizione."
+  },
+  {
+   "id": "5A-1",
+   "cluster": "5A",
+   "segmento": "REGALO",
+   "nome": "Roberta",
+   "genere_eta": "Donna, 44",
+   "eta": [
+    44
+   ],
+   "dove_con_chi": "Milano, responsabile del personale in un'azienda di 80 dipendenti",
+   "abitudini": "Ogni anno gestisce i regali di Natale con un budget per persona",
+   "situazione": "A metà novembre deve scegliere un regalo uguale per tutti entro venerdì",
+   "frase": "Mi serve qualcosa di bello, italiano, e che arrivi tutto insieme."
+  },
+  {
+   "id": "5A-2",
+   "cluster": "5A",
+   "segmento": "REGALO",
+   "nome": "Luigi",
+   "genere_eta": "Uomo, 61",
+   "eta": [
+    61
+   ],
+   "dove_con_chi": "Treviso, titolare di un'azienda meccanica",
+   "abitudini": "Lavora con clienti tedeschi e francesi",
+   "situazione": "Prepara i pacchi per i clienti esteri e vuole qualcosa che racconti l'Italia",
+   "frase": "Ai miei clienti voglio regalare il Made in Italy che si mangia."
+  },
+  {
+   "id": "5B-1",
+   "cluster": "5B",
+   "segmento": "REGALO",
+   "nome": "Giorgia",
+   "genere_eta": "Donna, 35",
+   "eta": [
+    35
+   ],
+   "dove_con_chi": "Torino, sposata, primo Natale dai suoceri",
+   "abitudini": "Fa ricerche a lungo prima di scegliere un regalo",
+   "situazione": "Cerca un regalo per i suoceri pugliesi che non sia banale",
+   "frase": "Mio suocero dell'olio se ne intende: questo deve colpirlo."
+  },
+  {
+   "id": "5B-2",
+   "cluster": "5B",
+   "segmento": "REGALO",
+   "nome": "Tommaso",
+   "genere_eta": "Uomo, 23",
+   "eta": [
+    23
+   ],
+   "dove_con_chi": "Pisa, studente, vive con i coinquilini",
+   "abitudini": "Budget di circa 30 euro, compra all'ultimo momento",
+   "situazione": "Il 15 dicembre si accorge di non avere ancora il regalo per la madre",
+   "frase": "Mamma cucina sempre. Questa volta le regalo l'olio buono."
+  },
+  {
+   "id": "5C-1",
+   "cluster": "5C",
+   "segmento": "REGALO",
+   "nome": "Ilaria e Matteo",
+   "genere_eta": "Coppia, 32 e 34",
+   "eta": [
+    32,
+    34
+   ],
+   "dove_con_chi": "Lecce, si sposano a giugno",
+   "abitudini": "Vogliono un matrimonio con prodotti del territorio",
+   "situazione": "Scelgono il pensiero per gli ospiti: un piccolo orcio per ogni tavolo",
+   "frase": "Ai nostri ospiti vogliamo lasciare un pezzo del Salento."
+  },
+  {
+   "id": "5C-2",
+   "cluster": "5C",
+   "segmento": "REGALO",
+   "nome": "Francesca",
+   "genere_eta": "Donna, 50",
+   "eta": [
+    50
+   ],
+   "dove_con_chi": "Roma, divorziata, molti amici",
+   "abitudini": "Invitata spesso a cena, non vuole portare sempre il vino",
+   "situazione": "Prima di una cena da amici prende un orcio invece della solita bottiglia",
+   "frase": "Il vino lo portano tutti. Io porto l'olio."
+  },
+  {
+   "id": "6A-1",
+   "cluster": "6A",
+   "segmento": "CURIOSA",
+   "nome": "Leonardo",
+   "genere_eta": "Uomo, 25",
+   "eta": [
+    25
+   ],
+   "dove_con_chi": "Bologna, coinquilini",
+   "abitudini": "Pubblica ricette su TikTok per passione",
+   "situazione": "Gira un video di prova alla cieca dei tre oli del box",
+   "frase": "Indovinate qual è il novello: io ho sbagliato."
+  },
+  {
+   "id": "6A-2",
+   "cluster": "6A",
+   "segmento": "CURIOSA",
+   "nome": "Noemi",
+   "genere_eta": "Donna, 30",
+   "eta": [
+    30
+   ],
+   "dove_con_chi": "Napoli, convive",
+   "abitudini": "Organizza una cena a tema al mese per gli amici",
+   "situazione": "Sabato sera, tema \"Puglia\": apre il box come antipasto",
+   "frase": "Prima del vino, si assaggia l'olio."
+  },
+  {
+   "id": "6B-1",
+   "cluster": "6B",
+   "segmento": "CURIOSA",
+   "nome": "Alberto",
+   "genere_eta": "Uomo, 36",
+   "eta": [
+    36
+   ],
+   "dove_con_chi": "Milano, single",
+   "abitudini": "Sommelier per passione, fa corsi di degustazione",
+   "situazione": "Scopre che l'olio ha un'annata e delle varietà, come il vino",
+   "frase": "Non avevo mai pensato di degustare l'olio. Ora non torno indietro."
+  },
+  {
+   "id": "6B-2",
+   "cluster": "6B",
+   "segmento": "CURIOSA",
+   "nome": "Martina",
+   "genere_eta": "Donna, 22",
+   "eta": [
+    22
+   ],
+   "dove_con_chi": "Pisa, studentessa, vive fuori casa",
+   "abitudini": "Cucina semplice, guarda video di cucina",
+   "situazione": "Assaggia il Fruttato e non capisce perché pizzica, poi lo cerca su Google",
+   "frase": "Pensavo fosse andato a male. Invece è così che deve essere."
+  },
+  {
+   "id": "6C-1",
+   "cluster": "6C",
+   "segmento": "CURIOSA",
+   "nome": "Kevin",
+   "genere_eta": "Uomo, 28",
+   "eta": [
+    28
+   ],
+   "dove_con_chi": "Torino, appena andato a convivere",
+   "abitudini": "Ha iniziato a cucinare da poco, segue le ricette dal telefono",
+   "situazione": "Prima spesa \"da grandi\" con la compagna: discutono su quale olio prendere",
+   "frase": "A casa dei miei c'era sempre l'olio. Ora tocca a noi sceglierlo."
+  },
+  {
+   "id": "6C-2",
+   "cluster": "6C",
+   "segmento": "CURIOSA",
+   "nome": "Sofia",
+   "genere_eta": "Donna, 33",
+   "eta": [
+    33
+   ],
+   "dove_con_chi": "Verona, sposata, neo-mamma",
+   "abitudini": "Ha cambiato la spesa da quando è nato il bambino",
+   "situazione": "Inizia lo svezzamento e il pediatra le dice di usare olio extravergine a crudo",
+   "frase": "Nella sua prima pappa voglio solo cose buone."
+  }
+ ]
+}

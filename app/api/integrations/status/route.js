@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 import { tipoNegozio } from '../../../../lib/team/tipoNegozio'
 import { getCurrentUserId, getEffectiveTenantId } from '../../../../lib/tenant/credentials'
 import { getAdminSupabase } from '../../../../lib/supabase/server'
+import { studioAttivo } from '../../../../lib/studio/attivo'
 
 // Stato delle connection OAuth del WORKSPACE EFFETTIVO (cliente agency se
 // switchato): quali integration risultano collegate (chiavi di
@@ -43,7 +44,9 @@ export async function GET() {
       // Se le colonne non ci sono ancora (migrazione non eseguita) Supabase manda l'intera select
       // in errore: `data` resta null e tipoNegozio() risponde "tutto spento", che e' il ripiego
       // giusto — nessuno perde una funzione che oggi non esiste.
-      tipoNegozio: tipoNegozio(data || {}),
+      tipoNegozio: { ...tipoNegozio(data || {}), studio: studioAttivo(userId) },
+      // Le sezioni Studio (Lyft, Motore Creativo, Squadra) sono accese per questa azienda?
+      studio: studioAttivo(userId),
     })
   } catch {
     return NextResponse.json({ connected: [], metaAccountId: null })

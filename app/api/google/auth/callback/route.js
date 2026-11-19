@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { getServerSupabase, getAdminSupabase } from '../../../../../lib/supabase/server'
 import { invalidateTenantCache, getEffectiveTenantId } from '../../../../../lib/tenant/credentials'
+import { salvaCalendario } from '../../../../../lib/studio/calendario'
 
 // ============================================================================
 //  Google OAuth — Callback
@@ -83,6 +84,14 @@ export async function GET(req) {
     }
   } catch (e) {
     return redirectWithError(origin, 'network_error')
+  }
+
+  // Collegamento del CALENDARIO: il gettone e' della persona, cifrato, e non tocca quello dell'azienda.
+  if (stateData.servizio === 'calendario') {
+    let email = null
+    try { const u = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', { headers: { Authorization: `Bearer ${tokens.access_token}` } }); email = (await u.json()).email || null } catch {}
+    try { await salvaCalendario(user.id, { refreshToken: tokens.refresh_token, email }) } catch (e) { return NextResponse.redirect(`${origin}/integrazioni?calendario=errore`) }
+    return NextResponse.redirect(`${origin}/integrazioni?calendario=ok`)
   }
 
   // Salva refresh_token in companies sul WORKSPACE EFFETTIVO: se un'agency ha

@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Lyft",
+  "version": "0.1.0",
+  "description": "Lascia che Lyft cerchi sul web per te: apre le pagine in schede sue, le legge e ti mostra ogni passo mentre lo fa.",
+  "permissions": ["tabs", "scripting", "storage"],
+  "host_permissions": ["<all_urls>"],
+  "background": { "service_worker": "sfondo.js", "scripts": ["sfondo.js"] },
+  "content_scripts": [
+    { "matches": ["https://lyftai.io/*", "https://*.lyftai.io/*", "http://localhost/*"], "js": ["ponte.js"], "all_frames": true, "run_at": "document_start" }
+  ],
+  "action": { "default_title": "Lyft" },
+  "browser_specific_settings": { "gecko": { "id": "lyft@lyftai.io", "strict_min_version": "121.0" } }
+}

@@ -6,6 +6,8 @@ import NangoConnectButton from './NangoConnectButton'
 import MetaConnectButton from './MetaConnectButton'
 import GoogleConnectButton from './GoogleConnectButton'
 import { useI18n } from '../../lib/i18n/I18nProvider'
+import { ComeSiFa, SchedaChiave, SchedaCalendario, useChiavi } from './IntegrazioniGuide'
+import { leggi, inMemoria } from '../../lib/clientCache'
 
 // Provider collegabili via Nango OAuth (integration id = unique key su Nango).
 // Aggiungere qui un provider appena la sua integrazione è configurata su Nango.
@@ -39,10 +41,12 @@ const LOGO_MAP = {
 }
 
 function BrandLogo({ domain, size = 40 }) {
-  const [err, setErr] = useState(false)
+  const [fase, setFase] = useState(0) // 0 = icona di marca · 1 = icona del sito · 2 = lettera
   const entry = LOGO_MAP[domain]
+  const err = fase >= 2
+  const setErr = () => setFase(f => f + 1)
 
-  if (entry && !err) {
+  if (entry && fase === 0) {
     const iconUrl = `https://cdn.simpleicons.org/${entry.slug}/${entry.color}`
     return (
       <div style={{
@@ -75,7 +79,7 @@ function BrandLogo({ domain, size = 40 }) {
         width={size}
         height={size}
         style={{ borderRadius: 12, objectFit: 'contain', background: '#ffffff', flexShrink: 0 }}
-        onError={() => setErr(true)}
+        onError={() => setFase(2)}
       />
     )
   }
@@ -338,14 +342,15 @@ function ConnectModal({ integration, onClose }) {
 
 export default function IntegrationsTab() {
   const { t } = useI18n()
-  const [data, setData] = useState(null)
-  const [loading, setLoading] = useState(true)
+  // Dalla memoria: tornando su Integrazioni l'elenco c'e' gia', senza la riga «Loading…».
+  const [data, setData] = useState(() => inMemoria('/api/integrations'))
+  const [loading, setLoading] = useState(() => !inMemoria('/api/integrations'))
   const [selected, setSelected] = useState(null)
+  const chiavi = useChiavi()
 
   useEffect(() => {
-    fetch('/api/integrations', { cache: 'no-store' })
-      .then(r => r.json())
-      .then(setData)
+    leggi('/api/integrations', { onUpdate: setData })
+      .then(j => { if (j) setData(j) })
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
@@ -382,7 +387,7 @@ export default function IntegrationsTab() {
     <div>
       {NANGO_PROVIDERS.length > 0 && (
         <div style={{ marginBottom: 36 }}>
-          {sectionHeader(t('integrations.connectViaOauth', null, 'Collega via OAuth'), NANGO_PROVIDERS.length + 3, '#2997ff')}
+          {sectionHeader(t('integrations.connectViaOauth', null, 'Collega via OAuth'), NANGO_PROVIDERS.length + 4, 'var(--text2)')}
           {/* 3 card per riga (responsive: scende a 2/1 su schermi stretti). Ogni
               card è in colonna: logo+titolo+desc in alto, controllo di connessione
               su una RIGA dedicata sotto → niente testi sovrapposti. */}
@@ -392,15 +397,19 @@ export default function IntegrationsTab() {
                 {p.integrationId === 'facebook'
                   ? <MetaConnectButton />
                   : <NangoConnectButton integrationId={p.integrationId} label={t('integrations.connectBtn', null, 'Collega')} />}
+                <ComeSiFa id={p.integrationId === 'facebook' ? 'meta' : p.integrationId === 'klaviyo-oauth' ? 'klaviyo' : p.integrationId} />
               </OAuthCard>
             ))}
 
-            {/* Google: flusso OAuth nativo (una connessione copre GA4 + Ads), due card */}
-            <OAuthCard domain="analytics.google.com" name="Google Analytics 4" desc={t('integrations.ga4Desc', null, 'Sessioni, conversioni, sorgenti di traffico')}>
+            {/* Google: un solo accesso copre Analytics, Search Console e Ads. Il sito di Search Console si sceglie dalla scheda di Analytics. */}
+            <OAuthCard domain="analytics.google.com" name={t('integrations.ga4GscName', null, 'Google Analytics 4 e Search Console')} desc={t('integrations.ga4GscDesc', null, 'Sessioni, conversioni, sorgenti di traffico e ricerche su Google')}>
               <GoogleConnectButton service="ga4" />
+              <ComeSiFa id="google" />
             </OAuthCard>
+            <SchedaCalendario Guscio={OAuthCard} />
             <OAuthCard domain="ads.google.com" name="Google Ads" desc={t('integrations.adsDesc', null, 'Spesa, conversioni, campagne')}>
               <GoogleConnectButton service="ads" />
+              <ComeSiFa id="ads" />
             </OAuthCard>
 
             {/* Omnisend: niente OAuth → API key diretta (salvata su companies). */}
@@ -408,6 +417,18 @@ export default function IntegrationsTab() {
           </div>
         </div>
       )}
+
+      {/* Le integrazioni a chiave, con la guida «come si fa», sono per TUTTI i clienti (Marino, 19 nov 2026). */}
+      <div style={{ marginBottom: 36 }}>
+        {sectionHeader(t('chiavi.sezione', null, 'Collega con una chiave'), 4, 'var(--text2)')}
+        <p style={{ fontSize: 13, color: 'var(--text3)', margin: '-6px 0 16px', maxWidth: 760, lineHeight: 1.5 }}>{t('chiavi.sezioneSub', null, 'Sono gli account con cui gli agent scrivono, generano le immagini e leggono la posta. Li crei tu, a tuo nome: il consumo lo paghi direttamente al fornitore e puoi revocare la chiave quando vuoi.')}</p>
+        <div className="m-stack" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 14, alignItems: 'start' }}>
+          <SchedaChiave servizio="openai" Guscio={OAuthCard} domain="openai.com" name="ChatGPT (API OpenAI)" descKey="chiavi.descOpenai" desc="Testi delle inserzioni, lettura delle creatività e generazione delle immagini" stato={chiavi.servizi.openai} admin={chiavi.admin} pronto={chiavi.pronto} dopo={chiavi.leggi} />
+          <SchedaChiave servizio="anthropic" Guscio={OAuthCard} domain="claude.ai" name="Claude (API Anthropic)" descKey="chiavi.descAnthropic" desc="Il cervello degli agent della Squadra" stato={chiavi.servizi.anthropic} admin={chiavi.admin} pronto={chiavi.pronto} dopo={chiavi.leggi} />
+          <SchedaChiave servizio="higgsfield" Guscio={OAuthCard} domain="higgsfield.ai" name="Higgsfield" descKey="chiavi.descHiggsfield" desc="Scene e immagini delle creatività a partire dalle foto del prodotto" stato={chiavi.servizi.higgsfield} admin={chiavi.admin} pronto={chiavi.pronto} dopo={chiavi.leggi} />
+          <SchedaChiave servizio="posta" Guscio={OAuthCard} domain="gmail.com" name={t('chiavi.nomePosta', null, 'Gmail / casella di posta')} descKey="chiavi.descPosta" desc="Gli agent leggono le email dei clienti e preparano le risposte in bozza: parte solo ciò che approvi" stato={chiavi.servizi.posta} admin={chiavi.admin} pronto={chiavi.pronto} dopo={chiavi.leggi} />
+        </div>
+      </div>
 
       {/* Blocchi "Connected"/"Available" (stato env-based) SOLO per STMN
           (ownerWorkspace). I clienti vedono solo "Collega via OAuth" sopra. */}

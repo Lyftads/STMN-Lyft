@@ -4,9 +4,11 @@ import { getCurrentUserId, getEffectiveTenantId } from '../../../lib/tenant/cred
 import { buildAgentContext, persistTurnMemory, persistDataMemory } from '../../../lib/tenant/agentContext'
 import { aiLangSystemMessage } from '../../../lib/i18n/aiLang'
 import { callBrain } from '../../../lib/agent/gateway'
-import { ALL_TOOLS, executeToolLive } from '../../../lib/agent/tools'
+import { chiavePerWorkspace, MANCA_CHIAVE } from '../../../lib/studio/chiaveAI'
+import { ALL_TOOLS, LYFT_TOOLS, executeToolLive } from '../../../lib/agent/tools'
 import { runToolLoopStream } from '../../../lib/agent/streamLoop'
 import { GUARD_NUMBERS, AGENT_ID, tenantSystemPrompt } from '../../../lib/agent/cervello'
+import { studioAttivo } from '../../../lib/studio/attivo'
 
 
 export const dynamic = 'force-dynamic'
@@ -15,6 +17,9 @@ export const maxDuration = 120 // stream+tool possono superare i 60s: evitava ch
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o'
 
+
+// La tab «Lyft»: lo stesso cervello, ma come interlocutore generale di tutto il prodotto.
+const IDENTITA_LYFT = `Ti chiami Lyft. Sei il cervello generale di questo prodotto: la persona ti parla, spesso a voce, come a un collega che ha tutto sotto mano e che comanda la squadra. COSA LEGGI: tutti i dati del prodotto e delle piattaforme collegate del cliente con gli strumenti live (negozio Shopify, Meta, Google Ads, Analytics, Search Console, email, conto economico, clienti, inventario), il Motore Creativo (get_creative_engine), la Squadra agent (get_agent_team), i collegamenti (get_connections) il web in tempo reale (search_web per una risposta veloce con le fonti; browse_web per navigare guidando il browser della persona, che vede ogni passo dal vivo) e il Google Calendar della persona (get_calendar per gli appuntamenti di un giorno, create_calendar_event per fissare una call o un promemoria). MEMORIA E CORREZIONI: ricordi le conversazioni passate da solo. Ogni volta che la persona ti corregge, ti dà una preferenza o dice come vuole che un lavoro sia fatto, lo salvi SUBITO con remember_this, senza chiedere il permesso: con per_la_squadra=true quando riguarda il lavoro degli agenti, così la regola arriva a loro e dalla volta dopo quel lavoro esce già fatto in quel modo. Una cosa corretta una volta non deve essere corretta una seconda. Prima di passare un incarico, tieni conto delle regole già date. COSA FAI FARE: quando la persona ti propone o ti chiede una cosa DA FARE che spetta alla squadra, la riporti tu agli agenti con give_agent_task (all'agente giusto, o al direttore se tocca più mestieri) senza chiedere conferma, poi dici in una frase a chi l'hai passata e che la avviserai quando è fatta: il sistema ti segnala quando l'incarico è concluso e a quel punto riferisci il risultato. Non dire mai che una cosa è fatta finché non lo è. COSA NON FAI: non approvi, non pubblichi, non spegni e non modifichi niente sulle piattaforme; ciò che gli agenti preparano resta in bozza finché una persona non lo approva nella tab Squadra agent. COME PARLI: breve e parlato, perché la risposta viene letta ad alta voce: prima la risposta, poi al massimo due numeri che la reggono; niente tabelle né elenchi lunghi a meno che te li chiedano. Se un dato non c'è o uno strumento non risponde, dillo.`
 
 function safeJson(value, max = 80000) {
   try {
@@ -32,14 +37,9 @@ export async function POST(req) {
   if (!(await getCurrentUserId().catch(() => null))) {
     return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
   }
-  if (!process.env.OPENAI_API_KEY) {
-    return NextResponse.json(
-      {
-        error:
-          'OPENAI_API_KEY non configurata. Aggiungila in Vercel → Settings → Environment Variables e redeploy.',
-      },
-      { status: 500 }
-    )
+  // La chiave e' quella del cliente; la piattaforma la presta solo ai workspace che possono usarla.
+  if (!(await chiavePerWorkspace(await getEffectiveTenantId().catch(() => null)))) {
+    return NextResponse.json({ error: MANCA_CHIAVE }, { status: 400 })
   }
 
   let body
@@ -100,6 +100,9 @@ export async function POST(req) {
       cookie: req.headers.get('cookie') || '',
       snapshot: context,
     }
+    // Solo dalla tab Lyft (e solo dove Studio e' acceso) il cervello riceve gli strumenti nuovi; altrove e' quello di sempre.
+    const daLyft = body?.assistente === 'lyft' && studioAttivo(await getEffectiveTenantId().catch(() => null))
+    const strumenti = daLyft ? LYFT_TOOLS : ALL_TOOLS
     const brainArgs = {
       skill: { id: AGENT_ID, systemPrompt: (await tenantSystemPrompt()), guard: GUARD_NUMBERS },
       query: lastUserMsg,
@@ -108,7 +111,7 @@ export async function POST(req) {
       // Dieta stile Sidekick: contesto pre-caricato ridotto (prima 80k) — per
       // tutto il resto il modello ha i tool live, più veloci di un prompt obeso.
       dataMax: 26000,
-      extraSystem: [{ role: 'system', content: 'STRUMENTI LIVE su QUALSIASI dato del software: get_kpis (ogni KPI, ogni periodo), list_creatives/list_adsets (Meta), get_google_campaigns, get_search_console, get_email_marketing, get_pnl, get_cro, get_customers, get_ga4_traffic, get_incrementality, get_inventory, get_ltv, list_products, list_tasks, get_time_tracking. REGOLA FERREA: è VIETATO rispondere "non ho il dato" / "non ho accesso" / "controlla in piattaforma" senza aver PRIMA chiamato lo strumento pertinente. Se la domanda riguarda un periodo diverso da quello dei DATI in contesto, chiama lo strumento con QUEL periodo invece di adattare i numeri. Ogni risultato include istruzioni "jit": seguile.' }],
+      extraSystem: [...(daLyft ? [{ role: 'system', content: IDENTITA_LYFT }] : []), { role: 'system', content: 'STRUMENTI LIVE su QUALSIASI dato del software: get_kpis (ogni KPI, ogni periodo), list_creatives/list_adsets (Meta), get_google_campaigns, get_search_console, get_email_marketing, get_pnl, get_cro, get_customers, get_ga4_traffic, get_incrementality, get_inventory, get_ltv, list_products, list_tasks, get_time_tracking. REGOLA FERREA: è VIETATO rispondere "non ho il dato" / "non ho accesso" / "controlla in piattaforma" senza aver PRIMA chiamato lo strumento pertinente. Se la domanda riguarda un periodo diverso da quello dei DATI in contesto, chiama lo strumento con QUEL periodo invece di adattare i numeri. Ogni risultato include istruzioni "jit": seguile.' }],
       messages: cleanMessages,
       locale: body?.locale,
       temperature: 0.3,
@@ -129,7 +132,7 @@ export async function POST(req) {
             const { content } = await runToolLoopStream({
               body: oaiBody,
               messages: assembled,
-              tools: ALL_TOOLS,
+              tools: strumenti,
               onToolCall: (n, a) => executeToolLive(n, a, toolCtx),
               onDelta: (d) => c.enqueue(sse({ d })),
               onToolStart: (names) => c.enqueue(sse({ tools: names })),
@@ -151,7 +154,7 @@ export async function POST(req) {
 
     const { userId, content: reply, usage } = await callBrain({
       ...brainArgs,
-      tools: ALL_TOOLS,
+      tools: strumenti,
       onToolCall: (n, a) => executeToolLive(n, a, toolCtx),
     })
 

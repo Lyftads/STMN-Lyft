@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Ufficio della squadra</title>
+<style>
+  :root { --fondo: rgba(15,17,30,.86); --linea: rgba(255,255,255,.08); --testo: #e8eaf6; --tenue: #8088ad; --accento: #6c7bff; --giallo: #f5b83d; --verde: #4ade80 }
+  * { box-sizing: border-box }
+  html, body { margin: 0; height: 100%; background: #070a12; color: var(--testo); font: 13px/1.4 -apple-system, "Inter", "Segoe UI", sans-serif; overflow: hidden; -webkit-user-select: none; user-select: none }
+  #scena { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none }
+  .vetro { background: var(--fondo); border: 1px solid var(--linea); border-radius: 12px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px) }
+  #alto { position: fixed; top: 12px; left: 12px; right: 12px; display: flex; gap: 10px; align-items: center; z-index: 5; pointer-events: none; flex-wrap: wrap }
+  #alto > * { pointer-events: auto }
+  #marca { padding: 7px 14px } #marca b { display: block; font-size: 14px } #marca small { color: var(--tenue); font-size: 11px }
+  .gruppo { display: flex; padding: 4px; gap: 2px }
+  .gruppo button { font: inherit; font-weight: 600; color: var(--tenue); background: none; border: 0; padding: 7px 13px; border-radius: 8px; cursor: pointer; white-space: nowrap }
+  .gruppo button:hover { color: #fff } .gruppo button.on { background: var(--accento); color: #fff }
+  #stanze button.on, #persona button.on { background: rgba(255,255,255,.1) }
+  #spazio { flex: 1 }
+  #sinistra { position: fixed; top: 70px; left: 12px; width: 268px; bottom: 12px; display: flex; flex-direction: column; gap: 8px; z-index: 4; overflow: auto; scrollbar-width: none }
+  #destra { position: fixed; top: 70px; right: 12px; width: 286px; max-height: calc(100% - 82px); z-index: 4; display: flex; flex-direction: column }
+  .et { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--tenue); font-weight: 700 }
+  .dati { display: grid; grid-template-columns: 1fr 1fr; gap: 8px } .dati > div { padding: 10px 12px } .dati b { display: block; font-size: 20px; margin-top: 4px; font-variant-numeric: tabular-nums }
+  .scheda { padding: 12px } .scheda .et { margin-bottom: 8px }
+  #ora-fa { display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 10px 12px } #ora-fa span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+  .pill { font-size: 10px; font-weight: 700; letter-spacing: .08em; color: var(--tenue); background: rgba(255,255,255,.06); padding: 3px 8px; border-radius: 99px; white-space: nowrap } .pill.vivo { color: #0c2416; background: var(--verde) }
+  textarea, input[type=text] { width: 100%; font: inherit; color: var(--testo); background: rgba(255,255,255,.05); border: 1px solid var(--linea); border-radius: 8px; padding: 8px 10px; outline: none; resize: none; -webkit-user-select: text; user-select: text }
+  textarea:focus, input[type=text]:focus { border-color: var(--accento) }
+  .riga { display: flex; gap: 8px; align-items: center; margin-top: 8px } .riga select { flex: 1; min-width: 0; font: inherit; color: var(--testo); background: #1a1d30; border: 1px solid var(--linea); border-radius: 8px; padding: 7px 8px }
+  .bottone { font: inherit; font-weight: 700; color: #fff; background: var(--accento); border: 0; border-radius: 8px; padding: 8px 14px; cursor: pointer } .bottone:disabled { opacity: .45; cursor: default }
+  .esempi { display: flex; flex-direction: column; gap: 5px; margin-top: 9px } .esempi button, .rapide button { font: inherit; font-size: 12px; text-align: left; color: #aab1d6; background: rgba(255,255,255,.05); border: 1px solid var(--linea); border-radius: 7px; padding: 5px 9px; cursor: pointer } .esempi button:hover, .rapide button:hover { color: #fff; border-color: rgba(255,255,255,.2) }
+  .persone > div { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 7px 0; border-top: 1px solid var(--linea); cursor: pointer } .persone > div:first-child { border-top: 0 }
+  .persone > div > div { min-width: 0 } .persone .pill { flex: none } .persone b { font-weight: 600 } .persone span { color: var(--tenue) } .persone small { display: block; color: var(--tenue); font-size: 11px; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+  .tempo > div { padding: 6px 0; border-top: 1px solid var(--linea); color: #c5cae6 } .tempo > div:first-child { border-top: 0 } .tempo small { color: var(--tenue) } .vuoto { color: var(--tenue) }
+  #destra .testa { display: flex; justify-content: space-between; align-items: center; padding: 12px 12px 8px } #destra .testa i { font-style: normal; font-size: 10px; color: var(--verde) }
+  #voci { overflow: auto; padding: 0 12px 10px; scrollbar-width: thin } #voci > div { padding: 7px 0; border-top: 1px solid var(--linea) } #voci > div:first-child { border-top: 0 }
+  #voci .chi { display: flex; justify-content: space-between; font-size: 11px; font-weight: 700 } #voci .chi small { color: var(--tenue); font-weight: 400 } #voci p { margin: 2px 0 0; color: #c9cee8; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden }
+  #tasti { position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%); padding: 7px 12px; display: flex; gap: 12px; align-items: center; color: var(--tenue); font-size: 11px; z-index: 4; white-space: nowrap }
+  kbd { font: inherit; font-size: 10px; color: #c9cee8; border: 1px solid rgba(255,255,255,.18); border-radius: 4px; padding: 1px 5px; margin-right: 3px }
+  #invito { position: fixed; bottom: 62px; left: 50%; transform: translateX(-50%); padding: 7px 12px; z-index: 4; font-size: 12px; cursor: pointer }
+  #mirino { position: fixed; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px; border-radius: 50%; background: rgba(255,255,255,.7); z-index: 3; pointer-events: none }
+  #chat { position: fixed; left: 50%; top: 50%; transform: translate(-50%,-42%); width: min(370px, calc(100vw - 24px)); z-index: 8; display: flex; flex-direction: column; max-height: min(520px, 80vh) }
+  #chat header { display: flex; gap: 10px; align-items: center; padding: 12px; border-bottom: 1px solid var(--linea) } #chat header img, #chat header .iniz { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background: #e08a2c; display: grid; place-items: center; font-weight: 800; color: #fff; flex: none }
+  #chat header b { font-size: 14px } #chat header small { display: block; color: var(--tenue) } #chat header button { margin-left: auto; background: none; border: 0; color: var(--tenue); font-size: 20px; cursor: pointer }
+  #messaggi { flex: 1; min-height: 150px; overflow: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; -webkit-user-select: text; user-select: text } #messaggi .m { max-width: 86%; padding: 8px 11px; border-radius: 10px; background: rgba(255,255,255,.06); color: #d5d9f0; white-space: pre-wrap } #messaggi .m.io { align-self: flex-end; background: #2f8fe8; color: #fff } #messaggi .m.nota { max-width: 100%; color: var(--tenue) }
+  .rapide { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 10px } #chat footer { display: flex; gap: 8px; padding: 10px 12px 12px; border-top: 1px solid var(--linea) }
+  #carico { position: fixed; inset: 0; display: grid; place-items: center; background: #070a12; z-index: 20; color: var(--tenue) }
+  #prova { position: fixed; bottom: 14px; right: 12px; z-index: 4; padding: 5px 10px; font-size: 11px; color: var(--giallo) }
+  #leva { position: fixed; left: 26px; bottom: 30px; width: 116px; height: 116px; border-radius: 50%; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.16); z-index: 6; touch-action: none } #leva i { position: absolute; left: 50%; top: 50%; width: 48px; height: 48px; margin: -24px; border-radius: 50%; background: rgba(255,255,255,.3) }
+  #tocco { position: fixed; right: 22px; bottom: 34px; z-index: 6; display: flex; gap: 10px } #tocco button { width: 58px; height: 58px; border-radius: 50%; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.1); color: #fff; font: 700 12px -apple-system, sans-serif }
+  [hidden] { display: none !important }
+  @media (max-width: 860px) { #sinistra { width: 230px } #destra { display: none } #stanze button, .gruppo button { padding: 7px 9px } }
+  @media (max-width: 560px) { #sinistra { top: auto; bottom: 8px; left: 8px; right: 8px; width: auto; max-height: 38vh } #marca small { display: none } #tasti { display: none } }
+</style>
+</head>
+<body>
+<canvas id="scena"></canvas>
+<div id="alto">
+  <div id="marca" class="vetro"><b id="marca-nome">Ufficio della squadra</b><small id="marca-sotto">—</small></div>
+  <div id="modo" class="vetro gruppo"><button data-modo="panoramica" class="on">Panoramica</button><button data-modo="entra">Entra</button></div>
+  <div id="stanze" class="vetro gruppo"><button data-vista="panoramica" class="on">Panoramica</button><button data-vista="postazioni">Postazioni</button><button data-vista="riunioni">Sala riunioni</button><button data-vista="direzione">Direzione</button><button data-vista="relax">Relax</button><button data-vista="cucina">Cucina</button></div>
+  <div id="persona" class="vetro gruppo" hidden><button data-persona="3" class="on">3ª persona</button><button data-persona="1">1ª persona</button></div>
+  <div id="spazio"></div>
+  <div class="vetro gruppo"><button id="pannelli">Nascondi pannelli</button><button id="schermo">Schermo intero</button></div>
+</div>
+<div id="sinistra">
+  <div class="dati">
+    <div class="vetro"><span class="et">Agenti</span><b id="d-agenti">—</b></div>
+    <div class="vetro"><span class="et">Al lavoro ora</span><b id="d-corso" style="color:var(--giallo)">—</b></div>
+    <div class="vetro"><span class="et">Da approvare</span><b id="d-ok">—</b></div>
+    <div class="vetro"><span class="et">Incarichi di oggi</span><b id="d-avanti" style="color:var(--accento)">—</b></div>
+  </div>
+  <div class="vetro" id="ora-fa"><span id="ora-testo">Nessun lavoro in corso</span><span class="pill" id="ora-pill">FERMI</span></div>
+  <div class="vetro scheda">
+    <div class="et">Incarico per la squadra</div>
+    <textarea id="inc-testo" rows="2" placeholder="Cosa serve? Lo riceve chi scegli qui sotto."></textarea>
+    <div class="riga"><select id="inc-chi"></select><button class="bottone" id="inc-invia">Invia</button></div>
+    <div class="esempi" id="inc-esempi"></div>
+    <div class="vuoto" id="inc-esito" style="margin-top:6px"></div>
+  </div>
+  <div class="vetro scheda"><div class="et">Attività</div><div class="persone" id="persone"></div></div>
+  <div class="vetro scheda"><div class="et">Cronologia</div><div class="tempo" id="tempo"></div></div>
+</div>
+<div id="destra" class="vetro"><div class="testa"><span class="et">Comunicazione fra agenti</span><i>● dal vivo</i></div><div id="voci"></div></div>
+<div id="mirino" hidden></div>
+<div id="invito" class="vetro" hidden></div>
+<div id="tasti" class="vetro" hidden><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>cammina</span><span><kbd>Maiusc</kbd>corri</span><span><kbd>Spazio</kbd>salta</span><span><kbd>E</kbd>parla</span><span><kbd>V</kbd>1ª / 3ª persona</span><span>clic → guarda col mouse, anche trascinando</span><span><kbd>Esc</kbd>esci</span></div>
+<div id="leva" hidden><i></i></div>
+<div id="tocco" hidden><button id="t-parla">Parla</button><button id="t-salta">Salta</button></div>
+<div id="chat" class="vetro" hidden>
+  <header><span id="chat-volto"></span><div><b id="chat-nome"></b> <span class="pill" id="chat-stato"></span><small id="chat-ruolo"></small></div><button id="chat-chiudi" aria-label="Chiudi">×</button></header>
+  <div id="messaggi"></div>
+  <div class="rapide"><button data-q="fai">Cosa stai facendo?</button><button data-q="problemi">Ci sono problemi?</button><button data-q="punto">A che punto sei?</button><button data-q="dopo">Cosa c'è dopo?</button></div>
+  <footer><input type="text" id="chat-testo" placeholder="" maxlength="1200"><button class="bottone" id="chat-invia">Invia</button></footer>
+</div>
+<div id="prova" class="vetro" hidden>Dati di prova: la squadra vera non è raggiungibile da qui</div>
+<div id="carico">Sto aprendo l'ufficio…</div>
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }</script>
+<script type="module" src="./ufficio.js"></script>
+</body>
+</html>

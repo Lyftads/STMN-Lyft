@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
 import { getServerSupabase } from '../../../../../lib/supabase/server'
+import { SCOPE_CALENDARIO } from '../../../../../lib/studio/calendario'
 
 // ============================================================================
 //  Google OAuth — Start flow
@@ -50,24 +51,27 @@ export async function GET(req) {
   const redirectUri = `${origin}/api/google/auth/callback`
 
   // Step di onboarding da cui si è partiti → il callback ci riporta lì.
-  let step = null
-  try { step = new URL(req.url).searchParams.get('step') || null } catch {}
+  let step = null, servizio = null
+  try { step = new URL(req.url).searchParams.get('step') || null; servizio = new URL(req.url).searchParams.get('servizio') === 'calendario' ? 'calendario' : null } catch {}
 
   // State CSRF: base64 del JSON {user_id, ts, step}. Verifichiamo nel callback.
   const state = Buffer.from(JSON.stringify({
     uid: user.id,
     ts: Date.now(),
     step,
+    servizio,
   })).toString('base64url')
 
   const url = new URL('https://accounts.google.com/o/oauth2/v2/auth')
   url.searchParams.set('client_id', clientId)
   url.searchParams.set('redirect_uri', redirectUri)
   url.searchParams.set('response_type', 'code')
-  url.searchParams.set('scope', SCOPES)
+  // Il calendario e' un collegamento a parte, della persona: si chiede solo il permesso sugli eventi,
+  // senza trascinarsi dietro (ne' sovrascrivere) i permessi di Analytics e Ads dell'azienda.
+  url.searchParams.set('scope', servizio === 'calendario' ? SCOPE_CALENDARIO : SCOPES)
   url.searchParams.set('access_type', 'offline')
   url.searchParams.set('prompt', 'consent')
-  url.searchParams.set('include_granted_scopes', 'true')
+  if (servizio !== 'calendario') url.searchParams.set('include_granted_scopes', 'true')
   url.searchParams.set('state', state)
 
   return NextResponse.redirect(url.toString())

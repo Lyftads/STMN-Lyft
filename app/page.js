@@ -63,6 +63,9 @@ const CreativeTab = Pigra('CreativeTab', () => import('./components/CreativeTab'
 const MetaDetailTab = Pigra('MetaDetailTab', () => import('./components/MetaDetailTab'))
 const EmailMarketingTab = Pigra('EmailMarketingTab', () => import('./components/EmailMarketingTab'))
 const IntegrationsTab = Pigra('IntegrationsTab', () => import('./components/IntegrationsTab'))
+const MotoreCreativoTab = Pigra('MotoreCreativoTab', () => import('./components/MotoreCreativoTab'))
+const SquadraTab = Pigra('SquadraTab', () => import('./components/SquadraTab'))
+const LyftTab = Pigra('LyftTab', () => import('./components/LyftTab'))
 const SettingsTab = Pigra('SettingsTab', () => import('./components/SettingsTab'))
 const BrandIdentityPanel = Pigra('BrandIdentityPanel', () => import('./components/BrandIdentityPanel'))
 const CROTab = Pigra('CROTab', () => import('./components/CROTab'))
@@ -2339,9 +2342,35 @@ export default function App() {
     let active = true
     fetch('/api/integrations/status', { cache: 'no-store' })
       .then(r => r.json())
-      .then(d => { if (active) setIsOwner(!!d?.ownerWorkspace) })
+      .then(d => { if (active) { setIsOwner(!!d?.ownerWorkspace); setStudioAcceso(!!d?.studio) } })
       .catch(() => {})
     return () => { active = false }
+  }, [])
+  // ── Studio: Lyft, Motore Creativo e Squadra agent ─────────────────────────────────────────────
+  // Sono accese azienda per azienda (lo dice /api/integrations/status). Dove lo sono, restano IN MEMORIA:
+  // quelle gia' viste, e dopo qualche secondo dall'avvio anche le altre, preparate una alla volta a
+  // browser a riposo. E' la regola del prodotto: si carica tutto all'inizio, poi cambiare tab non fa aspettare.
+  const [studioAcceso, setStudioAcceso] = useState(false)
+  const [lyftInAscolto, setLyftInAscolto] = useState(false)
+  const [montate, setMontate] = useState(() => new Set())
+  useEffect(() => { if (['lyft', 'motoreCreativo', 'squadra'].includes(tab)) setMontate(m => (m.has(tab) ? m : new Set(m).add(tab))) }, [tab])
+  useEffect(() => {
+    if (!studioAcceso) return
+    const aRiposo = (fn) => (window.requestIdleCallback ? window.requestIdleCallback(fn, { timeout: 4000 }) : setTimeout(fn, 300))
+    const timer = ['lyft', 'motoreCreativo', 'squadra'].map((id, i) => setTimeout(() => aRiposo(() => setMontate(m => (m.has(id) ? m : new Set(m).add(id)))), 5000 + i * 3500))
+    precarica(['/api/motore/cliente', '/api/squadra/stato', '/api/integrations/chiavi', '/api/integrations/calendario'])
+    return () => timer.forEach(clearTimeout)
+  }, [studioAcceso])
+  // La voce di Lyft: accesa o spenta lo decide la persona nella sua pagina, che avvisa da qui; al suo nome ci si torna.
+  useEffect(() => {
+    try { setLyftInAscolto(localStorage.getItem('lyft-ascolto') !== '0') } catch {}
+    const senti = (e) => {
+      if (e.origin !== window.location.origin || !e.data || typeof e.data !== 'object') return
+      if (e.data.tipo === 'lyft:ascolto') setLyftInAscolto(!!e.data.acceso)
+      if (e.data.tipo === 'lyft:apri') setTab('lyft')
+    }
+    window.addEventListener('message', senti)
+    return () => window.removeEventListener('message', senti)
   }, [])
   const [live, setLive] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -3236,10 +3265,20 @@ export default function App() {
     </section>
   )
 
+  // Le tab che NON devono ricaricarsi al ritorno (Lyft, Motore Creativo, Squadra): il guscio le tiene fuori dal
+  // contenitore delle altre tab, che viene ricreato a ogni cambio per l'animazione d'ingresso. Solo dove Studio e' acceso.
+  // Lyft resta montato anche quando si guarda altro se la voce e' accesa: cosi' sente il suo nome da ogni sezione.
+  const tabFisse = !studioAcceso ? null : (<>
+    {(tab === 'lyft' || lyftInAscolto || montate.has('lyft')) && <div style={{ display: tab === 'lyft' ? 'block' : 'none' }}><LyftTab attiva={tab === 'lyft'} /></div>}
+    {(tab === 'motoreCreativo' || montate.has('motoreCreativo')) && <div style={{ display: tab === 'motoreCreativo' ? 'block' : 'none' }}><MotoreCreativoTab /></div>}
+    {(tab === 'squadra' || montate.has('squadra')) && <div style={{ display: tab === 'squadra' ? 'block' : 'none' }}><SquadraTab attiva={tab === 'squadra'} /></div>}
+  </>)
+
   return (
   <AppShell
     tab={tab}
     setTab={setTab}
+    fissi={tabFisse}
     live={live}
     updated={updated}
     preset={preset}
@@ -4757,7 +4796,8 @@ export default function App() {
   <ChatTab />
 )}
 
-      <FloatingBrain currentTab={tab} />
+      {/* Nella tab Lyft il cervello e' la pagina stessa: il bottone che galleggia sarebbe un doppione. */}
+      {tab !== 'lyft' && <FloatingBrain currentTab={tab} />}
       <ReportFilm />
       </AppShell>
     )

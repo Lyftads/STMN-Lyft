@@ -1,0 +1,12 @@
+-- Migrazione 26 — prodotti nascosti.
+--
+-- Perché nascondere e non cancellare: TUTTI i prodotti arrivano dall'ingest
+-- delle vendite Shopify. Cancellarne uno lo fa tornare al primo giro del cron,
+-- entro ventiquattr'ore — un pulsante che sembra funzionare e non funziona è
+-- peggio di nessun pulsante.
+--
+-- Nascosto significa: fuori dalla board, fuori dall'allocazione della
+-- produzione, e l'ingest continua ad aggiornarne i numeri senza rimetterlo in
+-- vista. La cancellazione vera resta possibile solo per i prodotti creati a
+-- mano, che nessun ingest ricrea.
+alter table ce_products add column if not exists nascosto boolean not null default false;

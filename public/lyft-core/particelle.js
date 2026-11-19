@@ -45,6 +45,9 @@ window.Particelle = (function () {
   }
 
   let energia = 0, giro = 0, volume = () => 0, stato = 'spento', ultimo = 0
+  // Dentro il prodotto il nucleo e' piccolo e in tinta neutra del tema: `tinta` (un colore solo, senza
+  // aloni) la imposta la pagina; senza, resta l'ologramma dorato di origine.
+  let tinta = null
 
   function adatta() {
     const dpr = window.devicePixelRatio || 1
@@ -61,19 +64,21 @@ window.Particelle = (function () {
     const w = tela.width, h = tela.height
     const dt = Math.min(50, ora - (ultimo || ora)); ultimo = ora
     ctx.clearRect(0, 0, w, h)
-    ctx.globalCompositeOperation = 'lighter'
+    ctx.globalCompositeOperation = tinta ? 'source-over' : 'lighter'
     ctx.lineCap = 'round'
     const v = stato === 'spento' ? 0 : volume()
     energia += (Math.min(v * 4, 1) - energia) * 0.15
     const vel = { spento: 0.25, ascolto: 0.6, parla: 0.9, pensa: 2.2 }[stato] || 0.6
     if (!fermo) giro += dt / 1000 * vel
-    const [R, G, B] = COLORE[stato] || COLORE.ascolto
+    const [R, G, B] = tinta || COLORE[stato] || COLORE.ascolto
     const fioco = stato === 'spento' ? 0.45 : 1
     const scala = Math.min(w, h) * 0.40 * (1 + energia * 0.07)
     const cx = w / 2, cy = h / 2
     const ry = giro * 0.35, rxG = 0.25 + Math.sin(giro * 0.2) * 0.1
     const proietta = q => { const k = 3 / (3 - q[2]); return [cx + q[0] * scala * k, cy + q[1] * scala * k, q[2]] }
     const dpr = window.devicePixelRatio || 1
+    // in piccolo si disegna meno e piu' sottile, o diventa una macchia
+    const rid = tinta ? Math.min(1, scala / (80 * dpr)) : 1, tratto = Math.max(0.5, rid)
 
     // alone di fondo
     const alone = ctx.createRadialGradient(cx, cy, 0, cx, cy, scala * 1.3)
@@ -81,10 +86,10 @@ window.Particelle = (function () {
     alone.addColorStop(0.45, `rgba(${R},${G - 40},${B - 20},${0.05 * fioco})`)
     alone.addColorStop(1, 'rgba(0,0,0,0)')
     ctx.fillStyle = alone
-    ctx.fillRect(0, 0, w, h)
+    if (!tinta) ctx.fillRect(0, 0, w, h)
 
     // archi in orbita: una passata larga e tenue (bagliore) e una sottile e viva
-    for (const a of archi) {
+    for (const a of archi.slice(0, Math.round(9 + (archi.length - 9) * rid * rid))) {
       const passi = Math.max(8, Math.round(a.ampiezza * 28))
       const partenza = a.inizio + giro * a.vel * 2
       const pts = []
@@ -92,8 +97,8 @@ window.Particelle = (function () {
         const t = partenza + (i / passi) * a.ampiezza
         pts.push(proietta(ruota(ruota([Math.cos(t) * a.r, 0, Math.sin(t) * a.r], a.rx, 0, a.rz), rxG, ry, 0)))
       }
-      for (const [larg, alfa] of [[a.spessore * 5, 0.11], [a.spessore * 2, 0.22], [a.spessore, 1]]) {
-        ctx.lineWidth = larg * dpr * (1 + energia * 0.3)
+      for (const [larg, alfa] of tinta ? [[a.spessore, 1]] : [[a.spessore * 5, 0.11], [a.spessore * 2, 0.22], [a.spessore, 1]]) {
+        ctx.lineWidth = larg * dpr * tratto * (1 + energia * 0.3)
         if (a.tacche && larg === a.spessore) ctx.setLineDash([1.2 * dpr, 3.5 * dpr]); else if (a.tratteggio && larg === a.spessore) ctx.setLineDash([6 * dpr, 7 * dpr]); else ctx.setLineDash([])
         ctx.beginPath()
         pts.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])))
@@ -105,22 +110,22 @@ window.Particelle = (function () {
     ctx.setLineDash([])
 
     // frammenti di dati che lampeggiano
-    for (const f of frammenti) {
+    for (const f of frammenti.slice(0, Math.round(frammenti.length * rid * rid))) {
       const q = proietta(ruota(f.p, rxG, ry, 0))
       const prof = (q[2] + 1.1) / 2.2
       const luce = f.luce * (0.5 + 0.5 * Math.sin(ora / 1000 * f.ritmo + f.ang * 5)) * (0.3 + prof * 0.7) * fioco
-      ctx.strokeStyle = ctx.fillStyle = `rgba(${R},${G + 20},${B + 40},${Math.min(1, luce * (1 + energia))})`
+      ctx.strokeStyle = ctx.fillStyle = tinta ? `rgba(${R},${G},${B},${Math.min(1, luce * (1 + energia))})` : `rgba(${R},${G + 20},${B + 40},${Math.min(1, luce * (1 + energia))})`
       const L = f.lung * scala, cA = Math.cos(f.ang + giro * 0.3), sA = Math.sin(f.ang + giro * 0.3)
       if (f.tipo === 'rett') { ctx.lineWidth = 1.2 * dpr; ctx.strokeRect(q[0] - L / 2, q[1] - L / 4, L, L / 2) }
       else { ctx.lineWidth = 1.4 * dpr; ctx.beginPath(); ctx.moveTo(q[0] - cA * L / 2, q[1] - sA * L / 2); ctx.lineTo(q[0] + cA * L / 2, q[1] + sA * L / 2); ctx.stroke() }
     }
 
     // polvere
-    for (const d of polvere) {
+    for (const d of polvere.slice(0, Math.round(polvere.length * rid * rid))) {
       const q = proietta(ruota(d.p, rxG, ry * 1.2, 0))
       const prof = (q[2] + 1.2) / 2.4
       const a = Math.min(1, d.luce * 1.3 * (0.4 + 0.6 * Math.sin(ora / 700 + d.fase)) * prof * fioco)
-      ctx.fillStyle = `rgba(${R},${G + 30},${B + 60},${a})`
+      ctx.fillStyle = tinta ? `rgba(${R},${G},${B},${a})` : `rgba(${R},${G + 30},${B + 60},${a})`
       const s = (0.8 + prof * 1.4) * dpr
       ctx.fillRect(q[0], q[1], s, s)
     }
@@ -134,8 +139,8 @@ window.Particelle = (function () {
         const r = rn * (0.15 + t)
         i ? ctx.lineTo(cx + Math.cos(ang) * r, cy + Math.sin(ang) * r * 0.8) : ctx.moveTo(cx + Math.cos(ang) * r, cy + Math.sin(ang) * r * 0.8)
       }
-      ctx.lineWidth = 2 * dpr
-      ctx.strokeStyle = `rgba(255,${210 + k * 10},${140 + k * 30},${0.55 * fioco + energia * 0.4})`
+      ctx.lineWidth = 2 * dpr * tratto
+      ctx.strokeStyle = tinta ? `rgba(${R},${G},${B},${0.55 * fioco + energia * 0.4})` : `rgba(255,${210 + k * 10},${140 + k * 30},${0.55 * fioco + energia * 0.4})`
       ctx.stroke()
     }
     const cuore = ctx.createRadialGradient(cx, cy, 0, cx, cy, rn * 1.4)
@@ -143,7 +148,7 @@ window.Particelle = (function () {
     cuore.addColorStop(0.3, `rgba(${R},${G},${B},${0.45 * fioco + energia * 0.4})`)
     cuore.addColorStop(1, 'rgba(0,0,0,0)')
     ctx.fillStyle = cuore
-    ctx.beginPath(); ctx.arc(cx, cy, rn * 1.4, 0, Math.PI * 2); ctx.fill()
+    if (!tinta) { ctx.beginPath(); ctx.arc(cx, cy, rn * 1.4, 0, Math.PI * 2); ctx.fill() }
 
     requestAnimationFrame(disegna)
   }
@@ -152,5 +157,6 @@ window.Particelle = (function () {
   return {
     impostaVolume(fn) { volume = fn },
     impostaStato(s) { stato = s },
+    impostaTinta(rgb) { tinta = Array.isArray(rgb) && rgb.length === 3 ? rgb : null },
   }
 })()

@@ -4,10 +4,11 @@ import { useEffect, useRef } from 'react'
 import { useI18n } from '../../lib/i18n/I18nProvider'
 import { getClientLocale } from '../../lib/i18n/clientLocale'
 
-// Lyft — il cervello generale del prodotto, con l'aspetto del centro di comando da cui nasce
-// (nucleo animato al centro, pannelli attorno, voce a sinistra). La pagina vive in
-// public/lyft-core con il suo foglio di stile scuro, quindi qui la si mostra in una cornice:
-// cosi' il suo stile non tocca il resto del prodotto e viceversa. Parla col cervello del
+// Lyft — il cervello generale del prodotto. La pagina vive in public/lyft-core e qui la si mostra
+// in una cornice: ha un foglio di stile suo, ma prende tema, colori e carattere dal prodotto
+// (li legge da questo documento e li rilegge quando cambia il tema), ha lo sfondo trasparente
+// e si da' da sola l'altezza del contenuto, cosi' scorre con la tab come ogni altra. L'altezza
+// scritta qui sotto vale solo finche' la pagina non si e' misurata. Parla col cervello del
 // prodotto (/api/agent) e legge i dati del cliente in cui si e' entrati.
 //
 // La cornice resta montata anche quando si guarda un'altra tab (la tiene viva page.js): tornare
@@ -19,8 +20,11 @@ export default function LyftTab({ attiva = true }) {
   const lingua = useRef(getClientLocale() || 'it')   // fissata alla prima apertura: cambiarla ricaricherebbe la pagina
   const avvisa = () => { try { cornice.current?.contentWindow?.postMessage({ tipo: 'lyft:vista', attiva }, window.location.origin) } catch {} }
   useEffect(avvisa, [attiva])
+  // Il tema chiaro da' a ogni iframe un fondo bianco pieno (serve alle anteprime delle email): questa
+  // cornice invece deve lasciar vedere lo sfondo della tab, e solo uno stile in linea «important» lo vince.
+  useEffect(() => { cornice.current?.style.setProperty('background', 'transparent', 'important') }, [])
   return (
     <iframe ref={cornice} onLoad={avvisa} title={t('tab.lyft', null, 'Lyft')} src={`/lyft-core/index.html?l=${encodeURIComponent(lingua.current)}`} allow="microphone; fullscreen"
-      style={{ display: 'block', width: '100%', height: 'calc(100dvh - 132px)', minHeight: 620, border: 0, borderRadius: 16, background: '#02060b' }} />
+      style={{ display: 'block', width: '100%', height: 'calc(100dvh - 132px)', border: 0, background: 'transparent' }} />
   )
 }

@@ -6,507 +6,356 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-  /* Sei grandezze: 10 · 11.5 · 13 · 15 · 20 · 22. Grigi neutri, un solo accento blu. */
-  /* Tema HUD: nero-blu profondo, ciano luminoso, viola quando pensa. Il colore pieno solo
-     per stati e variazioni; numeri tutti a 22px (sei grandezze: 10 · 11.5 · 13 · 15 · 20 · 22). */
+  /* Lyft dentro il prodotto: stessa lingua visiva delle altre tab.
+     Colori, bordi e carattere arrivano dai token del prodotto (li copia lo script qui sotto dal
+     documento che ospita la cornice, e li ricopia quando cambia il tema); i valori scritti qui
+     sono solo la riserva per quando la pagina si apre da sola.
+     Sei grandezze di carattere: 10 · 11.5 · 13 · 15 · 20 · 22; i numeri tutti a 22.
+     Niente colori decorativi: verde e rosso solo per stati e variazioni. */
   :root {
-    --fondo: rgba(3, 9, 16, 0.9);
-    --fondo-sala: #02060b;
-    --bordo: rgba(56, 232, 255, 0.16);
-    --bordo-forte: rgba(56, 232, 255, 0.45);
-    --testo: #e6fbff;
-    --tenue: #7fa6b6;
-    --spento: #3b5664;
-    --accento: #38e8ff;
-    --viola: #9b7bff;
-    --su: #3dffb0;
-    --errore: #ff4d6d;
-    --bagliore: 0 0 14px rgba(56, 232, 255, 0.35);
-    --mono: "SF Mono", ui-monospace, Menlo, monospace;
+    --bg: #000000; --bg2: #0a0a0a; --surface: #1c1c1c; --surface2: #2c2c2c;
+    --border: rgba(255,255,255,.09); --border2: rgba(255,255,255,.15); --border3: rgba(255,255,255,.24);
+    --text: #f5f5f5; --text2: #d1d1d1; --text3: #989898;
+    --green: #30d158; --red: #ff453a; --yellow: #ffd60a; --accent: #0a84ff;
+    --ombra: none;
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", Inter, "Segoe UI", Roboto, sans-serif;
+    /* nomi che la logica (lyft.js) scrive negli stili in linea */
+    --accento: var(--accent); --errore: var(--red);
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f5f5; --bg2: #ededed; --surface: #ffffff; --surface2: #f5f5f5;
+    --border: #e3e3e3; --border2: #c8c8c8; --border3: #9a9a9a;
+    --text: #1d1d1d; --text2: #454545; --text3: #626262;
+    --green: #137a4c; --red: #b42318; --yellow: #886100; --accent: #0066cc;
+    --ombra: 0 2px 8px rgba(29,29,29,.035), 0 0 0 1px rgba(29,29,29,.024);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; background: transparent; overflow: hidden; }
+  [hidden] { display: none !important; }
+  /* Dentro la cornice lo sfondo e' quello della tab (trasparente); da sola, quello del prodotto. */
+  html { background: var(--bg); overflow-x: hidden; }
+  html.in-cornice { background: transparent; overflow: hidden; }
   body {
-    font: 13px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, sans-serif;
-    color: var(--testo);
-    -webkit-user-select: none; user-select: none;
+    background: transparent;
+    font: 13px/1.45 var(--font); letter-spacing: -.01em; color: var(--text);
+    -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
   }
-  button {
-    font: inherit; font-size: 11.5px; color: var(--tenue);
-    background: transparent; border: 1px solid var(--bordo); border-radius: 8px;
-    padding: 3px 9px; cursor: pointer;
-  }
-  button:hover { color: var(--testo); border-color: rgba(255,255,255,.2); }
-  button[aria-pressed="true"] { color: var(--errore); border-color: rgba(255,90,79,.4); }
-
-  .pannello {
-    height: 100%;
-    display: flex; flex-direction: column;
-    background: var(--fondo);
-    border: 1px solid var(--bordo);
-    border-radius: 16px;
-    overflow: hidden;
-  }
-  .testata {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 14px 0;
-    -webkit-app-region: drag;
-  }
-  .nome { font-family: var(--mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--tenue); }
-  .azioni { display: flex; gap: 6px; -webkit-app-region: no-drag; }
-
-  .scena { position: relative; display: grid; place-items: center; height: 170px; }
-  #particelle { width: 170px; height: 170px; }
-  .anello {
-    position: absolute; width: 150px; height: 150px; border-radius: 50%;
-    border: 1px solid var(--bordo);
-    pointer-events: none;
-  }
-  .anello::after {
-    content: ""; position: absolute; inset: -1px; border-radius: 50%;
-    border: 1px solid transparent; border-top-color: var(--spento);
-    animation: gira 6s linear infinite;
-  }
-  body[data-stato="parla"] .anello::after { border-top-color: var(--accento); animation-duration: 2.4s; }
-  body[data-stato="pensa"] .anello::after { border-top-color: var(--testo); animation-duration: 1.2s; }
-  body[data-stato="spento"] .anello::after { animation: none; border-top-color: transparent; }
-  @keyframes gira { to { transform: rotate(360deg); } }
-
-  .etichetta { font-family: var(--mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--tenue); text-align: center; min-height: 16px; }
-  .stato { text-align: center; color: var(--tenue); font-size: 11.5px; min-height: 18px; padding: 2px 16px 0; }
-  .stato.errore { color: var(--errore); }
-
-  .dialogo {
-    flex: 1; overflow-y: auto; padding: 12px 16px 16px;
-    display: flex; flex-direction: column; gap: 10px;
-    -webkit-user-select: text; user-select: text;
-  }
-  .riga { max-width: 92%; }
-  .riga .chi { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--spento); margin-bottom: 2px; }
-  .riga.marino { align-self: flex-end; text-align: right; }
-  .riga.marino .testo { color: var(--tenue); }
-  .suggerimento { color: var(--spento); font-size: 11.5px; text-align: center; padding: 8px 16px 14px; border-top: 1px solid var(--bordo); }
-
-  .sottotitoli { display: none; }
-
-  /* ——— Sala: schermo intero ——— */
-  body.sala .pannello { background: var(--fondo-sala); border: 0; border-radius: 0; }
-  body.sala .testata { padding: 22px 28px 0; }
-  body.sala .scena { flex: 1; height: auto; }
-  body.sala #particelle { width: min(62vh, 62vw); height: min(62vh, 62vw); }
-  body.sala .anello { width: min(52vh, 52vw); height: min(52vh, 52vw); }
-  body.sala .dialogo, body.sala .suggerimento { display: none; }
-/* Niente trascrizione a schermo (scelta di Marino): né la sua né quella di Lyft. */
-#sott-tu, #sott-lui, .dialogo { display: none !important; }
-  body.sala .sottotitoli {
-    display: flex; flex-direction: column; align-items: center; gap: 10px;
-    padding: 0 10vw 9vh; min-height: 22vh; text-align: center;
-  }
-  .sottotitoli .tu { color: var(--tenue); font-size: 15px; min-height: 22px; }
-  .sottotitoli .lui { color: var(--testo); font-size: 22px; line-height: 1.35; max-width: 900px; min-height: 30px; }
-  body.sala .stato { font-size: 13px; }
-
-  /* ——— Data, ora, meteo e card ———
-     Numeri tutti a 22px; etichette 10px; righe sotto 11.5px. Colore solo per le variazioni. */
-  .numero { font-size: 22px; line-height: 1.15; font-variant-numeric: tabular-nums; letter-spacing: -.01em; color: var(--testo); }
-  .ora {
-    display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
-    padding: 10px 16px 0; color: var(--tenue); font-size: 11.5px;
-  }
-  .ora #ora-meteo { text-align: right; }
-  .scena { height: 200px; margin-top: 10px; }
-  body.sala .scena { margin-top: 0; }
-  #particelle { width: 200px; height: 200px; }
-  .anello { width: 176px; height: 176px; }
-  .ora { white-space: nowrap; }
-  .ora .lungo, .card .lungo { display: none; }
-  body.sala .ora .lungo, body.sala .card .lungo { display: inline; }
-  body.sala .ora .corto, body.sala .card .corto { display: none; }
-  .card-griglia {
-    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;
-    padding: 12px 14px 14px; margin-top: auto;
-  }
-  .card {
-    border: 1px solid var(--bordo); border-radius: 12px; padding: 10px 12px;
-    background: rgba(255,255,255,.025); min-width: 0;
-  }
-  .card .cosa { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--tenue); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .card .cosa .quando { color: var(--spento); }
-  .card .sotto { font-size: 11.5px; color: var(--tenue); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .su { color: #3ccf7a; } .giu { color: var(--errore); }
-
-  body.sala .ora { position: absolute; top: 64px; left: 28px; right: 28px; font-size: 15px; }
-  body.sala .card-griglia { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; padding: 0 28px 28px; }
-  body.sala .card { padding: 14px 16px; }
-  body.sala .sottotitoli { display: none; }
-
-  /* ——— Tema HUD ——— */
-  .pannello {
-    background:
-      linear-gradient(rgba(56,232,255,.035) 1px, transparent 1px) 0 0 / 28px 28px,
-      linear-gradient(90deg, rgba(56,232,255,.035) 1px, transparent 1px) 0 0 / 28px 28px,
-      radial-gradient(120% 70% at 50% 28%, rgba(56,232,255,.10), transparent 60%),
-      var(--fondo);
-    border-color: var(--bordo);
-    box-shadow: inset 0 0 0 1px rgba(56,232,255,.04), 0 0 40px rgba(56,232,255,.08);
-  }
-  body.sala .pannello {
-    background:
-      linear-gradient(rgba(56,232,255,.04) 1px, transparent 1px) 0 0 / 44px 44px,
-      linear-gradient(90deg, rgba(56,232,255,.04) 1px, transparent 1px) 0 0 / 44px 44px,
-      radial-gradient(60% 55% at 50% 45%, rgba(56,232,255,.12), transparent 70%),
-      var(--fondo-sala);
-  }
-  /* linea di scansione che scende piano */
-  .pannello::after {
-    content: ""; position: absolute; left: 0; right: 0; height: 120px; top: -120px; pointer-events: none;
-    background: linear-gradient(to bottom, transparent, rgba(56,232,255,.05), transparent);
-    animation: scansione 7s linear infinite;
-  }
-  .pannello { position: relative; }
-  @keyframes scansione { to { top: 100%; } }
-
-  .nome { color: var(--accento); text-shadow: var(--bagliore); }
-  button { color: var(--tenue); border-color: var(--bordo); border-radius: 4px; font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
-  button:hover { color: var(--accento); border-color: var(--bordo-forte); box-shadow: var(--bagliore); }
-
-  .ora { color: var(--tenue); font-family: var(--mono); font-size: 11.5px; letter-spacing: .04em; }
-  .ora #ora-adesso { color: var(--accento); text-shadow: var(--bagliore); font-family: var(--mono); letter-spacing: .06em; }
-
-  .anello { border: 1px solid rgba(56,232,255,.12); box-shadow: 0 0 30px rgba(56,232,255,.08), inset 0 0 30px rgba(56,232,255,.06); }
-  .anello::after { border-width: 2px; border-top-color: rgba(56,232,255,.5); filter: drop-shadow(0 0 6px rgba(56,232,255,.8)); }
-  /* secondo anello a tacche, gira al contrario */
-  .anello::before {
-    content: ""; position: absolute; inset: 9%; border-radius: 50%;
-    background: repeating-conic-gradient(rgba(56,232,255,.35) 0 1deg, transparent 1deg 6deg);
-    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
-    animation: gira 24s linear infinite reverse; opacity: .55;
-  }
-  body[data-stato="parla"] .anello::after { border-top-color: var(--accento); }
-  body[data-stato="pensa"] .anello::after { border-top-color: var(--viola); filter: drop-shadow(0 0 8px rgba(155,123,255,.9)); }
-  body[data-stato="pensa"] .anello::before { background: repeating-conic-gradient(rgba(155,123,255,.45) 0 1deg, transparent 1deg 6deg); animation-duration: 6s; }
-
-  .etichetta { color: var(--accento); text-shadow: var(--bagliore); }
-  body[data-stato="pensa"] .etichetta { color: var(--viola); text-shadow: 0 0 14px rgba(155,123,255,.5); }
-  body[data-stato="spento"] .etichetta { color: var(--spento); text-shadow: none; }
-
-  .card {
-    position: relative; border-radius: 3px; border-color: var(--bordo);
-    background: linear-gradient(180deg, rgba(56,232,255,.06), rgba(56,232,255,.015));
-    box-shadow: inset 0 0 20px rgba(56,232,255,.04);
-  }
-  /* angoli a squadra, come un mirino */
-  .card::before, .card::after { content: ""; position: absolute; width: 10px; height: 10px; border: 0 solid var(--accento); opacity: .8; }
-  .card::before { top: -1px; left: -1px; border-top-width: 2px; border-left-width: 2px; }
-  .card::after { bottom: -1px; right: -1px; border-bottom-width: 2px; border-right-width: 2px; }
-  .card .cosa { color: var(--accento); opacity: .85; }
-  .card .cosa .quando { color: var(--tenue); }
-  .card .cosa { display: flex; align-items: center; gap: 6px; }
-  .card .logo { width: 18px; height: 18px; flex: none; }
-  body.sala .card .logo { width: 20px; height: 20px; }
-  .card .numero { text-shadow: 0 0 16px rgba(56,232,255,.28); font-family: var(--mono); font-size: 22px; letter-spacing: -.02em; }
-  .su { color: var(--su); text-shadow: 0 0 10px rgba(61,255,176,.35); }
-  .giu { color: var(--errore); text-shadow: 0 0 10px rgba(255,77,109,.35); }
-
-  .conferma .scheda { background: #050d16; border-color: var(--bordo-forte); border-radius: 4px; box-shadow: 0 0 40px rgba(56,232,255,.15); }
-  .conferma .titolo { color: var(--accento); }
-  .conferma .si { color: #02060b; background: var(--accento); border-color: var(--accento); box-shadow: var(--bagliore); }
-  .conferma .si:hover { color: #02060b; }
-
-  @media (prefers-reduced-motion: reduce) { .pannello::after, .anello::before { animation: none; } }
-
-  /* Conferma di una modifica: sopra tutto, finché Marino non sceglie */
-  .conferma {
-    position: fixed; inset: 0; display: none; place-items: center;
-    background: rgba(0,0,0,.55); padding: 16px; z-index: 10;
-  }
-  .conferma.aperta { display: grid; }
-  .conferma .scheda {
-    width: min(520px, 100%); background: #141414; border: 1px solid var(--bordo); border-radius: 14px;
-    padding: 18px; display: flex; flex-direction: column; gap: 14px;
-  }
-  .conferma .titolo { font-family: var(--mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--tenue); }
-  .conferma .testo { font-size: 15px; line-height: 1.45; color: var(--testo); white-space: pre-wrap; -webkit-user-select: text; user-select: text; max-height: 50vh; overflow: auto; }
-  .conferma .bottoni { display: flex; gap: 8px; justify-content: flex-end; }
-  .conferma button { font-size: 13px; padding: 7px 14px; }
-  .conferma .si { color: #fff; background: var(--accento); border-color: var(--accento); }
-  .conferma .si:hover { filter: brightness(1.1); color: #fff; }
-
-  @media (prefers-reduced-motion: reduce) { .anello::after { animation: none; } }
-  /* ——— HUD+: cerchio luminoso sempre acceso, onda della voce, stato dei sistemi, cornice ——— */
-  .anello::after {
-    content: ""; position: absolute; inset: -3px; border-radius: 50%; border: 0 !important;
-    background: conic-gradient(from 0deg, transparent 0 60%, rgba(56,232,255,.12) 72%, rgba(56,232,255,.85) 96%, #eaffff 99%, transparent 100%);
-    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
-    filter: drop-shadow(0 0 6px rgba(56,232,255,.95)) drop-shadow(0 0 16px rgba(56,232,255,.55));
-    animation: gira 3.2s linear infinite !important; opacity: 1;
-  }
-  body[data-stato="spento"] .anello::after { animation-duration: 7s !important; opacity: .5; }
-  body[data-stato="parla"] .anello::after { animation-duration: 1.5s !important; }
-  body[data-stato="pensa"] .anello::after {
-    background: conic-gradient(from 0deg, transparent 0 60%, rgba(155,123,255,.15) 72%, rgba(155,123,255,.9) 96%, #f1ebff 99%, transparent 100%);
-    filter: drop-shadow(0 0 6px rgba(155,123,255,.95)) drop-shadow(0 0 16px rgba(155,123,255,.55)); animation-duration: 1.1s !important;
-  }
-  .anello { box-shadow: 0 0 40px rgba(56,232,255,.12), inset 0 0 40px rgba(56,232,255,.08); }
-  .anello2 {
-    position: absolute; width: 188px; height: 188px; border-radius: 50%; pointer-events: none;
-    border: 1px dashed rgba(56,232,255,.28); animation: gira 40s linear infinite reverse;
-  }
-  .anello2::before, .anello2::after { content: ""; position: absolute; width: 6px; height: 6px; border-radius: 50%; background: var(--accento); box-shadow: 0 0 10px var(--accento); }
-  .anello2::before { top: -3px; left: calc(50% - 3px); } .anello2::after { bottom: -3px; left: calc(50% - 3px); }
-  body.sala .anello2 { width: min(58vh, 58vw); height: min(58vh, 58vw); }
-  body[data-stato="pensa"] .anello2 { border-color: rgba(155,123,255,.35); }
-
-  .onda { display: block; width: 180px; height: 26px; margin: -4px auto 2px; }
-  body.sala .onda { width: min(40vw, 520px); height: 48px; }
-  .sistemi { text-align: center; font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--spento); min-height: 14px; }
-  .sistemi b { font-weight: 400; color: var(--tenue); }
-  .sistemi .on { color: var(--su); text-shadow: 0 0 8px rgba(61,255,176,.5); }
-  .sistemi .off { color: var(--errore); }
-
-  .cornice { position: absolute; inset: 8px; pointer-events: none; z-index: 1; }
-  .cornice i { position: absolute; width: 18px; height: 18px; border: 0 solid rgba(56,232,255,.55); filter: drop-shadow(0 0 4px rgba(56,232,255,.6)); }
-  .cornice i:nth-child(1) { top: 0; left: 0; border-top-width: 2px; border-left-width: 2px; }
-  .cornice i:nth-child(2) { top: 0; right: 0; border-top-width: 2px; border-right-width: 2px; }
-  .cornice i:nth-child(3) { bottom: 0; left: 0; border-bottom-width: 2px; border-left-width: 2px; }
-  .cornice i:nth-child(4) { bottom: 0; right: 0; border-bottom-width: 2px; border-right-width: 2px; }
-  body.sala .cornice { inset: 14px; } body.sala .cornice i { width: 34px; height: 34px; }
-
-  /* le card entrano una dopo l'altra */
-  .card { animation: entra .6s ease-out both; }
-  .card:nth-child(2) { animation-delay: .06s } .card:nth-child(3) { animation-delay: .12s } .card:nth-child(4) { animation-delay: .18s } .card:nth-child(5) { animation-delay: .24s } .card:nth-child(6) { animation-delay: .3s }
-  @keyframes entra { from { opacity: 0; transform: translateY(6px); filter: blur(2px); } }
-  .card:hover { border-color: var(--bordo-forte); box-shadow: inset 0 0 20px rgba(56,232,255,.08), 0 0 18px rgba(56,232,255,.12); }
-  @media (prefers-reduced-motion: reduce) { .anello2, .card { animation: none !important; } }
-
-  /* ——— CENTRO DI COMANDO (schermo intero) ——— */
-  .comando { display: none; }
-  body.sala .pannello > .testata, body.sala .pannello > .ora, body.sala .pannello > .sistemi, body.sala .pannello > .stato, body.sala .pannello > .onda, body.sala .pannello > .etichetta { display: none; }
-  body.sala .comando {
-    display: grid; position: absolute; inset: 0; z-index: 2; padding: 14px 16px 12px; gap: 12px;
-    grid-template-columns: 210px 300px minmax(0, 1fr) 340px;
-    grid-template-rows: 58px minmax(0, 1.55fr) minmax(0, 1fr) minmax(0, .82fr) 54px;
-    grid-template-areas:
-      "lato cima cima cima"
-      "lato nucleo hero feed"
-      "lato piatt2 piatt piatt3"
-      "lato monitor clienti modelli"
-      "lato piede piede piede";
-  }
+  html:not(.in-cornice) body { padding: 24px; }
   .ic { width: 16px; height: 16px; flex: none; }
-  .p, .lato, .cima, .piede {
-    position: relative; border: 1px solid var(--bordo); border-radius: 10px;
-    background: linear-gradient(180deg, rgba(10,28,44,.72), rgba(4,12,20,.78)); box-shadow: inset 0 0 24px rgba(56,232,255,.04), 0 0 0 1px rgba(56,232,255,.02);
-    backdrop-filter: blur(4px); min-width: 0; min-height: 0; overflow: hidden;
+
+  button {
+    font: inherit; font-size: 11.5px; font-weight: 600; color: var(--text2);
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 7px 12px; cursor: pointer; transition: border-color .15s, color .15s, background .15s;
   }
-  .p { padding: 12px 14px; display: flex; flex-direction: column; }
-  .p h2 { display: flex; align-items: center; gap: 8px; font: 400 10px var(--mono); letter-spacing: .18em; text-transform: uppercase; color: var(--accento); text-shadow: 0 0 10px rgba(56,232,255,.35); margin-bottom: 10px; flex: none; }
-  .p h2 .ic { width: 14px; height: 14px; }
-  .titoletto { font: 400 10px var(--mono); letter-spacing: .18em; text-transform: uppercase; color: var(--accento); }
+  button:hover { color: var(--text); border-color: var(--border2); }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--border3); outline-offset: 2px; }
 
-  .lato { grid-area: lato; display: flex; flex-direction: column; padding: 14px 10px; gap: 14px; }
-  .marchio { display: flex; align-items: center; gap: 10px; padding: 2px 6px 12px; border-bottom: 1px solid var(--bordo); }
-  .marchio .ic { width: 28px; height: 28px; color: var(--accento); filter: drop-shadow(0 0 8px rgba(56,232,255,.7)); }
-  .marchio b { display: block; font: 600 20px var(--mono); letter-spacing: .22em; color: var(--testo); text-shadow: 0 0 14px rgba(56,232,255,.5); }
-  .marchio small { font: 400 10px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--tenue); }
-  .nav { display: flex; flex-direction: column; gap: 3px; }
-  .voce-nav { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 1px solid transparent; border-radius: 8px; padding: 8px 10px; color: var(--tenue); font: 400 13px -apple-system, Inter, sans-serif; letter-spacing: 0; text-transform: none; background: transparent; }
-  .voce-nav:hover { color: var(--testo); border-color: var(--bordo); background: rgba(56,232,255,.05); box-shadow: none; }
-  .voce-nav.attiva { color: var(--testo); background: linear-gradient(90deg, rgba(56,232,255,.18), rgba(56,232,255,.03)); border-color: var(--bordo-forte); box-shadow: inset 3px 0 0 var(--accento); }
-  .lato-voce { margin-top: auto; border-top: 1px solid var(--bordo); padding: 12px 6px 4px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
-  .cm-onda-lato { width: 100%; height: 34px; }
-  .cm-voce-stato { font: 400 11.5px var(--mono); color: var(--accento); }
-  .mic { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; color: #02060b; background: radial-gradient(circle at 35% 30%, #a8f6ff, var(--accento) 55%, #0a8fb0); border: 0; box-shadow: 0 0 0 6px rgba(56,232,255,.12), 0 0 30px rgba(56,232,255,.6); }
-  .mic .ic { width: 26px; height: 26px; }
-  .mic:hover { filter: brightness(1.1); color: #02060b; }
-  body[data-stato="parla"] .mic, body[data-stato="ascolto"] .mic { animation: respira 1.6s ease-in-out infinite; }
-  @keyframes respira { 50% { box-shadow: 0 0 0 12px rgba(56,232,255,.06), 0 0 44px rgba(56,232,255,.8); } }
-  .nota { font-size: 10px; color: var(--spento); text-align: center; }
+  /* ——— la griglia della pagina ——— */
+  .comando { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 14px; padding-bottom: 8px; }
+  .conv { grid-column: span 8; } .feed { grid-column: span 4; }
+  .piattaforme, .piede { grid-column: span 12; }
+  .timeline { grid-column: span 4; grid-row: span 2; } .monitor, .clienti { grid-column: span 4; }
+  .nucleo { grid-column: span 8; } .modelli { grid-column: span 12; }
 
-  .cima { grid-area: cima; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 16px; }
-  .stato-sistema { display: flex; align-items: center; gap: 8px; font: 400 10px var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--tenue); }
-  .stato-sistema b { color: var(--su); text-shadow: 0 0 10px rgba(61,255,176,.5); font-weight: 400; }
-  .stato-sistema b.attenzione { color: var(--oro, #ffc34d); text-shadow: 0 0 10px rgba(255,195,77,.5); }
-  .orologio { text-align: center; line-height: 1.1; }
-  .orologio small { display: block; font-size: 11.5px; color: var(--tenue); }
-  .orologio b { font: 500 22px var(--mono); letter-spacing: .08em; color: var(--accento); text-shadow: 0 0 16px rgba(56,232,255,.6); }
-  .cima-destra { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
-  .operatore { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--tenue); border: 1px solid var(--bordo); border-radius: 999px; padding: 5px 12px; }
-  .operatore b { color: var(--testo); font-weight: 500; }
-  #slot-azioni .azioni { display: flex; gap: 6px; }
+  /* ——— la scheda, come quelle delle altre tab ——— */
+  .p {
+    position: relative; display: flex; flex-direction: column; min-width: 0;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    box-shadow: var(--ombra); padding: 20px;
+  }
+  .p h2 { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 14px; flex: none; }
+  .p h2 .ic { width: 14px; height: 14px; color: var(--text3); }
+  .vuoto { color: var(--text3); font-size: 11.5px; }
+  .on { color: var(--green); } .off { color: var(--text3); } .att { color: var(--yellow); }
+  #cm-rete.off { color: var(--red); }
 
-  .nucleo { grid-area: nucleo; } .feed { grid-area: feed; } .hero { grid-area: hero; }
-  .piattaforme { grid-area: piatt; } .timeline { grid-area: piatt2; } .comandi { grid-area: piatt3; }
-  .monitor { grid-area: monitor; } .clienti { grid-area: clienti; } .modelli { grid-area: modelli; } .piede { grid-area: piede; }
-
-  .righe { list-style: none; display: flex; flex-direction: column; gap: 6px; overflow: auto; }
-  .righe li { display: grid; grid-template-columns: 30px 1fr auto; align-items: center; gap: 10px; padding: 7px 9px; border: 1px solid var(--bordo); border-radius: 8px; background: rgba(56,232,255,.03); }
-  .righe .tondo { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; background: rgba(56,232,255,.08); color: var(--accento); }
-  .righe b { display: block; font-size: 13px; font-weight: 500; color: var(--testo); }
-  .righe small { font-size: 10px; color: var(--tenue); }
-  .righe .pt { font: 400 10px var(--mono); letter-spacing: .1em; text-transform: uppercase; }
-  .on { color: var(--su); } .off { color: var(--errore); } .att { color: #ffc34d; }
-
-  /* hero: il nucleo dorato al centro */
-  .hero { display: grid; place-items: center; position: relative; overflow: hidden; border: 1px solid var(--bordo); border-radius: 10px; background: radial-gradient(60% 70% at 50% 50%, rgba(255,170,60,.06), transparent 70%), rgba(2,8,14,.35); }
-  body.sala .hero .scena { position: absolute; inset: 0; height: auto; margin: 0; display: grid; place-items: center; }
-  body.sala .hero #particelle { position: absolute; inset: 0; width: 100% !important; height: 100% !important; }
-  body.sala .hero .anello { height: 84% !important; width: auto !important; aspect-ratio: 1 / 1; }
-  body.sala .hero .anello2 { height: 95% !important; width: auto !important; aspect-ratio: 1 / 1; }
-  .hero-titolo { position: absolute; top: 12px; left: 16px; text-align: left; pointer-events: none; z-index: 2; }
-  .hero-titolo b { display: block; font: 600 15px var(--mono); letter-spacing: .45em; color: #ffe2a8; text-shadow: 0 0 18px rgba(255,180,70,.75); }
-  .hero-titolo small { font: 400 10px var(--mono); letter-spacing: .3em; color: #ffc879; opacity: .8; }
-
-  .feed-lista { list-style: none; display: flex; flex-direction: column; gap: 6px; overflow: auto; }
-  .feed-lista li { display: grid; grid-template-columns: 26px 1fr auto; gap: 9px; align-items: start; padding: 7px 9px; border: 1px solid var(--bordo); border-radius: 8px; background: rgba(56,232,255,.03); animation: entra .35s ease-out both; }
-  .feed-lista .ico { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; background: rgba(56,232,255,.08); color: var(--accento); }
-  .feed-lista .ico.giallo { background: rgba(255,195,77,.12); color: #ffc34d; } .feed-lista .ico.rosso { background: rgba(255,77,109,.12); color: var(--errore); } .feed-lista .ico.verde { background: rgba(61,255,176,.1); color: var(--su); }
-  .feed-lista b { display: block; font-size: 11.5px; font-weight: 500; color: var(--testo); line-height: 1.35; }
-  .feed-lista small { font-size: 10px; color: var(--tenue); }
-  .feed-lista .t { font: 400 10px var(--mono); color: var(--spento); }
-  .vivo { width: 7px; height: 7px; border-radius: 50%; background: var(--su); box-shadow: 0 0 8px var(--su); margin-left: auto; animation: pulsa 1.6s infinite; }
+  /* ——— la conversazione: stato della voce, risposta, domanda ——— */
+  .conv { gap: 16px; }
+  .conv-testa { display: flex; align-items: center; gap: 14px; min-width: 0; }
+  .hero { flex: none; }
+  .scena { width: 64px; height: 64px; }
+  #particelle { display: block; width: 100%; height: 100%; }
+  .lato-voce { flex: 1; min-width: 0; }
+  .titoletto { font-size: 10px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--text3); }
+  .cm-voce-stato { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; color: var(--text); margin-top: 2px; }
+  .cm-voce-stato::before { content: ""; width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--green); }
+  body[data-stato="spento"] .cm-voce-stato::before { background: transparent; box-shadow: inset 0 0 0 1.5px var(--border3); }
+  body[data-stato="pensa"] .cm-voce-stato::before { background: var(--text3); animation: pulsa 1.2s ease-in-out infinite; }
   @keyframes pulsa { 50% { opacity: .3; } }
+  .nota { font-size: 11.5px; color: var(--text3); margin-top: 2px; }
+  .stato-sistema {
+    display: flex; align-items: center; gap: 6px; flex: none; max-width: 46%;
+    font-size: 11.5px; color: var(--text2); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px;
+  }
+  .stato-sistema .ic { width: 14px; height: 14px; color: var(--text3); }
+  .stato-sistema b { font-weight: 600; color: var(--text); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .stato-sistema b.attenzione { color: var(--yellow); }
 
-  body.sala #slot-card .card-griglia { grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 0; gap: 8px; margin: 0; }
-  body.sala #slot-card .card { padding: 9px 11px; }
-
-  .tl { list-style: none; display: flex; flex-direction: column; gap: 2px; overflow: auto; position: relative; }
-  .tl li { display: grid; grid-template-columns: 46px 12px 1fr; gap: 8px; align-items: start; padding: 5px 0; }
-  .tl .h { font: 400 11.5px var(--mono); color: var(--accento); }
-  .tl .pallino { width: 9px; height: 9px; margin-top: 4px; border-radius: 50%; border: 2px solid var(--accento); box-shadow: 0 0 8px rgba(56,232,255,.6); }
-  .tl li.passato .pallino { border-color: var(--spento); box-shadow: none; } .tl li.passato .h, .tl li.passato b { color: var(--spento); }
-  .tl b { font-size: 13px; font-weight: 500; color: var(--testo); display: block; }
-  .tl small { font-size: 10px; color: var(--tenue); }
-  .vuoto { color: var(--tenue); font-size: 11.5px; }
-
-  .cmd-griglia { display: flex; flex-direction: column; gap: 6px; }
-  .cmd { display: flex; align-items: center; gap: 10px; text-align: left; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--bordo); background: rgba(56,232,255,.04); color: var(--testo); font: 400 13px -apple-system, Inter, sans-serif; letter-spacing: 0; text-transform: none; }
-  .cmd .ic { color: var(--accento); }
-  .cmd:hover { border-color: var(--bordo-forte); background: rgba(56,232,255,.1); color: var(--testo); }
-
-  .anelli { display: flex; justify-content: space-around; align-items: center; flex: 1; }
-  .gauge { position: relative; width: 88px; text-align: center; }
-  .gauge svg { width: 88px; height: 88px; transform: rotate(-90deg); }
-  .gauge circle { fill: none; stroke-width: 6; }
-  .gauge .t { stroke: rgba(56,232,255,.1); }
-  .gauge .v { stroke: var(--accento); stroke-linecap: round; stroke-dasharray: 201; stroke-dashoffset: 201; filter: drop-shadow(0 0 5px rgba(56,232,255,.8)); transition: stroke-dashoffset .8s; }
-  .gauge b { position: absolute; top: 30px; left: 0; right: 0; font: 500 15px var(--mono); color: var(--testo); }
-  .gauge small { display: block; font: 400 10px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--tenue); margin-top: 2px; }
-
-  .cl { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; overflow: auto; }
-  .cl li { padding: 7px 10px; border: 1px solid var(--bordo); border-radius: 8px; background: rgba(56,232,255,.03); min-width: 0; }
-  .cl b { display: block; font-size: 11.5px; color: var(--tenue); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 400; }
-  .cl .n { font: 500 15px var(--mono); color: var(--testo); }
-  .cl small { font-size: 10px; margin-left: 6px; }
-
-  .mod-griglia { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; overflow: auto; }
-  .mod { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border: 1px solid var(--bordo); border-radius: 8px; background: rgba(56,232,255,.03); min-width: 0; }
-  .mod i { width: 8px; height: 8px; border-radius: 50%; flex: none; }
-  .mod i.on { background: var(--su); box-shadow: 0 0 8px var(--su); } .mod i.off { background: var(--errore); box-shadow: 0 0 8px var(--errore); }
-  .mod b { display: block; font-size: 11.5px; font-weight: 500; color: var(--testo); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .mod small { font-size: 10px; color: var(--tenue); }
-
-  .piede { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 0 16px; font-size: 11.5px; color: var(--tenue); }
-  .piede > span { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
-  .piede b { color: var(--testo); font-weight: 500; }
-  .parla { display: flex; align-items: center; gap: 12px; padding: 6px 26px; border-radius: 999px; border: 1px solid var(--bordo-forte); background: radial-gradient(120% 140% at 50% 0%, rgba(56,232,255,.28), rgba(56,232,255,.04)); color: var(--testo); box-shadow: 0 0 26px rgba(56,232,255,.35), inset 0 0 14px rgba(56,232,255,.2); letter-spacing: 0; text-transform: none; font-family: inherit; }
-  .parla .ic { width: 22px; height: 22px; color: var(--accento); }
-  .parla b { display: block; font: 600 13px var(--mono); letter-spacing: .2em; color: var(--testo); }
-  .parla small { font-size: 10px; color: var(--tenue); }
-  .parla:hover { color: var(--testo); box-shadow: 0 0 36px rgba(56,232,255,.55), inset 0 0 18px rgba(56,232,255,.3); }
-
-  /* ——— Lyft nel prodotto: risposta a schermo e domanda scritta (in origine solo voce) ——— */
-  html, body { background: var(--fondo-sala); }
-  body.sala .pannello { min-height: 100vh; }
-  .hero { position: relative; }
-  .risposta { position: absolute; left: 18px; right: 18px; bottom: 14px; max-height: 46%; overflow-y: auto; padding: 14px 16px; border: 1px solid var(--bordo-forte); border-radius: 12px; background: rgba(3, 9, 16, .88); backdrop-filter: blur(6px); font-size: 15px; line-height: 1.5; color: var(--testo); white-space: pre-wrap; overflow-wrap: anywhere; -webkit-user-select: text; user-select: text; z-index: 3; display: none; }
+  .risposta {
+    display: none; max-height: 460px; overflow-y: auto; padding-top: 16px; border-top: 1px solid var(--border);
+    font-size: 15px; line-height: 1.55; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere;
+  }
   .risposta.aperta { display: block; }
-  .risposta .tu { display: block; font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--tenue); margin-bottom: 6px; }
-  .risposta .chiudi-r { position: sticky; float: right; top: 0; margin: -4px -4px 0 8px; }
-  .scrivi { display: flex; gap: 8px; align-items: center; flex: 1; min-width: 180px; max-width: 520px; }
-  .scrivi input { flex: 1; min-width: 0; font: inherit; font-size: 13px; color: var(--testo); background: rgba(255,255,255,.03); border: 1px solid var(--bordo); border-radius: 10px; padding: 8px 12px; outline: none; -webkit-user-select: text; user-select: text; }
-  .scrivi input:focus { border-color: var(--bordo-forte); box-shadow: var(--bagliore); }
-  .scrivi input::placeholder { color: var(--spento); }
+  .risposta .tu { display: block; font-size: 11.5px; color: var(--text3); margin-bottom: 8px; }
+  .risposta .chiudi-r { position: sticky; float: right; top: 0; margin: 0 0 6px 12px; }
+
+  .p.comandi { background: none; border: 0; border-radius: 0; box-shadow: none; padding: 0; margin-top: auto; }
+  .p.comandi h2 { font-size: 10px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--text3); margin-bottom: 8px; }
+  .p.comandi h2 .ic { display: none; }
+  .cmd-griglia { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .cmd { display: flex; align-items: center; gap: 10px; text-align: left; padding: 10px 12px; font-size: 13px; font-weight: 500; color: var(--text); background: var(--surface2); border-color: transparent; }
+  .cmd .ic { color: var(--text3); }
+  .cmd:hover { border-color: var(--border2); }
+
+  .conv-scrivi { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .mic { width: 40px; height: 40px; flex: none; border-radius: 50%; padding: 0; display: grid; place-items: center; }
+  .mic .ic { width: 18px; height: 18px; }
+  .mic[aria-pressed="true"] { color: var(--surface); background: var(--text); border-color: var(--text); }
+  .scrivi { display: flex; gap: 8px; align-items: center; flex: 1; min-width: 200px; }
+  .scrivi input {
+    flex: 1; min-width: 0; height: 40px; font: inherit; font-size: 13px; color: var(--text);
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 0 12px; outline: none;
+  }
+  .scrivi input:focus { border-color: var(--border3); }
+  .scrivi input::placeholder { color: var(--text3); }
+  .scrivi button { height: 40px; padding: 0 16px; font-size: 13px; color: var(--surface); background: var(--text); border-color: var(--text); }
+  .scrivi button:hover { color: var(--surface); opacity: .88; }
+  .parla { display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 14px; text-align: left; }
+  .parla .ic { width: 16px; height: 16px; color: var(--text3); }
+  .parla b { display: block; font-size: 10px; font-weight: 600; letter-spacing: .08em; color: var(--text); line-height: 1.3; }
+  .parla small { display: block; font-size: 10px; font-weight: 400; color: var(--text3); line-height: 1.3; }
   .senza-voce .lato-voce, .senza-voce #cm-parla { display: none; }
+
+  /* ——— feed ——— */
+  .vivo { width: 8px; height: 8px; border-radius: 50%; background: var(--green); margin-left: auto; animation: pulsa 1.6s infinite; }
+  .feed { min-height: 300px; }
+  .feed-lista { list-style: none; position: absolute; inset: 54px 8px 12px 20px; padding-right: 12px; overflow-y: auto; }
+  .feed-lista li { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 10px 0; border-top: 1px solid var(--border); }
+  .feed-lista li:first-child { border-top: 0; padding-top: 0; }
+  .feed-lista .ico { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; font-size: 11.5px; font-weight: 600; background: var(--surface2); color: var(--text3); }
+  .feed-lista .ico.giallo { color: var(--yellow); } .feed-lista .ico.rosso { color: var(--red); } .feed-lista .ico.verde { color: var(--green); }
+  .feed-lista b { display: block; font-size: 13px; font-weight: 500; color: var(--text); line-height: 1.4; overflow-wrap: anywhere; }
+  .feed-lista small { display: block; font-size: 11.5px; color: var(--text3); margin-top: 2px; }
+  .feed-lista .t { font-size: 11.5px; color: var(--text3); font-variant-numeric: tabular-nums; }
+
+  /* ——— i numeri di oggi: una scheda per numero, come i KPI della Dashboard ——— */
+  .p.piattaforme { background: none; border: 0; border-radius: 0; box-shadow: none; padding: 0; margin-top: 6px; }
+  .p.piattaforme h2 { margin-bottom: 10px; padding-left: 2px; }
+  .card-griglia { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; }
+  .card { min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--ombra); padding: 16px 18px 15px; }
+  .card .cosa { display: flex; flex-direction: row-reverse; align-items: center; justify-content: space-between; gap: 8px; font-size: 10px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--text3); white-space: nowrap; overflow: hidden; }
+  .card .logo { width: 16px; height: 16px; flex: none; color: var(--text3); }
+  .numero { font-size: 22px; font-weight: 600; line-height: 1.1; letter-spacing: -.035em; font-variant-numeric: tabular-nums; color: var(--text); margin-top: 8px; white-space: nowrap; }
+  .card .sotto { font-size: 11.5px; color: var(--text3); margin-top: 6px; min-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .su { color: var(--green); } .giu { color: var(--red); }
+
+  /* ——— agenda / prossimi giri ——— */
+  .tl { list-style: none; display: flex; flex-direction: column; }
+  .tl li { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 10px; align-items: start; padding: 9px 0; border-top: 1px solid var(--border); }
+  .tl li:first-child { border-top: 0; padding-top: 0; }
+  .tl li.vuoto { display: block; }
+  .tl .pallino { display: none; }
+  .tl .h { font-size: 11.5px; line-height: 1.6; color: var(--text3); font-variant-numeric: tabular-nums; }
+  .tl b { display: block; font-size: 13px; font-weight: 500; color: var(--text); }
+  .tl small { display: block; font-size: 11.5px; color: var(--text3); margin-top: 2px; }
+  .tl li.passato { opacity: .5; }
+
+  /* ——— squadra: tre anelli ——— */
+  .anelli { display: flex; justify-content: space-around; align-items: center; gap: 8px; flex: 1; padding: 6px 0; }
+  .gauge { position: relative; width: 92px; text-align: center; }
+  .gauge svg { display: block; width: 92px; height: 92px; transform: rotate(-90deg); }
+  .gauge circle { fill: none; stroke-width: 5; }
+  .gauge .t { stroke: var(--surface2); }
+  .gauge .v { stroke: var(--text); stroke-linecap: round; stroke-dasharray: 201; stroke-dashoffset: 201; transition: stroke-dashoffset .8s; }
+  .gauge b { position: absolute; top: 0; left: 0; right: 0; height: 92px; display: grid; place-items: center; font-size: 22px; font-weight: 600; letter-spacing: -.035em; font-variant-numeric: tabular-nums; color: var(--text); }
+  .gauge small { display: block; font-size: 10px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--text3); margin-top: 8px; }
+
+  /* ——— creativita': verdetti ——— */
+  .cl { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 20px; }
+  .cl li { min-width: 0; }
+  .cl li.vuoto { grid-column: 1 / -1; }
+  .cl b { display: block; font-size: 10px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
+  .cl .n { font-size: 22px; font-weight: 600; line-height: 1.1; letter-spacing: -.035em; font-variant-numeric: tabular-nums; color: var(--text); }
+  .cl small { font-size: 11.5px; color: var(--text3); margin-left: 8px; }
+
+  /* ——— nucleo e collegamenti: righe di stato ——— */
+  .righe { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 24px; }
+  .righe li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--border); min-width: 0; }
+  .righe li:nth-child(-n+2) { border-top: 0; padding-top: 0; }
+  .righe .tondo { display: none; }
+  .righe b { display: block; font-size: 13px; font-weight: 500; color: var(--text); }
+  .righe small { display: block; font-size: 11.5px; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .righe .pt { font-size: 11.5px; font-weight: 500; }
+  .mod-griglia { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px 20px; }
+  .mod { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
+  .mod i { width: 8px; height: 8px; border-radius: 50%; flex: none; margin-top: 5px; }
+  .mod i.on { background: var(--green); } .mod i.off { background: transparent; box-shadow: inset 0 0 0 1.5px var(--border3); }
+  .mod span { min-width: 0; }
+  .mod b { display: block; font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mod small { display: block; font-size: 11.5px; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ——— riga di stato in fondo ——— */
+  .piede { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 22px; padding: 4px 2px 0; font-size: 11.5px; color: var(--text3); }
+  .piede > span { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .piede .ic { width: 14px; height: 14px; }
+  .piede b { font-weight: 500; color: var(--text2); }
+  .piede b.on { color: var(--green); } .piede b.off { color: var(--text3); }
+
+  /* ——— conferma di una modifica: sopra tutto, finche' la persona non sceglie ——— */
+  .conferma { position: fixed; inset: 0; display: none; place-items: center; background: rgba(0,0,0,.45); padding: 16px; z-index: 10; }
+  .conferma.aperta { display: grid; }
+  .conferma .scheda { width: min(520px, 100%); background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+  .conferma .titolo { font-size: 13px; font-weight: 600; color: var(--text); }
+  .conferma .testo { font-size: 15px; line-height: 1.5; color: var(--text); white-space: pre-wrap; max-height: 320px; overflow: auto; }
+  .conferma .bottoni { display: flex; gap: 8px; justify-content: flex-end; }
+  .conferma button { font-size: 13px; padding: 8px 14px; }
+  .conferma .si, .conferma .si:hover { color: var(--surface); background: var(--text); border-color: var(--text); }
+
+  /* ——— stretto: due colonne, poi una (telefono) ——— */
+  @media (max-width: 1040px) {
+    .conv, .feed, .nucleo, .modelli { grid-column: span 12; }
+    .timeline, .monitor { grid-column: span 6; grid-row: auto; } .clienti { grid-column: span 12; }
+    .mod-griglia { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .feed { min-height: 0; }
+    .feed-lista { position: static; max-height: 300px; padding-right: 8px; }
+    .card-griglia { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .cl { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+  @media (max-width: 620px) {
+    .comando { gap: 12px; }
+    .timeline, .monitor { grid-column: span 12; }
+    .p { padding: 16px; }
+    .card-griglia { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .card { padding: 14px 14px 13px; }
+    .cl, .mod-griglia { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .righe { grid-template-columns: minmax(0, 1fr); }
+    .righe li:nth-child(2) { border-top: 1px solid var(--border); padding-top: 9px; }
+    .cmd-griglia { grid-template-columns: minmax(0, 1fr); }
+    .conv-testa { flex-wrap: wrap; }
+    .lato-voce { flex-basis: calc(100% - 80px); }
+    .stato-sistema { max-width: 100%; }
+    .scena { width: 56px; height: 56px; }
+    .scrivi { flex-basis: calc(100% - 48px); min-width: 0; }
+    .parla { flex: 1; justify-content: center; }
+    .gauge, .gauge svg { width: 84px; } .gauge svg, .gauge b { height: 84px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .vivo, .cm-voce-stato::before { animation: none !important; } }
 </style>
+<script>
+  // Il tema e i colori sono quelli del prodotto: la cornice sta sulla stessa origine, quindi si leggono
+  // dal documento che la ospita (attributo data-theme di <html> e token CSS) e si rileggono quando
+  // cambiano. Aperta da sola, la pagina usa la scelta salvata ('lyft-theme') e i valori di riserva.
+  (function () {
+    var TOKEN = ['--bg', '--bg2', '--surface', '--surface2', '--border', '--border2', '--border3', '--text', '--text2', '--text3', '--green', '--red', '--yellow', '--accent']
+    var io = document.documentElement
+    function ospite() { try { return window.parent !== window && window.parent.document.documentElement ? window.parent : null } catch (e) { return null } }
+    function applica() {
+      var o = ospite(), tema = null
+      if (o) {
+        var radice = o.document.documentElement, cs = o.getComputedStyle(radice)
+        tema = radice.getAttribute('data-theme')
+        TOKEN.forEach(function (t) { var v = cs.getPropertyValue(t).trim(); if (v) io.style.setProperty(t, v); else io.style.removeProperty(t) })
+        var carattere = o.document.body && o.getComputedStyle(o.document.body).fontFamily
+        if (carattere) io.style.setProperty('--font', carattere)
+        // lo schema di colore dev'essere quello della cornice: se differisse, il browser le darebbe uno sfondo pieno
+        var schema = ''; try { schema = o.getComputedStyle(window.frameElement).colorScheme } catch (e) {}
+        io.style.colorScheme = schema && schema !== 'normal' ? schema : ''
+        io.classList.add('in-cornice')
+      } else {
+        try { tema = localStorage.getItem('lyft-theme') } catch (e) {}
+        if (tema === 'auto') tema = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+      }
+      io.setAttribute('data-theme', tema === 'dark' ? 'dark' : 'light')
+      tinta()
+    }
+    // Il nucleo prende il grigio del testo secondario del tema.
+    function tinta() {
+      if (!window.Particelle || !window.Particelle.impostaTinta || !document.body) return
+      var s = document.createElement('i'); s.style.color = 'var(--text2)'; document.body.appendChild(s)
+      var m = /rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/.exec(getComputedStyle(s).color); s.remove()
+      if (m) window.Particelle.impostaTinta([+m[1], +m[2], +m[3]])
+    }
+    applica()
+    var o = ospite()
+    if (o) {
+      var dopo = function () { applica(); requestAnimationFrame(applica) }
+      try { new MutationObserver(dopo).observe(o.document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'style', 'class'] }) } catch (e) {}
+      try { o.addEventListener('lyft-theme-change', dopo) } catch (e) {}
+    }
+    // La cornice e' alta quanto il contenuto: la pagina scorre con la tab, senza una seconda barra.
+    window.addEventListener('DOMContentLoaded', function () {
+      tinta()
+      var cornice = null; try { cornice = window.frameElement } catch (e) {}
+      var pagina = document.querySelector('.pannello'); if (!cornice || !pagina || !window.ResizeObserver) return
+      var misura = function () { var h = Math.ceil(pagina.getBoundingClientRect().height); if (h > 0) cornice.style.height = h + 'px' }
+      new ResizeObserver(misura).observe(pagina); misura()
+    })
+    window.__lyftTinta = tinta
+  })()
+</script>
 </head>
 <body class="sala" data-stato="spento">
   <main class="pannello">
-    <div class="cornice" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-    <header class="testata">
-      <span class="nome">Lyft</span>
-      <div class="azioni">
-        <button id="modo" title="⌥⇧Spazio">Schermo intero</button>
-        <button id="muto" aria-pressed="false" title="Microfono">Muto</button>
-        <button id="chiudi" title="Esc">Chiudi</button>
-      </div>
-    </header>
-    <section class="ora" aria-label="Data, ora e meteo">
-      <span id="ora-giorno"></span>
-      <span id="ora-adesso" class="numero"></span>
-      <span id="ora-meteo"></span>
-    </section>
-    <div class="scena" id="scena">
-      <canvas id="particelle"></canvas>
-      <div class="anello"></div>
-      <div class="anello2"></div>
-    </div>
-    <canvas id="onda" class="onda"></canvas>
-    <p id="etichetta" class="etichetta">Spento</p>
-    <p id="stato" class="stato">Mi sto collegando…</p>
-    <p id="sistemi" class="sistemi"></p>
-    <section class="sottotitoli" aria-live="polite">
-      <p id="sott-tu" class="tu"></p>
-      <p id="sott-lui" class="lui"></p>
-    </section>
-    <section id="dialogo" class="dialogo" aria-live="polite"></section>
-    <section id="card" class="card-griglia" aria-label="Riepilogo">
-      <article class="card"><p class="cosa"><svg class="logo" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 171"><defs><linearGradient id="lm-a" x1="13.878%" x2="89.144%" y1="55.934%" y2="58.694%"><stop offset="0%" stop-color="#0064E1"/><stop offset="40%" stop-color="#0064E1"/><stop offset="83%" stop-color="#0073EE"/><stop offset="100%" stop-color="#0082FB"/></linearGradient><linearGradient id="lm-b" x1="54.315%" x2="54.315%" y1="82.782%" y2="39.307%"><stop offset="0%" stop-color="#0082FB"/><stop offset="100%" stop-color="#0064E0"/></linearGradient></defs><path fill="#0081FB" d="M27.651 112.136c0 9.775 2.146 17.28 4.95 21.82 3.677 5.947 9.16 8.466 14.751 8.466 7.211 0 13.808-1.79 26.52-19.372 10.185-14.092 22.186-33.874 30.26-46.275l13.675-21.01c9.499-14.591 20.493-30.811 33.1-41.806C161.196 4.985 172.298 0 183.47 0c18.758 0 36.625 10.87 50.3 31.257C248.735 53.584 256 81.707 256 110.729c0 17.253-3.4 29.93-9.187 39.946-5.591 9.686-16.488 19.363-34.818 19.363v-27.616c15.695 0 19.612-14.422 19.612-30.927 0-23.52-5.484-49.623-17.564-68.273-8.574-13.23-19.684-21.313-31.907-21.313-13.22 0-23.859 9.97-35.815 27.75-6.356 9.445-12.882 20.956-20.208 33.944l-8.066 14.289c-16.203 28.728-20.307 35.271-28.408 46.07-14.2 18.91-26.324 26.076-42.287 26.076-18.935 0-30.91-8.2-38.325-20.556C2.973 139.413 0 126.202 0 111.148l27.651.988Z"/><path fill="url(#lm-a)" d="M21.802 33.206C34.48 13.666 52.774 0 73.757 0 85.91 0 97.99 3.597 110.605 13.897c13.798 11.261 28.505 29.805 46.853 60.368l6.58 10.967c15.881 26.459 24.917 40.07 30.205 46.49 6.802 8.243 11.565 10.7 17.752 10.7 15.695 0 19.612-14.422 19.612-30.927l24.393-.766c0 17.253-3.4 29.93-9.187 39.946-5.591 9.686-16.488 19.363-34.818 19.363-11.395 0-21.49-2.475-32.654-13.007-8.582-8.083-18.615-22.443-26.334-35.352l-22.96-38.352C118.528 64.08 107.96 49.73 101.845 43.23c-6.578-6.988-15.036-15.428-28.532-15.428-10.923 0-20.2 7.666-27.963 19.39L21.802 33.206Z"/><path fill="url(#lm-b)" d="M73.312 27.802c-10.923 0-20.2 7.666-27.963 19.39-10.976 16.568-17.698 41.245-17.698 64.944 0 9.775 2.146 17.28 4.95 21.82L9.027 149.482C2.973 139.413 0 126.202 0 111.148 0 83.772 7.514 55.24 21.802 33.206 34.48 13.666 52.774 0 73.757 0l-.445 27.802Z"/></svg> Meta · <span class="quando">oggi</span></p><p class="numero" id="c-meta">—</p><p class="sotto" id="c-meta-s"></p></article>
-      <article class="card"><p class="cosa"><svg class="logo" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="-12 -8 275 250"><path fill="#3C8BD9" d="M85.9,28.6c2.4-6.3,5.7-12.1,10.6-16.8c19.6-19.1,52-14.3,65.3,9.7c10,18.2,20.6,36,30.9,54 c17.2,29.9,34.6,59.8,51.6,89.8c14.3,25.1-1.2,56.8-29.6,61.1c-17.4,2.6-33.7-5.4-42.7-21c-15.1-26.3-30.3-52.6-45.4-78.8 c-0.3-0.6-0.7-1.1-1.1-1.6c-1.6-1.3-2.3-3.2-3.3-4.9c-6.7-11.8-13.6-23.5-20.3-35.2c-4.3-7.6-8.8-15.1-13.1-22.7 c-3.9-6.8-5.7-14.2-5.5-22C83.6,36.2,84.1,32.2,85.9,28.6"/><path fill="#FABC04" d="M85.9,28.6c-0.9,3.6-1.7,7.2-1.9,11c-0.3,8.4,1.8,16.2,6,23.5C101,82,112,101,122.9,120c1,1.7,1.8,3.4,2.8,5 c-6,10.4-12,20.7-18.1,31.1c-8.4,14.5-16.8,29.1-25.3,43.6c-0.4,0-0.5-0.2-0.6-0.5c-0.1-0.8,0.2-1.5,0.4-2.3 c4.1-15,0.7-28.3-9.6-39.7c-6.3-6.9-14.3-10.8-23.5-12.1c-12-1.7-22.6,1.4-32.1,8.9c-1.7,1.3-2.8,3.2-4.8,4.2 c-0.4,0-0.6-0.2-0.7-0.5c4.8-8.3,9.5-16.6,14.3-24.9C45.5,98.4,65.3,64,85.2,29.7C85.4,29.3,85.7,29,85.9,28.6"/><path fill="#34A852" d="M11.8,158c1.9-1.7,3.7-3.5,5.7-5.1c24.3-19.2,60.8-5.3,66.1,25.1c1.3,7.3,0.6,14.3-1.6,21.3 c-0.1,0.6-0.2,1.1-0.4,1.7c-0.9,1.6-1.7,3.3-2.7,4.9c-8.9,14.7-22,22-39.2,20.9C20,225.4,4.5,210.6,1.8,191 c-1.3-9.5,0.6-18.4,5.5-26.6c1-1.8,2.2-3.4,3.3-5.2C11.1,158.8,10.9,158,11.8,158"/><path fill="#FABC04" d="M11.8,158c-0.4,0.4-0.4,1.1-1.1,1.2c-0.1-0.7,0.3-1.1,0.7-1.6L11.8,158"/><path fill="#E1C025" d="M81.6,201c-0.4-0.7,0-1.2,0.4-1.7c0.1,0.1,0.3,0.3,0.4,0.4L81.6,201"/></svg> Google · <span class="quando">oggi</span></p><p class="numero" id="c-google">—</p><p class="sotto" id="c-google-s"></p></article>
-      <article class="card"><p class="cosa"><svg class="logo" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 292"> <path d="M223.774 57.34c-.201-1.46-1.48-2.268-2.537-2.357-1.055-.088-23.383-1.743-23.383-1.743s-15.507-15.395-17.209-17.099c-1.703-1.703-5.029-1.185-6.32-.805-.19.056-3.388 1.043-8.678 2.68-5.18-14.906-14.322-28.604-30.405-28.604-.444 0-.901.018-1.358.044C129.31 3.407 123.644.779 118.75.779c-37.465 0-55.364 46.835-60.976 70.635-14.558 4.511-24.9 7.718-26.221 8.133-8.126 2.549-8.383 2.805-9.45 10.462C21.3 95.806.038 260.235.038 260.235l165.678 31.042 89.77-19.42S223.973 58.8 223.775 57.34zM156.49 40.848l-14.019 4.339c.005-.988.01-1.96.01-3.023 0-9.264-1.286-16.723-3.349-22.636 8.287 1.04 13.806 10.469 17.358 21.32zm-27.638-19.483c2.304 5.773 3.802 14.058 3.802 25.238 0 .572-.005 1.095-.01 1.624-9.117 2.824-19.024 5.89-28.953 8.966 5.575-21.516 16.025-31.908 25.161-35.828zm-11.131-10.537c1.617 0 3.246.549 4.805 1.622-12.007 5.65-24.877 19.88-30.312 48.297l-22.886 7.088C75.694 46.16 90.81 10.828 117.72 10.828z" fill="#95BF46"/> <path d="M221.237 54.983c-1.055-.088-23.383-1.743-23.383-1.743s-15.507-15.395-17.209-17.099c-.637-.634-1.496-.959-2.394-1.099l-12.527 256.233 89.762-19.418S223.972 58.8 223.774 57.34c-.201-1.46-1.48-2.268-2.537-2.357" fill="#5E8E3E"/> <path d="M135.242 104.585l-11.069 32.926s-9.698-5.176-21.586-5.176c-17.428 0-18.305 10.937-18.305 13.693 0 15.038 39.2 20.8 39.2 56.024 0 27.713-17.577 45.558-41.277 45.558-28.44 0-42.984-17.7-42.984-17.7l7.615-25.16s14.95 12.835 27.565 12.835c8.243 0 11.596-6.49 11.596-11.232 0-19.616-32.16-20.491-32.16-52.724 0-27.129 19.472-53.382 58.778-53.382 15.145 0 22.627 4.338 22.627 4.338" fill="#FFF"/> </svg> Shopify · <span class="quando">oggi</span></p><p class="numero" id="c-shopify">—</p><p class="sotto" id="c-shopify-s"></p></article>
-      <article class="card"><p class="cosa"><svg class="logo" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#38e8ff" stroke-width="2" stroke-linecap="round"><path d="M4 17a8 8 0 1 1 16 0"/><path d="M12 17l4.5-5"/><circle cx="12" cy="17" r="1.4" fill="#38e8ff"/></svg> MER · <span class="quando">oggi</span></p><p class="numero" id="c-mer">—</p><p class="sotto" id="c-mer-s"></p></article>
-      <article class="card"><p class="cosa"><svg class="logo" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 49.4 512 399.42"> <g fill="none" fill-rule="evenodd"> <g fill-rule="nonzero"> <path fill="#4285f4" d="M34.91 448.818h81.454V251L0 163.727V413.91c0 19.287 15.622 34.91 34.91 34.91z"/> <path fill="#34a853" d="M395.636 448.818h81.455c19.287 0 34.909-15.622 34.909-34.909V163.727L395.636 251z"/> <path fill="#fbbc04" d="M395.636 99.727V251L512 163.727v-46.545c0-43.142-49.25-67.782-83.782-41.891z"/> </g> <path fill="#ea4335" d="M116.364 251V99.727L256 204.455 395.636 99.727V251L256 355.727z"/> <path fill="#c5221f" fill-rule="nonzero" d="M0 117.182v46.545L116.364 251V99.727L83.782 75.291C49.25 49.4 0 74.04 0 117.18z"/> </g> </svg> Mail da leggere</p><p class="numero" id="c-mail">—</p><p class="sotto" id="c-mail-s"></p></article>
-      <article class="card"><p class="cosa"><svg class="logo" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"> <g clip-path="url(#lc-clip0_5072_3766)"> <path d="M390.736 121.264H121.264V390.736H390.736V121.264Z" fill="white"/> <path d="M390.736 512L512 390.736L451.368 380.392L390.736 390.736L379.67 446.196L390.736 512Z" fill="#EA4335"/> <path d="M0 390.736V471.578C0 493.912 18.088 512 40.42 512H121.264L133.714 451.368L121.264 390.736L55.198 380.392L0 390.736Z" fill="#188038"/> <path d="M512 121.264V40.42C512 18.088 493.912 0 471.58 0H390.736C383.36 30.072 379.671 52.2027 379.67 66.392C379.67 80.58 383.359 98.8707 390.736 121.264C417.556 128.944 437.767 132.784 451.368 132.784C464.969 132.784 485.18 128.945 512 121.264Z" fill="#1967D2"/> <path d="M512 121.264H390.736V390.736H512V121.264Z" fill="#FBBC04"/> <path d="M390.736 390.736H121.264V512H390.736V390.736Z" fill="#34A853"/> <path d="M390.736 0H40.422C18.088 0 0 18.088 0 40.42V390.736H121.264V121.264H390.736V0Z" fill="#4285F4"/> <path d="M176.54 330.308C166.468 323.504 159.494 313.568 155.688 300.428L179.066 290.796C181.186 298.88 184.891 305.145 190.182 309.592C195.436 314.038 201.836 316.228 209.314 316.228C216.959 316.228 223.527 313.903 229.018 309.254C234.51 304.606 237.272 298.678 237.272 291.504C237.272 284.16 234.375 278.164 228.582 273.516C222.788 268.868 215.512 266.544 206.822 266.544H193.314V243.404H205.44C212.917 243.404 219.216 241.382 224.336 237.338C229.456 233.298 232.016 227.772 232.016 220.732C232.016 214.468 229.726 209.482 225.146 205.744C220.566 202.004 214.77 200.118 207.73 200.118C200.858 200.118 195.402 201.938 191.36 205.608C187.319 209.289 184.282 213.937 182.534 219.116L159.394 209.482C162.458 200.792 168.084 193.112 176.336 186.476C184.588 179.84 195.132 176.506 207.932 176.506C217.398 176.506 225.92 178.326 233.466 181.996C241.01 185.668 246.938 190.754 251.216 197.222C255.496 203.722 257.616 210.998 257.616 219.082C257.616 227.334 255.63 234.308 251.656 240.034C247.682 245.76 242.796 250.138 237.002 253.204V254.584C244.483 257.669 250.982 262.735 255.798 269.238C260.682 275.806 263.142 283.654 263.142 292.818C263.142 301.978 260.816 310.164 256.168 317.338C251.52 324.514 245.088 330.172 236.934 334.282C228.75 338.392 219.554 340.482 209.348 340.482C197.524 340.514 186.612 337.112 176.54 330.308ZM320.132 214.298L294.466 232.858L281.632 213.39L327.678 180.176H345.328V336.842H320.132V214.298Z" fill="#4285F4"/> </g> <defs> <clipPath id="lc-clip0_5072_3766"> <rect width="512" height="512" fill="white"/> </clipPath> </defs> </svg> Oggi in agenda</p><p class="numero" id="c-agenda">—</p><p class="sotto" id="c-agenda-s"></p></article>
-    </section>
-
-  <div id="comando" class="comando" aria-label="Centro di comando">
-    <aside class="lato">
-      <div class="marchio"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z" /> <path d="M20 2v4" /> <path d="M22 4h-4" /> <circle cx="4" cy="20" r="2" /> </svg><div><b>LYFT</b><small>Centro di comando</small></div></div>
-      <nav class="nav"><button class="voce-nav attiva" data-comando="centro"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <rect width="7" height="9" x="3" y="3" rx="1" /> <rect width="7" height="5" x="14" y="3" rx="1" /> <rect width="7" height="9" x="14" y="12" rx="1" /> <rect width="7" height="5" x="3" y="16" rx="1" /> </svg><span>Centro di comando</span></button><button class="voce-nav" data-comando="regia"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" /> </svg><span>Regia dal vivo</span></button><button class="voce-nav" data-comando="briefing"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <circle cx="12" cy="12" r="4" /> <path d="M12 2v2" /> <path d="M12 20v2" /> <path d="m4.93 4.93 1.41 1.41" /> <path d="m17.66 17.66 1.41 1.41" /> <path d="M2 12h2" /> <path d="M20 12h2" /> <path d="m6.34 17.66-1.41 1.41" /> <path d="m19.07 4.93-1.41 1.41" /> </svg><span>Briefing adesso</span></button><button class="voce-nav" data-comando="controlla"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M19.07 4.93A10 10 0 0 0 6.99 3.34" /> <path d="M4 6h.01" /> <path d="M2.29 9.62A10 10 0 1 0 21.31 8.35" /> <path d="M16.24 7.76A6 6 0 1 0 8.23 16.67" /> <path d="M12 18h.01" /> <path d="M17.99 11.66A6 6 0 0 1 15.77 16.67" /> <circle cx="12" cy="12" r="2" /> <path d="m13.41 10.59 5.66-5.66" /> </svg><span>Controlla clienti</span></button><button class="voce-nav" data-comando="gmail"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7" /> <rect x="2" y="4" width="20" height="16" rx="2" /> </svg><span>Gmail</span></button><button class="voce-nav" data-comando="calendar"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M8 2v3" /> <path d="M16 2v3" /> <rect x="3" y="3" width="18" height="18" rx="2" /> <path d="M3 9h18" /> </svg><span>Calendar</span></button><button class="voce-nav" data-comando="telegram"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z" /> <path d="m21.854 2.147-10.94 10.939" /> </svg><span>Telegram</span></button></nav>
-      <div class="lato-voce">
-        <p class="titoletto">Voce</p>
-        <canvas id="cm-onda-lato" class="cm-onda-lato"></canvas>
-        <p id="cm-voce-stato" class="cm-voce-stato">Spento</p>
+  <div id="comando" class="comando">
+    <section class="p conv">
+      <header class="conv-testa">
+        <div class="hero" id="slot-hero"><div class="scena" id="scena"><canvas id="particelle"></canvas></div></div>
+        <div class="lato-voce">
+          <p class="titoletto">Voce</p>
+          <p id="cm-voce-stato" class="cm-voce-stato">Spento</p>
+          <p class="nota">Premi per parlare · spazio per interrompere</p>
+        </div>
+        <span class="stato-sistema"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /> <path d="m9 12 2 2 4-4" /> </svg> Stato sistemi · <b id="cm-stato">—</b></span>
+      </header>
+      <div id="risposta" class="risposta" aria-live="polite"></div>
+      <section class="p comandi"><h2><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z" /> </svg> Comandi rapidi</h2><div class="cmd-griglia"><button class="cmd" data-comando="briefing"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <circle cx="12" cy="12" r="4" /> <path d="M12 2v2" /> <path d="M12 20v2" /> <path d="m4.93 4.93 1.41 1.41" /> <path d="m17.66 17.66 1.41 1.41" /> <path d="M2 12h2" /> <path d="M20 12h2" /> <path d="m6.34 17.66-1.41 1.41" /> <path d="m19.07 4.93-1.41 1.41" /> </svg><span>Briefing adesso</span></button><button class="cmd" data-comando="regia"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" /> </svg><span>Apri la Regia</span></button><button class="cmd" data-comando="controlla"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /> <path d="m9 12 2 2 4-4" /> </svg><span>Controlla i clienti</span></button><button class="cmd" data-comando="gmail"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7" /> <rect x="2" y="4" width="20" height="16" rx="2" /> </svg><span>Mail da leggere</span></button></div></section>
+      <div class="conv-scrivi">
         <button id="cm-mic" class="mic" title="Parla con Lyft"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M12 19v3" /> <path d="M19 10v2a7 7 0 0 1-14 0v-2" /> <rect x="9" y="2" width="6" height="13" rx="3" /> </svg></button>
-        <p class="nota">Premi per parlare · spazio per interrompere</p>
+        <form id="scrivi" class="scrivi"><input id="scrivi-testo" type="text" autocomplete="off" maxlength="2000"><button type="submit" id="scrivi-invia"></button></form>
+        <button id="cm-parla" class="parla"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M2 10v3" /> <path d="M6 6v11" /> <path d="M10 3v18" /> <path d="M14 8v7" /> <path d="M18 5v13" /> <path d="M22 10v3" /> </svg><span><b>PARLA CON LYFT</b><small id="cm-parla-stato">premi o di' «Lyft»</small></span></button>
       </div>
-    </aside>
-    <header class="cima">
-      <span class="stato-sistema"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /> <path d="m9 12 2 2 4-4" /> </svg> Stato sistemi · <b id="cm-stato">—</b></span>
-      <div class="orologio"><small id="cm-data"></small><b id="cm-ora"></b></div>
-      <div class="cima-destra"><span class="operatore"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M12 8V4H8" /> <rect width="16" height="12" x="4" y="8" rx="2" /> <path d="M2 14h2" /> <path d="M20 14h2" /> <path d="M15 13v2" /> <path d="M9 13v2" /> </svg> <span id="cm-op-etichetta">Operatore</span> · <b id="cm-operatore">—</b></span><span id="slot-azioni"></span></div>
-    </header>
-    <section class="p nucleo"><h2><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M12 20v2" /> <path d="M12 2v2" /> <path d="M17 20v2" /> <path d="M17 2v2" /> <path d="M2 12h2" /> <path d="M2 17h2" /> <path d="M2 7h2" /> <path d="M20 12h2" /> <path d="M20 17h2" /> <path d="M20 7h2" /> <path d="M7 20v2" /> <path d="M7 2v2" /> <rect x="4" y="4" width="16" height="16" rx="2" /> <rect x="8" y="8" width="8" height="8" rx="1" /> </svg> Nucleo AI</h2><ul id="cm-nucleo" class="righe"></ul></section>
-    <section class="hero" id="slot-hero"><div id="risposta" class="risposta" aria-live="polite"></div><div class="hero-titolo"><b>LYFT</b><small>AI CORE</small></div></section>
+    </section>
     <section class="p feed"><h2><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" /> </svg> Feed in diretta <i class="vivo"></i></h2><ul id="cm-feed" class="feed-lista"></ul></section>
-    <section class="p piattaforme"><h2><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M15.914 4a1.5 1.5 0 00-2.474-1.561l-9 9A1.5 1.5 0 005.5 14h4.002a.5.5 0 01.471.666L8.086 20a1.5 1.5 0 002.475 1.56l9-9A1.5 1.5 0 0018.5 10h-3.997a.5.5 0 01-.472-.667z" /> </svg> Piattaforme · oggi</h2><div id="slot-card"></div></section>
+    <section class="p piattaforme"><h2><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M15.914 4a1.5 1.5 0 00-2.474-1.561l-9 9A1.5 1.5 0 005.5 14h4.002a.5.5 0 01.471.666L8.086 20a1.5 1.5 0 002.475 1.56l9-9A1.5 1.5 0 0018.5 10h-3.997a.5.5 0 01-.472-.667z" /> </svg> Piattaforme · oggi</h2><div id="slot-card">
+      <section id="card" class="card-griglia">
+        <article class="card"><p class="cosa"><svg class="logo" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 171"><defs><linearGradient id="lm-a" x1="13.878%" x2="89.144%" y1="55.934%" y2="58.694%"><stop offset="0%" stop-color="#0064E1"/><stop offset="40%" stop-color="#0064E1"/><stop offset="83%" stop-color="#0073EE"/><stop offset="100%" stop-color="#0082FB"/></linearGradient><linearGradient id="lm-b" x1="54.315%" x2="54.315%" y1="82.782%" y2="39.307%"><stop offset="0%" stop-color="#0082FB"/><stop offset="100%" stop-color="#0064E0"/></linearGradient></defs><path fill="#0081FB" d="M27.651 112.136c0 9.775 2.146 17.28 4.95 21.82 3.677 5.947 9.16 8.466 14.751 8.466 7.211 0 13.808-1.79 26.52-19.372 10.185-14.092 22.186-33.874 30.26-46.275l13.675-21.01c9.499-14.591 20.493-30.811 33.1-41.806C161.196 4.985 172.298 0 183.47 0c18.758 0 36.625 10.87 50.3 31.257C248.735 53.584 256 81.707 256 110.729c0 17.253-3.4 29.93-9.187 39.946-5.591 9.686-16.488 19.363-34.818 19.363v-27.616c15.695 0 19.612-14.422 19.612-30.927 0-23.52-5.484-49.623-17.564-68.273-8.574-13.23-19.684-21.313-31.907-21.313-13.22 0-23.859 9.97-35.815 27.75-6.356 9.445-12.882 20.956-20.208 33.944l-8.066 14.289c-16.203 28.728-20.307 35.271-28.408 46.07-14.2 18.91-26.324 26.076-42.287 26.076-18.935 0-30.91-8.2-38.325-20.556C2.973 139.413 0 126.202 0 111.148l27.651.988Z"/><path fill="url(#lm-a)" d="M21.802 33.206C34.48 13.666 52.774 0 73.757 0 85.91 0 97.99 3.597 110.605 13.897c13.798 11.261 28.505 29.805 46.853 60.368l6.58 10.967c15.881 26.459 24.917 40.07 30.205 46.49 6.802 8.243 11.565 10.7 17.752 10.7 15.695 0 19.612-14.422 19.612-30.927l24.393-.766c0 17.253-3.4 29.93-9.187 39.946-5.591 9.686-16.488 19.363-34.818 19.363-11.395 0-21.49-2.475-32.654-13.007-8.582-8.083-18.615-22.443-26.334-35.352l-22.96-38.352C118.528 64.08 107.96 49.73 101.845 43.23c-6.578-6.988-15.036-15.428-28.532-15.428-10.923 0-20.2 7.666-27.963 19.39L21.802 33.206Z"/><path fill="url(#lm-b)" d="M73.312 27.802c-10.923 0-20.2 7.666-27.963 19.39-10.976 16.568-17.698 41.245-17.698 64.944 0 9.775 2.146 17.28 4.95 21.82L9.027 149.482C2.973 139.413 0 126.202 0 111.148 0 83.772 7.514 55.24 21.802 33.206 34.48 13.666 52.774 0 73.757 0l-.445 27.802Z"/></svg> Meta · <span class="quando">oggi</span></p><p class="numero" id="c-meta">—</p><p class="sotto" id="c-meta-s"></p></article>
+        <article class="card"><p class="cosa"><svg class="logo" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="-12 -8 275 250"><path fill="#3C8BD9" d="M85.9,28.6c2.4-6.3,5.7-12.1,10.6-16.8c19.6-19.1,52-14.3,65.3,9.7c10,18.2,20.6,36,30.9,54 c17.2,29.9,34.6,59.8,51.6,89.8c14.3,25.1-1.2,56.8-29.6,61.1c-17.4,2.6-33.7-5.4-42.7-21c-15.1-26.3-30.3-52.6-45.4-78.8 c-0.3-0.6-0.7-1.1-1.1-1.6c-1.6-1.3-2.3-3.2-3.3-4.9c-6.7-11.8-13.6-23.5-20.3-35.2c-4.3-7.6-8.8-15.1-13.1-22.7 c-3.9-6.8-5.7-14.2-5.5-22C83.6,36.2,84.1,32.2,85.9,28.6"/><path fill="#FABC04" d="M85.9,28.6c-0.9,3.6-1.7,7.2-1.9,11c-0.3,8.4,1.8,16.2,6,23.5C101,82,112,101,122.9,120c1,1.7,1.8,3.4,2.8,5 c-6,10.4-12,20.7-18.1,31.1c-8.4,14.5-16.8,29.1-25.3,43.6c-0.4,0-0.5-0.2-0.6-0.5c-0.1-0.8,0.2-1.5,0.4-2.3 c4.1-15,0.7-28.3-9.6-39.7c-6.3-6.9-14.3-10.8-23.5-12.1c-12-1.7-22.6,1.4-32.1,8.9c-1.7,1.3-2.8,3.2-4.8,4.2 c-0.4,0-0.6-0.2-0.7-0.5c4.8-8.3,9.5-16.6,14.3-24.9C45.5,98.4,65.3,64,85.2,29.7C85.4,29.3,85.7,29,85.9,28.6"/><path fill="#34A852" d="M11.8,158c1.9-1.7,3.7-3.5,5.7-5.1c24.3-19.2,60.8-5.3,66.1,25.1c1.3,7.3,0.6,14.3-1.6,21.3 c-0.1,0.6-0.2,1.1-0.4,1.7c-0.9,1.6-1.7,3.3-2.7,4.9c-8.9,14.7-22,22-39.2,20.9C20,225.4,4.5,210.6,1.8,191 c-1.3-9.5,0.6-18.4,5.5-26.6c1-1.8,2.2-3.4,3.3-5.2C11.1,158.8,10.9,158,11.8,158"/><path fill="#FABC04" d="M11.8,158c-0.4,0.4-0.4,1.1-1.1,1.2c-0.1-0.7,0.3-1.1,0.7-1.6L11.8,158"/><path fill="#E1C025" d="M81.6,201c-0.4-0.7,0-1.2,0.4-1.7c0.1,0.1,0.3,0.3,0.4,0.4L81.6,201"/></svg> Google · <span class="quando">oggi</span></p><p class="numero" id="c-google">—</p><p class="sotto" id="c-google-s"></p></article>
+        <article class="card"><p class="cosa"><svg class="logo" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 292"> <path d="M223.774 57.34c-.201-1.46-1.48-2.268-2.537-2.357-1.055-.088-23.383-1.743-23.383-1.743s-15.507-15.395-17.209-17.099c-1.703-1.703-5.029-1.185-6.32-.805-.19.056-3.388 1.043-8.678 2.68-5.18-14.906-14.322-28.604-30.405-28.604-.444 0-.901.018-1.358.044C129.31 3.407 123.644.779 118.75.779c-37.465 0-55.364 46.835-60.976 70.635-14.558 4.511-24.9 7.718-26.221 8.133-8.126 2.549-8.383 2.805-9.45 10.462C21.3 95.806.038 260.235.038 260.235l165.678 31.042 89.77-19.42S223.973 58.8 223.775 57.34zM156.49 40.848l-14.019 4.339c.005-.988.01-1.96.01-3.023 0-9.264-1.286-16.723-3.349-22.636 8.287 1.04 13.806 10.469 17.358 21.32zm-27.638-19.483c2.304 5.773 3.802 14.058 3.802 25.238 0 .572-.005 1.095-.01 1.624-9.117 2.824-19.024 5.89-28.953 8.966 5.575-21.516 16.025-31.908 25.161-35.828zm-11.131-10.537c1.617 0 3.246.549 4.805 1.622-12.007 5.65-24.877 19.88-30.312 48.297l-22.886 7.088C75.694 46.16 90.81 10.828 117.72 10.828z" fill="#95BF46"/> <path d="M221.237 54.983c-1.055-.088-23.383-1.743-23.383-1.743s-15.507-15.395-17.209-17.099c-.637-.634-1.496-.959-2.394-1.099l-12.527 256.233 89.762-19.418S223.972 58.8 223.774 57.34c-.201-1.46-1.48-2.268-2.537-2.357" fill="#5E8E3E"/> <path d="M135.242 104.585l-11.069 32.926s-9.698-5.176-21.586-5.176c-17.428 0-18.305 10.937-18.305 13.693 0 15.038 39.2 20.8 39.2 56.024 0 27.713-17.577 45.558-41.277 45.558-28.44 0-42.984-17.7-42.984-17.7l7.615-25.16s14.95 12.835 27.565 12.835c8.243 0 11.596-6.49 11.596-11.232 0-19.616-32.16-20.491-32.16-52.724 0-27.129 19.472-53.382 58.778-53.382 15.145 0 22.627 4.338 22.627 4.338" fill="#FFF"/> </svg> Shopify · <span class="quando">oggi</span></p><p class="numero" id="c-shopify">—</p><p class="sotto" id="c-shopify-s"></p></article>
+        <article class="card"><p class="cosa"><svg class="logo" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 17a8 8 0 1 1 16 0"/><path d="M12 17l4.5-5"/><circle cx="12" cy="17" r="1.4" fill="currentColor"/></svg> MER · <span class="quando">oggi</span></p><p class="numero" id="c-mer">—</p><p class="sotto" id="c-mer-s"></p></article>
+        <article class="card"><p class="cosa"><svg class="logo" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 49.4 512 399.42"> <g fill="none" fill-rule="evenodd"> <g fill-rule="nonzero"> <path fill="#4285f4" d="M34.91 448.818h81.454V251L0 163.727V413.91c0 19.287 15.622 34.91 34.91 34.91z"/> <path fill="#34a853" d="M395.636 448.818h81.455c19.287 0 34.909-15.622 34.909-34.909V163.727L395.636 251z"/> <path fill="#fbbc04" d="M395.636 99.727V251L512 163.727v-46.545c0-43.142-49.25-67.782-83.782-41.891z"/> </g> <path fill="#ea4335" d="M116.364 251V99.727L256 204.455 395.636 99.727V251L256 355.727z"/> <path fill="#c5221f" fill-rule="nonzero" d="M0 117.182v46.545L116.364 251V99.727L83.782 75.291C49.25 49.4 0 74.04 0 117.18z"/> </g> </svg> Mail da leggere</p><p class="numero" id="c-mail">—</p><p class="sotto" id="c-mail-s"></p></article>
+        <article class="card"><p class="cosa"><svg class="logo" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"> <g clip-path="url(#lc-clip0_5072_3766)"> <path d="M390.736 121.264H121.264V390.736H390.736V121.264Z" fill="white"/> <path d="M390.736 512L512 390.736L451.368 380.392L390.736 390.736L379.67 446.196L390.736 512Z" fill="#EA4335"/> <path d="M0 390.736V471.578C0 493.912 18.088 512 40.42 512H121.264L133.714 451.368L121.264 390.736L55.198 380.392L0 390.736Z" fill="#188038"/> <path d="M512 121.264V40.42C512 18.088 493.912 0 471.58 0H390.736C383.36 30.072 379.671 52.2027 379.67 66.392C379.67 80.58 383.359 98.8707 390.736 121.264C417.556 128.944 437.767 132.784 451.368 132.784C464.969 132.784 485.18 128.945 512 121.264Z" fill="#1967D2"/> <path d="M512 121.264H390.736V390.736H512V121.264Z" fill="#FBBC04"/> <path d="M390.736 390.736H121.264V512H390.736V390.736Z" fill="#34A853"/> <path d="M390.736 0H40.422C18.088 0 0 18.088 0 40.42V390.736H121.264V121.264H390.736V0Z" fill="#4285F4"/> <path d="M176.54 330.308C166.468 323.504 159.494 313.568 155.688 300.428L179.066 290.796C181.186 298.88 184.891 305.145 190.182 309.592C195.436 314.038 201.836 316.228 209.314 316.228C216.959 316.228 223.527 313.903 229.018 309.254C234.51 304.606 237.272 298.678 237.272 291.504C237.272 284.16 234.375 278.164 228.582 273.516C222.788 268.868 215.512 266.544 206.822 266.544H193.314V243.404H205.44C212.917 243.404 219.216 241.382 224.336 237.338C229.456 233.298 232.016 227.772 232.016 220.732C232.016 214.468 229.726 209.482 225.146 205.744C220.566 202.004 214.77 200.118 207.73 200.118C200.858 200.118 195.402 201.938 191.36 205.608C187.319 209.289 184.282 213.937 182.534 219.116L159.394 209.482C162.458 200.792 168.084 193.112 176.336 186.476C184.588 179.84 195.132 176.506 207.932 176.506C217.398 176.506 225.92 178.326 233.466 181.996C241.01 185.668 246.938 190.754 251.216 197.222C255.496 203.722 257.616 210.998 257.616 219.082C257.616 227.334 255.63 234.308 251.656 240.034C247.682 245.76 242.796 250.138 237.002 253.204V254.584C244.483 257.669 250.982 262.735 255.798 269.238C260.682 275.806 263.142 283.654 263.142 292.818C263.142 301.978 260.816 310.164 256.168 317.338C251.52 324.514 245.088 330.172 236.934 334.282C228.75 338.392 219.554 340.482 209.348 340.482C197.524 340.514 186.612 337.112 176.54 330.308ZM320.132 214.298L294.466 232.858L281.632 213.39L327.678 180.176H345.328V336.842H320.132V214.298Z" fill="#4285F4"/> </g> <defs> <clipPath id="lc-clip0_5072_3766"> <rect width="512" height="512" fill="white"/> </clipPath> </defs> </svg> Oggi in agenda</p><p class="numero" id="c-agenda">—</p><p class="sotto" id="c-agenda-s"></p></article>
+      </section>
+    </div></section>
     <section class="p timeline"><h2><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M8 2v3" /> <path d="M16 2v3" /> <rect x="3" y="3" width="18" height="18" rx="2" /> <path d="M3 9h18" /> </svg> Timeline di oggi</h2><ul id="cm-agenda" class="tl"></ul></section>
-    <section class="p comandi"><h2><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z" /> </svg> Comandi rapidi</h2><div class="cmd-griglia"><button class="cmd" data-comando="briefing"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <circle cx="12" cy="12" r="4" /> <path d="M12 2v2" /> <path d="M12 20v2" /> <path d="m4.93 4.93 1.41 1.41" /> <path d="m17.66 17.66 1.41 1.41" /> <path d="M2 12h2" /> <path d="M20 12h2" /> <path d="m6.34 17.66-1.41 1.41" /> <path d="m19.07 4.93-1.41 1.41" /> </svg><span>Briefing adesso</span></button><button class="cmd" data-comando="regia"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" /> </svg><span>Apri la Regia</span></button><button class="cmd" data-comando="controlla"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /> <path d="m9 12 2 2 4-4" /> </svg><span>Controlla i clienti</span></button><button class="cmd" data-comando="gmail"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7" /> <rect x="2" y="4" width="20" height="16" rx="2" /> </svg><span>Mail da leggere</span></button></div></section>
     <section class="p monitor"><h2><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M12 20v2" /> <path d="M12 2v2" /> <path d="M17 20v2" /> <path d="M17 2v2" /> <path d="M2 12h2" /> <path d="M2 17h2" /> <path d="M2 7h2" /> <path d="M20 12h2" /> <path d="M20 17h2" /> <path d="M20 7h2" /> <path d="M7 20v2" /> <path d="M7 2v2" /> <rect x="4" y="4" width="16" height="16" rx="2" /> <rect x="8" y="8" width="8" height="8" rx="1" /> </svg> Monitor del Mac</h2><div class="anelli">
-      <div class="gauge" id="g-cpu"><svg viewBox="0 0 80 80"><circle class="t" cx="40" cy="40" r="32"/><circle class="v" cx="40" cy="40" r="32"/></svg><b>—</b><small>Processore</small></div>
-      <div class="gauge" id="g-ram"><svg viewBox="0 0 80 80"><circle class="t" cx="40" cy="40" r="32"/><circle class="v" cx="40" cy="40" r="32"/></svg><b>—</b><small>Memoria</small></div>
-      <div class="gauge" id="g-disco"><svg viewBox="0 0 80 80"><circle class="t" cx="40" cy="40" r="32"/><circle class="v" cx="40" cy="40" r="32"/></svg><b>—</b><small>Disco</small></div>
+    <div class="gauge" id="g-cpu"><svg viewBox="0 0 80 80"><circle class="t" cx="40" cy="40" r="32"/><circle class="v" cx="40" cy="40" r="32"/></svg><b>—</b><small>Processore</small></div>
+    <div class="gauge" id="g-ram"><svg viewBox="0 0 80 80"><circle class="t" cx="40" cy="40" r="32"/><circle class="v" cx="40" cy="40" r="32"/></svg><b>—</b><small>Memoria</small></div>
+    <div class="gauge" id="g-disco"><svg viewBox="0 0 80 80"><circle class="t" cx="40" cy="40" r="32"/><circle class="v" cx="40" cy="40" r="32"/></svg><b>—</b><small>Disco</small></div>
     </div></section>
     <section class="p clienti"><h2><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /> <path d="M16 3.128a4 4 0 0 1 0 7.744" /> <path d="M22 21v-2a4 4 0 0 0-3-3.87" /> <circle cx="9" cy="7" r="4" /> </svg> Clienti · oggi</h2><ul id="cm-clienti" class="cl"></ul></section>
+    <section class="p nucleo"><h2><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M12 20v2" /> <path d="M12 2v2" /> <path d="M17 20v2" /> <path d="M17 2v2" /> <path d="M2 12h2" /> <path d="M2 17h2" /> <path d="M2 7h2" /> <path d="M20 12h2" /> <path d="M20 17h2" /> <path d="M20 7h2" /> <path d="M7 20v2" /> <path d="M7 2v2" /> <rect x="4" y="4" width="16" height="16" rx="2" /> <rect x="8" y="8" width="8" height="8" rx="1" /> </svg> Nucleo AI</h2><ul id="cm-nucleo" class="righe"></ul></section>
     <section class="p modelli"><h2><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M12 18V5" /> <path d="M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4" /> <path d="M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5" /> <path d="M17.997 5.125a4 4 0 0 1 2.526 5.77" /> <path d="M18 18a4 4 0 0 0 2-7.464" /> <path d="M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517" /> <path d="M6 18a4 4 0 0 1-2-7.464" /> <path d="M6.003 5.125a4 4 0 0 0-2.526 5.77" /> </svg> Modelli e collegamenti</h2><div id="cm-modelli" class="mod-griglia"></div></section>
     <footer class="piede">
       <span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /> <circle cx="12" cy="10" r="3" /> </svg> <b id="cm-luogo">—</b> · <span id="cm-meteo">—</span></span>
       <span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" /> </svg> Cloud <b id="cm-cloud">—</b> · <svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719" /> </svg> Telegram <b id="cm-tg">—</b></span>
-      <form id="scrivi" class="scrivi"><input id="scrivi-testo" type="text" autocomplete="off" maxlength="2000"><button type="submit" id="scrivi-invia"></button></form>
-      <button id="cm-parla" class="parla"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M2 10v3" /> <path d="M6 6v11" /> <path d="M10 3v18" /> <path d="M14 8v7" /> <path d="M18 5v13" /> <path d="M22 10v3" /> </svg><span><b>PARLA CON LYFT</b><small id="cm-parla-stato">premi o di' «Lyft»</small></span></button>
       <span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <ellipse cx="12" cy="5" rx="9" ry="3" /> <path d="M3 5V19A9 3 0 0 0 21 19V5" /> <path d="M3 12A9 3 0 0 0 21 12" /> </svg> Memoria <b id="cm-mem">—</b></span>
       <span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M12 20h.01" /> <path d="M2 8.82a15 15 0 0 1 20 0" /> <path d="M5 12.859a10 10 0 0 1 14 0" /> <path d="M8.5 16.429a5 5 0 0 1 7 0" /> </svg> Rete <b id="cm-rete">—</b></span>
     </footer>
+  </div>
+  <!-- Pezzi che la logica (lyft.js) cerca e aggiorna ma che in questa pagina non si mostrano:
+       il menu (c'e' gia' quello del prodotto), l'orologio, l'operatore, le onde della voce. -->
+  <div class="riserva" hidden>
+    <aside class="lato">
+      <div class="marchio"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z" /> <path d="M20 2v4" /> <path d="M22 4h-4" /> <circle cx="4" cy="20" r="2" /> </svg><div><b>LYFT</b><small>Centro di comando</small></div></div>
+      <nav class="nav"><button class="voce-nav attiva" data-comando="centro"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <rect width="7" height="9" x="3" y="3" rx="1" /> <rect width="7" height="5" x="14" y="3" rx="1" /> <rect width="7" height="9" x="14" y="12" rx="1" /> <rect width="7" height="5" x="3" y="16" rx="1" /> </svg><span>Centro di comando</span></button><button class="voce-nav" data-comando="regia"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" /> </svg><span>Regia dal vivo</span></button><button class="voce-nav" data-comando="briefing"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <circle cx="12" cy="12" r="4" /> <path d="M12 2v2" /> <path d="M12 20v2" /> <path d="m4.93 4.93 1.41 1.41" /> <path d="m17.66 17.66 1.41 1.41" /> <path d="M2 12h2" /> <path d="M20 12h2" /> <path d="m6.34 17.66-1.41 1.41" /> <path d="m19.07 4.93-1.41 1.41" /> </svg><span>Briefing adesso</span></button><button class="voce-nav" data-comando="controlla"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M19.07 4.93A10 10 0 0 0 6.99 3.34" /> <path d="M4 6h.01" /> <path d="M2.29 9.62A10 10 0 1 0 21.31 8.35" /> <path d="M16.24 7.76A6 6 0 1 0 8.23 16.67" /> <path d="M12 18h.01" /> <path d="M17.99 11.66A6 6 0 0 1 15.77 16.67" /> <circle cx="12" cy="12" r="2" /> <path d="m13.41 10.59 5.66-5.66" /> </svg><span>Controlla clienti</span></button><button class="voce-nav" data-comando="gmail"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7" /> <rect x="2" y="4" width="20" height="16" rx="2" /> </svg><span>Gmail</span></button><button class="voce-nav" data-comando="calendar"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M8 2v3" /> <path d="M16 2v3" /> <rect x="3" y="3" width="18" height="18" rx="2" /> <path d="M3 9h18" /> </svg><span>Calendar</span></button><button class="voce-nav" data-comando="telegram"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z" /> <path d="m21.854 2.147-10.94 10.939" /> </svg><span>Telegram</span></button></nav>
+    </aside>
+    <div class="orologio"><small id="cm-data"></small><b id="cm-ora"></b></div>
+    <span class="operatore"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M12 8V4H8" /> <rect width="16" height="12" x="4" y="8" rx="2" /> <path d="M2 14h2" /> <path d="M20 14h2" /> <path d="M15 13v2" /> <path d="M9 13v2" /> </svg> <span id="cm-op-etichetta">Operatore</span> · <b id="cm-operatore">—</b></span>
+    <span id="slot-azioni"></span>
+    <canvas id="cm-onda-lato" class="cm-onda-lato"></canvas>
+    <canvas id="onda" class="onda"></canvas>
+    <p id="etichetta" class="etichetta">Spento</p>
+    <section id="dialogo" class="dialogo" aria-live="polite"></section>
   </div>
   </main>
   <div id="conferma" class="conferma" role="dialog" aria-modal="true" aria-labelledby="conferma-titolo">
@@ -521,6 +370,7 @@
   </div>
   <audio id="voce" autoplay></audio>
   <script src="particelle.js"></script>
+  <script>window.__lyftTinta && window.__lyftTinta()</script>
   <script src="lyft.js"></script>
 </body>
 </html>

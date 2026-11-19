@@ -2989,3 +2989,14 @@
 }
 .globoPosaBox img { position: absolute; left: 8%; top: 8%; width: 84%; height: 84%; }
 .globoPosaBox[data-vivo='1'] { opacity: 0; }
+
+/* (19 nov) Telefono: le schede dei numeri erano ancorate dal BASSO sopra il globo — lo coprivano e
+   saltavano in su quando compariva «Nuovo ordine». Ora stanno SOTTO il globo, ancorate dall'alto:
+   due schede affiancate, la riga dell'ordine sotto, la didascalia a quota fissa. */
+@media (max-width: 860px) {
+  .aperturaGlobo { margin-bottom: 176px; }
+  .globoNumeri { top: calc(100% + 8px); bottom: auto; left: 4.5%; right: 4.5%; grid-template-columns: repeat(2, minmax(0, 1fr)); justify-items: stretch; }
+  .globoNumeri > div { min-width: 0; }
+  .globoUltimo { grid-column: 1 / -1; justify-self: start; }
+  .globoNota { top: calc(100% + 126px); bottom: auto; left: 4.5%; right: auto; }
+}

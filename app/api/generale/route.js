@@ -4,7 +4,7 @@ export const maxDuration = 60
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { getServerSupabase, getAdminSupabase } from '../../../lib/supabase/server'
-import { APP_DEDICATE, CHI_PUO } from '../../../lib/generale/app'
+import { APP_DEDICATE, CHI_PUO, SPESA_FUORI } from '../../../lib/generale/app'
 
 // ============================================================================
 //  La porta della «Dashboard generale» (/generale): una pagina sola coi numeri
@@ -27,10 +27,10 @@ import { APP_DEDICATE, CHI_PUO } from '../../../lib/generale/app'
 //  Sola lettura, e solo le letture elencate sotto.
 // ============================================================================
 
-const LETTURE = new Set(['metrics', 'google', 'oggi-vs-ieri', 'ordini-live', 'realtime'])
+const LETTURE = new Set(['metrics', 'google', 'oggi-vs-ieri', 'ordini-live', 'realtime', 'spesa-meta', 'drive-to-store'])
 // Queste si leggono SEMPRE da questa app, anche per chi ha un'app dedicata: sono gli ordini e i
 // visitatori in diretta dello schermo generale, uguali per tutti i negozi e scritti una volta sola.
-const SEMPRE_QUI = new Set(['ordini-live', 'realtime'])
+const SEMPRE_QUI = new Set(['ordini-live', 'realtime', 'spesa-meta'])
 const PEZZO = 3180   // un cookie non regge di piu': @supabase/ssr lo spezza cosi'
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -52,7 +52,8 @@ export async function GET(req) {
     const negozi = (clienti || []).map(c => {
       const a = (aziende || []).find(x => x.user_id === c.client_user_id)
       const collegato = !!(a?.shopify_store_url || a?.nango_connections?.shopify)
-      return { id: c.client_user_id, nome: c.label || a?.company_name || 'Cliente', collegato }
+      // fuori = le domande da fare all'app dedicata per sapere quanta spesa tiene fuori dal MER
+      return { id: c.client_user_id, nome: c.label || a?.company_name || 'Cliente', collegato, fuori: APP_DEDICATE[c.client_user_id] ? (SPESA_FUORI[c.client_user_id] || []) : [] }
     }).sort((x, y) => x.nome.localeCompare(y.nome, 'it'))
     return NextResponse.json({ negozi: negozi.filter(n => n.collegato), daCollegare: negozi.filter(n => !n.collegato).map(n => n.nome) }, { headers: { 'cache-control': 'no-store' } })
   }

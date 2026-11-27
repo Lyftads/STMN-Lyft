@@ -7,6 +7,7 @@ import { globalPresetToTf, tfToGlobalPreset } from '../../lib/tfQuery'
 import LogoMark from '../components/LogoMark'
 import Icon from '../components/ui/Icon'
 import BmTimeframe from '../components/ui/BmTimeframe'
+import PlatformIcon from '../components/PlatformIcon'
 
 // ============================================================================
 //  DASHBOARD GENERALE, IN DIRETTA (/generale) — lo schermo da parete del titolare.
@@ -20,8 +21,11 @@ import BmTimeframe from '../components/ui/BmTimeframe'
 //   · oggi           → la lista degli ordini di Shopify (/api/ordini-live): immediata, e il
 //                      numero grande sale esattamente dell'importo dell'ordine che compare;
 //   · giorni chiusi  → ShopifyQL, total_sales: la cifra della Dashboard di ogni negozio;
-//   · spesa          → /api/metrics e /api/google dell'app del negozio (quella dedicata, se ce
-//                      l'ha: li' le campagne per i negozi fisici sono gia' fuori), ogni 5 minuti.
+//   · spesa          → Meta da /api/spesa-meta (una domanda sola, risponde anche su un anno),
+//                      Google da /api/google; per chi ha un'app dedicata si tolgono le campagne
+//                      per i negozi fisici e follower, con la cifra chiesta a quell'app: e' la
+//                      stessa spesa su cui la sua Dashboard calcola il MER. Ogni 5 minuti.
+//                      (Prima veniva da /api/metrics, che sui periodi lunghi non rispondeva.)
 //  Qui dentro c'e' TUTTO, marketplace compresi (Koongo): scelta di Marino per questo schermo.
 //  Nelle Dashboard di Anna Virgili e Dude il marketplace resta a parte: li' il fatturato e' piu' basso.
 //
@@ -41,6 +45,25 @@ const RIGHE = 14
 const num = (v) => { const x = Number(v); return Number.isFinite(x) ? x : 0 }
 const cifra = (v, dec = 0) => new Intl.NumberFormat('it-IT', { useGrouping: 'always', minimumFractionDigits: dec, maximumFractionDigits: dec }).format(v)
 const corto = (v) => (v >= 1_000_000 ? `${cifra(v / 1_000_000, 2)} M` : v >= 10_000 ? `${cifra(v / 1000, 1)} K` : cifra(Math.round(v)))
+
+// La spesa Google di un periodo dalla risposta di /api/google: i giorni (gli ultimi ~100) dove
+// ci sono, i mesi interi per la parte piu' vecchia. Un mese a meta' che i giorni non coprono non
+// si puo' ricostruire: allora null (spesa non nota), mai una cifra approssimata.
+function googleNelPeriodo(g, since, until) {
+  if (!g) return null
+  if (!g.configured) return 0
+  const giorni = g.daily || [], mesi = g.monthly || []
+  const sommaGiorni = (da) => giorni.filter(d => d.date >= da && d.date <= until).reduce((a, d) => a + num(d.spend), 0)
+  const primo = giorni[0]?.date
+  if (!primo) return mesi.length ? null : 0
+  if (since >= primo) return sommaGiorni(since)
+  if (!since.endsWith('-01')) return null
+  // il primo mese che i giorni coprono per intero
+  const [y, m] = primo.split('-').map(Number)
+  const confine = primo.endsWith('-01') ? primo : `${m === 12 ? y + 1 : y}-${String(m === 12 ? 1 : m + 1).padStart(2, '0')}-01`
+  const daiMesi = mesi.filter(x => x.month >= since.slice(0, 7) && x.month < confine.slice(0, 7)).reduce((a, x) => a + num(x.spend), 0)
+  return daiMesi + sommaGiorni(confine)
+}
 
 async function leggi(ws, lettura, domanda = '') {
   const r = await fetch(`/api/generale?ws=${ws}&lettura=${lettura}${domanda ? '&' + domanda : ''}`, { cache: 'no-store' })
@@ -191,18 +214,21 @@ export default function GeneraleLive() {
     const giro = () => {
       for (const n of negozi) {
         const k = `${n.id}|${preset}`
-        Promise.all([leggi(n.id, 'metrics', `preset=${encodeURIComponent(preset)}`), leggi(n.id, 'google').catch(() => null)])
-          .then(([m, g]) => {
-            const sr = m?.shopifyRange, mr = m?.metaRange
-            if (!sr?.since) throw new Error('vuoto')
-            const giorni = (g?.daily || []).filter(d => d.date >= sr.since && d.date <= sr.until)
-            setSpesa(s => ({ ...s, [k]: {
-              meta: mr ? num(mr.spend) : null,
-              // Google non collegato vale zero; Google collegato ma non arrivato NON si somma
-              google: g == null ? null : g.configured ? giorni.reduce((a, d) => a + num(d.spend), 0) : 0,
-              alle: Date.now(), errore: null,
-            } }))
-          })
+        ;(async () => {
+          const meta = await leggi(n.id, 'spesa-meta', `preset=${encodeURIComponent(preset)}`)
+          if (!meta?.ok) throw new Error(meta?.error || 'meta')
+          const { since, until } = meta.periodo
+          const q = `since=${since}&until=${until}`
+          // chi ha un'app dedicata: le campagne che la sua Dashboard tiene fuori dal MER si tolgono
+          // (una domanda per gruppo di campagne; se una non arriva, la spesa di quel negozio non e' nota)
+          const [g, ...tolte] = await Promise.all([
+            leggi(n.id, 'google').catch(() => null),
+            ...(meta.collegato ? (n.fuori || []) : []).map(x => leggi(n.id, 'drive-to-store', x ? `${q}&${x}` : q)),
+          ])
+          const fuori = tolte.reduce((a, d) => a + (d && d.attivo !== false ? num(d.spesa) : 0), 0)
+          return { meta: Math.max(0, num(meta.spesa) - fuori), google: googleNelPeriodo(g, since, until) }
+        })()
+          .then(v => setSpesa(s => ({ ...s, [k]: { ...v, alle: Date.now(), errore: null } })))
           .catch(e => setSpesa(s => ({ ...s, [k]: { ...s[k], errore: e.message || 'lettura' } })))
       }
     }
@@ -327,9 +353,10 @@ export default function GeneraleLive() {
               <span className="gl-medio"><Numero valore={quadro.spesa} formato={(v) => `€${cifra(Math.round(v))}`} /></span>
               <span className="gl-sotto">{quadro.spesaAlle ? t('gen.lv.checked', { q: fa(quadro.spesaAlle) }, `Meta + Google · ultimo controllo ${fa(quadro.spesaAlle)}`) : t('gen.lv.spendWait', null, 'Meta + Google · in arrivo')}</span>
             </div>
-            <div className="gl-riga">
+            {/* il numero sta SOTTO la sua etichetta: a destra della riga finiva sopra il globo e sembrava un numero a caso (Marino, 27 nov) */}
+            <div className="gl-dato">
               <span className="gl-et"><i className="gl-pallino" />{t('gen.lv.visitors', null, 'Sui siti adesso')} <em>{t('gen.lv.last5', null, 'ultimi 5 minuti')}</em></span>
-              <Numero className="gl-piccolo" valore={quadro.visitatori} formato={(v) => cifra(Math.round(v))} />
+              <Numero className="gl-medio" valore={quadro.visitatori} formato={(v) => cifra(Math.round(v))} />
             </div>
 
             <div className="gl-passo">
@@ -352,7 +379,7 @@ export default function GeneraleLive() {
             <ul className="gl-ordini">
               {quadro.feed.map(o => (
                 <li key={`${o.negozio}-${o.id}`} className={accesi.has(o.id) ? 'gl-nuovo' : ''}>
-                  <span className="gl-borsa"><Icon name="bag" size={13} /></span>
+                  <span className="gl-borsa"><PlatformIcon platform="shopify" size={20} /></span>
                   <span className="gl-chi">
                     <b>{o.negozio}</b> <span>{o.n}</span>
                     <em>{[o.c || o.p, fa(o.t)].filter(Boolean).join(' · ')}</em>
@@ -376,20 +403,21 @@ const CSS = `
 .gl-marchio{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;font-size:clamp(18px,1.5vw,26px);font-weight:640;letter-spacing:-.04em}
 .gl-azioni{display:flex;align-items:center;gap:10px}
 .gl-live{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:5px 12px;font-size:12px;font-weight:600;letter-spacing:.02em}
-.gl-live i{width:7px;height:7px;border-radius:50%;background:#fff;animation:gl-batte 1.6s ease-in-out infinite}
+.gl-live i{width:7px;height:7px;border-radius:50%;background:#ff3b30;box-shadow:0 0 8px rgba(255,59,48,.8);animation:gl-batte 1.6s ease-in-out infinite}
 .gl-orologio{font-size:13px;color:rgba(255,255,255,.6);min-width:66px}
 .gl-tasto{width:36px;height:36px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.04);color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;transition:background .15s}
 .gl-tasto:hover{background:rgba(255,255,255,.12)}
 .gl-corpo{flex:1;min-height:0;position:relative;display:grid;grid-template-columns:minmax(320px,36vw) 1fr minmax(290px,25vw);gap:0;padding:clamp(10px,2.2vh,30px) clamp(16px,2.6vw,48px) clamp(14px,2.4vh,32px)}
 .gl-globo{position:absolute;left:50%;top:56%;width:min(104vh,58vw);height:min(104vh,58vw);transform:translate(-50%,-50%);z-index:1}
 .gl-globo canvas{outline:none}
+.gl-globo::before{content:'';position:absolute;inset:-9%;border-radius:50%;background:radial-gradient(circle,rgba(150,170,205,.34) 0,rgba(150,170,205,.2) 52%,rgba(150,170,205,.07) 62%,rgba(150,170,205,0) 70%);pointer-events:none}
 .gl-sinistra{grid-column:1;position:relative;z-index:5;display:flex;flex-direction:column;min-height:0;pointer-events:none}
 .gl-sinistra>*{pointer-events:auto}
 .gl-destra{grid-column:3;position:relative;z-index:5;display:flex;flex-direction:column;min-height:0;overflow:hidden}
 .gl-sopra{margin:0;font-size:clamp(14px,1.25vw,22px);color:rgba(255,255,255,.72);font-weight:400;white-space:nowrap}
 .gl-sopra b{color:#fff;font-weight:600}
 .gl-delta{margin-left:14px;font-size:.82em;color:rgba(255,255,255,.72)}
-.gl-eroe{display:flex;align-items:flex-start;gap:.12em;font-size:clamp(58px,8.4vw,176px);font-weight:600;letter-spacing:-.045em;line-height:1;margin:clamp(6px,1.2vh,16px) 0 clamp(10px,2.2vh,28px);white-space:nowrap;text-shadow:0 0 40px rgba(0,0,0,.9)}
+.gl-eroe{display:flex;align-items:flex-start;gap:.12em;font-size:clamp(44px,5.6vw,116px);font-weight:600;letter-spacing:-.045em;line-height:1;margin:clamp(6px,1.2vh,16px) 0 clamp(10px,2.2vh,28px);white-space:nowrap;text-shadow:0 0 40px rgba(0,0,0,.9)}
 .gl-euro{font-size:.5em;margin-top:.16em;font-weight:500}
 .gl-numero{position:relative;display:inline-block}
 .gl-lampo{position:absolute;inset:-18% -8%;border-radius:18px;background:radial-gradient(ellipse at center,rgba(255,236,200,.42),rgba(255,236,200,0) 68%);animation:gl-lampo 1.5s ease-out forwards;pointer-events:none}
@@ -400,9 +428,7 @@ const CSS = `
 .gl-et{font-size:clamp(12px,.95vw,16px);color:rgba(255,255,255,.72);font-weight:500;display:flex;align-items:center;gap:8px}
 .gl-et em{font-style:normal;color:rgba(255,255,255,.42)}
 .gl-medio{font-size:clamp(28px,3vw,58px);font-weight:600;letter-spacing:-.035em;line-height:1.12}
-.gl-piccolo{font-size:clamp(20px,1.9vw,36px);font-weight:600;letter-spacing:-.03em}
 .gl-sotto{font-size:12px;color:rgba(255,255,255,.45);margin:2px 0 0}
-.gl-riga{display:flex;align-items:center;justify-content:space-between;gap:16px;max-width:min(100%,30vw);margin-bottom:clamp(10px,2vh,22px)}
 .gl-pallino{width:7px;height:7px;border-radius:50%;background:#6fd3ff;display:inline-block}
 .gl-passo{margin-top:auto;max-width:min(100%,30vw)}
 .gl-passo-testa{margin:0 0 4px;font-size:clamp(13px,1.05vw,18px);display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
@@ -418,7 +444,7 @@ const CSS = `
 .gl-ordini{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:clamp(4px,1.05vh,13px);min-height:0;overflow:hidden}
 .gl-ordini li{display:flex;align-items:center;gap:12px;padding:5px 8px;margin:0 -8px;border-radius:10px;animation:gl-entra .5s ease-out both;transition:background 1.2s}
 .gl-ordini li.gl-nuovo{background:rgba(255,255,255,.12)}
-.gl-borsa{width:24px;height:24px;border-radius:7px;background:#fff;color:#000;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.gl-borsa{width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
 .gl-chi{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.25;font-size:clamp(12px,.95vw,15px);white-space:nowrap;overflow:hidden}
 .gl-chi b{font-weight:600}
 .gl-chi>span{color:rgba(255,255,255,.55);font-weight:400;display:none;max-width:7.5em;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
@@ -441,8 +467,8 @@ const CSS = `
   .gl-globo{position:relative;left:auto;top:auto;transform:none;width:100%;height:92vw;order:2;margin:6px 0}
   .gl-sinistra{order:1}.gl-destra{order:3;overflow:visible}
   .gl-sopra{white-space:normal}
-  .gl-eroe{font-size:clamp(46px,15vw,84px)}
-  .gl-riga,.gl-passo{max-width:100%}
+  .gl-eroe{font-size:clamp(40px,12vw,68px)}
+  .gl-passo{max-width:100%}
   .gl-passo{margin-top:8px}
   .gl-delta{display:block;margin:4px 0 0}
 }

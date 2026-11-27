@@ -356,6 +356,7 @@ export default function GeneraleLive() {
             <p className="gl-sopra">
               {/* solo la parola: niente numero di negozi e niente periodo accanto (Marino, 27 nov) — il periodo sta nel selettore */}
               {t('gen.lv.revenue', null, 'Fatturato')}
+              <span className="gl-loghi gl-loghi-eroe"><PlatformIcon platform="shopify" size={18} /></span>
               {!quadro.soloOggi && quadro.delta != null && <span className="gl-delta">{t('gen.lv.vsPrev', { p: segno(quadro.delta) }, `${segno(quadro.delta)} sul periodo prima`)}</span>}
             </p>
             <div className="gl-eroe"><span className="gl-euro">€</span><Numero valore={quadro.fatturato} formato={(v) => cifra(Math.round(v))} /></div>
@@ -368,12 +369,13 @@ export default function GeneraleLive() {
             {/* I quattro dati in schede a vetro (come le schede di KPI Brain, ma traslucide): sopra il
                 globo i numeri nudi si perdevano fra i puntini (Marino, 27 nov: «crea piu' contrasto»). */}
             <div className="gl-schede">
-              <div className="gl-dato gl-vetro"><span className="gl-et">{t('gen.lv.orders', null, 'Ordini')}</span><Numero className="gl-medio" valore={quadro.ordini} formato={(v) => cifra(Math.round(v))} /></div>
+              <div className="gl-dato gl-vetro"><span className="gl-et">{t('gen.lv.orders', null, 'Ordini')}<span className="gl-loghi"><PlatformIcon platform="shopify" size={16} /></span></span><Numero className="gl-medio" valore={quadro.ordini} formato={(v) => cifra(Math.round(v))} /></div>
               <div className="gl-dato gl-vetro"><span className="gl-et" title={t('gen.merSub', null, 'fatturato ÷ spesa totale')}>MER</span><Numero className="gl-medio" valore={quadro.mer} formato={(v) => cifra(v, 2)} /></div>
               <div className="gl-dato gl-vetro">
                 <span className="gl-et">{t('gen.lv.adSpend', null, 'Spesa pubblicitaria')}</span>
                 <Numero className="gl-medio" valore={quadro.spesa} formato={(v) => `€${cifra(Math.round(v))}`} />
-                <span className="gl-sotto">{quadro.spesaAlle ? t('gen.lv.checked', { q: fa(quadro.spesaAlle) }, `Meta + Google · ${fa(quadro.spesaAlle)}`) : t('gen.lv.spendWait', null, 'Meta + Google · in arrivo')}</span>
+                {/* i loghi delle due fonti al posto della scritta «Meta + Google»: nell'etichetta la mandavano a capo */}
+                <span className="gl-sotto gl-sotto-loghi"><PlatformIcon platform="meta" size={14} /><PlatformIcon platform="google" size={14} /><span>{quadro.spesaAlle ? fa(quadro.spesaAlle) : t('gen.lv.arriving', null, 'in arrivo')}</span></span>
               </div>
               <div className="gl-dato gl-vetro">
                 <span className="gl-et"><i className="gl-pallino" />{t('gen.lv.visitors', null, 'Sui siti adesso')}</span>
@@ -466,6 +468,10 @@ const CSS = `
 .gl-vetro .gl-sotto{color:rgba(255,255,255,.62);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gl-et{font-size:clamp(12px,.95vw,16px);color:rgba(255,255,255,.72);font-weight:500;display:flex;align-items:center;gap:8px}
 .gl-et em{font-style:normal;color:rgba(255,255,255,.42)}
+.gl-loghi{margin-left:auto;display:inline-flex;align-items:center;gap:6px;flex-shrink:0}
+.gl-loghi-eroe{margin-left:10px;vertical-align:-3px}
+.gl-sotto-loghi{display:flex;align-items:center;gap:6px;margin-top:5px}
+.gl-sopra{display:flex;align-items:center}
 .gl-medio{font-size:clamp(26px,2.5vw,50px);font-weight:650;letter-spacing:-.035em;line-height:1.14;color:#fff}
 .gl-sotto{font-size:12px;color:rgba(255,255,255,.45);margin:2px 0 0}
 .gl-pallino{width:7px;height:7px;border-radius:50%;background:#6fd3ff;display:inline-block}

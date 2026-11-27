@@ -27,7 +27,10 @@ import { APP_DEDICATE, CHI_PUO } from '../../../lib/generale/app'
 //  Sola lettura, e solo le letture elencate sotto.
 // ============================================================================
 
-const LETTURE = new Set(['metrics', 'google', 'oggi-vs-ieri'])
+const LETTURE = new Set(['metrics', 'google', 'oggi-vs-ieri', 'ordini-live', 'realtime'])
+// Queste si leggono SEMPRE da questa app, anche per chi ha un'app dedicata: sono gli ordini e i
+// visitatori in diretta dello schermo generale, uguali per tutti i negozi e scritti una volta sola.
+const SEMPRE_QUI = new Set(['ordini-live', 'realtime'])
 const PEZZO = 3180   // un cookie non regge di piu': @supabase/ssr lo spezza cosi'
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -76,10 +79,10 @@ export async function GET(req) {
 
   // App dedicata: il workspace e' fisso li'. Questa app: il workspace si sceglie col cookie,
   // lo stesso che mette il cambio di azienda (e chi risponde ricontrolla che sia permesso).
-  const dedicata = APP_DEDICATE[ws] || null
+  const dedicata = SEMPRE_QUI.has(lettura) ? null : (APP_DEDICATE[ws] || null)
   // GENERALE_APP_BASE serve solo in locale, dove questa app non risolve i negozi dei clienti:
   // la si punta alla produzione per collaudare. In produzione non va impostata.
-  const base = dedicata || process.env.GENERALE_APP_BASE || url.origin
+  const base = SEMPRE_QUI.has(lettura) ? url.origin : (dedicata || process.env.GENERALE_APP_BASE || url.origin)
   if (!dedicata) pezzi.push(`active_workspace=${ws}`)
 
   const domanda = new URLSearchParams(url.searchParams)

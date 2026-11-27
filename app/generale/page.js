@@ -150,6 +150,11 @@ export default function GeneraleLive() {
   const [spesa, setSpesa] = useState({})         // «negozio|periodo» → { meta, google, alle, errore }
   const [impulsi, setImpulsi] = useState([])     // ordini appena arrivati: anello sul globo, riga accesa
   const [, setBattito] = useState(0)             // fa rifare i «3 min fa»
+  // Gli ordini sfocati: per condividere lo schermo o farne una storia senza mostrare negozi, citta'
+  // e importi. La scelta si ricorda su questo dispositivo (se il browser non lo permette, pazienza).
+  const [sfocati, setSfocati] = useState(false)
+  useEffect(() => { try { if (localStorage.getItem('lyft-generale-sfoca') === '1') setSfocati(true) } catch {} }, [])
+  const cambiaSfoca = () => setSfocati(v => { try { localStorage.setItem('lyft-generale-sfoca', v ? '0' : '1') } catch {}; return !v })
   const visti = useRef(new Map())                // negozio → Set(id ordine)
   const pieno = useRef(false)
 
@@ -392,9 +397,15 @@ export default function GeneraleLive() {
           </section>
 
           <section className="gl-destra">
-            <p className="gl-et gl-titolo-ordini">{t('gen.lv.liveOrders', null, 'Ordini in tempo reale')}</p>
+            <p className="gl-et gl-titolo-ordini">
+              {t('gen.lv.liveOrders', null, 'Ordini in tempo reale')}
+              <button type="button" className="gl-occhio" aria-pressed={sfocati} onClick={cambiaSfoca}
+                title={sfocati ? t('gen.lv.unblur', null, 'Mostra gli ordini') : t('gen.lv.blur', null, 'Sfoca gli ordini')}>
+                <Icon name="eye" size={15} />
+              </button>
+            </p>
             {quadro.feed.length === 0 && <p className="gl-sotto">{quadro.arrivati ? t('gen.lv.noOrders', null, 'Ancora nessun ordine oggi.') : t('gen.reading', null, 'sto leggendo…')}</p>}
-            <ul className="gl-ordini">
+            <ul className={`gl-ordini${sfocati ? ' gl-sfocato' : ''}`} aria-hidden={sfocati || undefined}>
               {quadro.feed.map(o => (
                 <li key={`${o.negozio}-${o.id}`} className={accesi.has(o.id) ? 'gl-nuovo' : ''}>
                   <span className="gl-borsa"><PlatformIcon platform="shopify" size={20} /></span>
@@ -467,7 +478,12 @@ const CSS = `
 .gl-tratteggio{border-top:2px dashed rgba(255,255,255,.45)}
 .gl-andamento{width:100%;height:clamp(84px,15vh,170px);display:block}
 .gl-ore{display:flex;justify-content:space-between;margin:4px 0 0;font-size:11px;color:rgba(255,255,255,.4)}
-.gl-titolo-ordini{margin:0 0 clamp(8px,1.4vh,16px)}
+.gl-titolo-ordini{margin:0 0 clamp(8px,1.4vh,16px);justify-content:space-between}
+.gl-occhio{width:30px;height:30px;border-radius:9px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.05);color:rgba(255,255,255,.8);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s,color .15s}
+.gl-occhio:hover{background:rgba(255,255,255,.14);color:#fff}
+.gl-occhio[aria-pressed=true]{background:#fff;color:#000;border-color:#fff}
+.gl-ordini{transition:filter .25s ease}
+.gl-ordini.gl-sfocato{filter:blur(9px);user-select:none;pointer-events:none}
 .gl-ordini{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:clamp(4px,1.05vh,13px);min-height:0;overflow:hidden}
 .gl-ordini li{display:flex;align-items:center;gap:12px;padding:5px 8px;margin:0 -8px;border-radius:10px;animation:gl-entra .5s ease-out both;transition:background 1.2s}
 .gl-ordini li.gl-nuovo{background:rgba(255,255,255,.12)}

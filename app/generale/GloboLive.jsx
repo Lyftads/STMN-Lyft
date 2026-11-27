@@ -17,23 +17,34 @@ import Globe from 'react-globe.gl'
 import * as THREE from 'three'
 
 const COUNTRIES_URL = '/geo/countries-110m.geojson'
-// A questa distanza la sfera occupa il 70% del riquadro: intorno resta spazio per l'alone, che
-// cosi' non viene MAI tagliato dai bordi del disegno (Marino, 27 nov). La grandezza a schermo la
-// decide il riquadro (.gl-globo), non la distanza: avvicinando qui si taglierebbe di nuovo l'alone.
-const CASA = { lat: 41, lng: 12, altitude: 2.2 }   // l'Italia al centro: e' da li' che parte quasi tutto
+// IL DISEGNO OCCUPA TUTTA L'AREA, non un quadrato intorno alla sfera: cosi' l'alone non viene mai
+// tagliato da un bordo squadrato e lo zoom puo' ingrandire il mondo quanto si vuole (lo tagliano
+// solo i bordi dello schermo). La grandezza della sfera si decide qui, in pixel, e da quella si
+// ricava la distanza della telecamera (campo visivo verticale di 50°, raggio del globo = 1).
+const CASA = { lat: 41, lng: 12 }   // l'Italia al centro: e' da li' che parte quasi tutto
+const META_CAMPO = Math.tan(25 * Math.PI / 180)
+const ZOOM_MIN = 0.7, ZOOM_MAX = 3.2, ZOOM_PASSO = 1.3
 
 const ORO = '#f6cf6b'
 
 export default function GloboLive({ visitatori = [], luoghi = [], impulsi = [], flussi = [], sedi = [] }) {
   const wrapRef = useRef(null)
   const globeRef = useRef(null)
-  const [lato, setLato] = useState(600)
+  const [area, setArea] = useState({ w: 800, h: 800 })
+  const [zoom, setZoom] = useState(1)
   const [terre, setTerre] = useState({ features: [] })
+
+  // Il diametro della sfera a zoom 1: quanto sta fra le due colonne senza toccarle (su telefono,
+  // dove il globo ha un riquadro tutto suo, quasi tutto il riquadro).
+  const diametro = area.w < 900 ? 0.78 * Math.min(area.w, area.h) : Math.min(0.84 * area.h, 0.46 * area.w)
+  const quota = (z) => { const parte = Math.min(3, (diametro * z) / Math.max(1, area.h)); return Math.max(0.12, 1 / Math.sin(Math.atan(parte * META_CAMPO)) - 1) }
+  const quotaRef = useRef(2.2)
+  quotaRef.current = quota(zoom)
 
   useEffect(() => {
     const el = wrapRef.current
     if (!el) return
-    const misura = () => setLato(Math.max(240, Math.min(el.clientWidth, el.clientHeight) || 600))
+    const misura = () => setArea({ w: Math.max(240, el.clientWidth || 800), h: Math.max(240, el.clientHeight || 800) })
     const ro = new ResizeObserver(misura)
     ro.observe(el); misura()
     return () => ro.disconnect()
@@ -51,10 +62,10 @@ export default function GloboLive({ visitatori = [], luoghi = [], impulsi = [], 
   // la latitudine respira appena. Si ferma mentre si guarda un ordine o si trascina, poi riprende
   // da dove sarebbe arrivato, con un passaggio morbido.
   const moto = useRef({ fase: 0, fermoFino: 0, rientroFino: 0, ultimoT: 0 })
-  const metaDondolio = (fase) => ({ lat: CASA.lat + 5 * Math.sin(fase * 0.6), lng: CASA.lng + 27 * Math.sin(fase), altitude: CASA.altitude })
+  const metaDondolio = (fase) => ({ lat: CASA.lat + 5 * Math.sin(fase * 0.6), lng: CASA.lng + 27 * Math.sin(fase), altitude: quotaRef.current })
   const pronto = () => {
     try {
-      globeRef.current.pointOfView(CASA, 0)
+      globeRef.current.pointOfView({ ...CASA, altitude: quotaRef.current }, 0)
       const c = globeRef.current.controls()
       c.autoRotate = false; c.enableZoom = false; c.enablePan = false
       c.addEventListener('start', () => { moto.current.fermoFino = Infinity })
@@ -84,8 +95,21 @@ export default function GloboLive({ visitatori = [], luoghi = [], impulsi = [], 
   useEffect(() => {
     if (!ultimo || ultimo.lat == null || !globeRef.current) return
     moto.current.fermoFino = performance.now() + 6000
-    try { globeRef.current.pointOfView({ lat: ultimo.lat, lng: ultimo.lng, altitude: 2.08 }, 1100) } catch {}
+    try { globeRef.current.pointOfView({ lat: ultimo.lat, lng: ultimo.lng, altitude: quotaRef.current * 0.95 }, 1100) } catch {}
   }, [ultimo?.id])   // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Zoom (i due pulsanti) o finestra ridimensionata: la telecamera si porta alla nuova distanza
+  // con un passaggio breve, poi il dondolio riprende da li'.
+  useEffect(() => {
+    const g = globeRef.current
+    if (!g) return
+    try { const ora = g.pointOfView(); g.pointOfView({ lat: ora.lat, lng: ora.lng, altitude: quotaRef.current }, 450) } catch {}
+    const m = moto.current
+    if (m.fermoFino !== Infinity) { m.fermoFino = 0; m.rientroFino = performance.now() + 500 }
+  }, [zoom, area.w, area.h])   // eslint-disable-line react-hooks/exhaustive-deps
+  const piu = () => setZoom(z => Math.min(ZOOM_MAX, +(z * ZOOM_PASSO).toFixed(3)))
+  const meno = () => setZoom(z => Math.max(ZOOM_MIN, +(z / ZOOM_PASSO).toFixed(3)))
+  const alone = diametro * zoom * 1.42
 
   const punti = useMemo(() => [
     ...visitatori.map(p => ({ lat: p.lat, lng: p.lng, r: Math.min(0.5, 0.16 + Math.sqrt(p.count || 1) * 0.07), c: '#6fd3ff', a: 0.008, et: `${p.label || ''} · ${p.count} ora sul sito` })),
@@ -104,12 +128,19 @@ export default function GloboLive({ visitatori = [], luoghi = [], impulsi = [], 
   }, [])
 
   return (
-    <div ref={wrapRef} style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div ref={wrapRef} style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
+      {/* il chiarore dietro la sfera: segue la sua grandezza, zoom compreso */}
+      <div aria-hidden="true" style={{ position: 'absolute', left: '50%', top: '50%', width: alone, height: alone, transform: 'translate(-50%,-50%)', borderRadius: '50%', pointerEvents: 'none', transition: 'width .45s ease, height .45s ease',
+        background: 'radial-gradient(circle closest-side,rgba(205,216,240,.34) 0,rgba(205,216,240,.3) 64%,rgba(205,216,240,.2) 71%,rgba(205,216,240,.09) 80%,rgba(205,216,240,0) 93%)' }} />
+      <div className="gl-zoom">
+        <button type="button" aria-label="Zoom −" onClick={meno} disabled={zoom <= ZOOM_MIN}>−</button>
+        <button type="button" aria-label="Zoom +" onClick={piu} disabled={zoom >= ZOOM_MAX}>+</button>
+      </div>
       <Globe
         ref={globeRef}
         onGlobeReady={pronto}
-        width={lato}
-        height={lato}
+        width={area.w}
+        height={area.h}
         backgroundColor="rgba(0,0,0,0)"
         globeMaterial={sfera}
         showAtmosphere

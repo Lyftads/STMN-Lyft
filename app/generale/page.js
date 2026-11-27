@@ -328,8 +328,8 @@ export default function GeneraleLive() {
           <LogoMark size={30} />
           <span>LyftAI</span>
         </a>
+        <span className="gl-live"><i />Live</span>
         <div className="gl-azioni">
-          <span className="gl-live"><i />Live</span>
           <Orologio />
           <BmTimeframe value={globalPresetToTf(preset)} onChange={(x) => setPreset(tfToGlobalPreset(x))} />
           <a href="/generale/numeri" className="gl-tasto" title={t('gen.lv.numbers', null, 'Tutti i numeri, per periodo e per negozio')}><Icon name="grid" size={16} /></a>
@@ -421,23 +421,28 @@ const CSS = `
 .gl-testa{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:clamp(14px,2vh,26px) clamp(16px,2.6vw,48px) 0;position:relative;z-index:30}
 .gl-marchio{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;font-size:clamp(18px,1.5vw,26px);font-weight:640;letter-spacing:-.04em}
 .gl-azioni{display:flex;align-items:center;gap:10px}
-.gl-live{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:5px 12px;font-size:12px;font-weight:600;letter-spacing:.02em}
+.gl-testa{position:relative}
+.gl-live{position:absolute;left:50%;top:calc(clamp(14px,2vh,26px) + 6px);transform:translateX(-50%);display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:6px 16px;font-size:13px;font-weight:600;letter-spacing:.03em;background:rgba(0,0,0,.35);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
 .gl-live i{width:7px;height:7px;border-radius:50%;background:#ff3b30;box-shadow:0 0 8px rgba(255,59,48,.8);animation:gl-batte 1.6s ease-in-out infinite}
 .gl-orologio{font-size:13px;color:rgba(255,255,255,.6);min-width:66px}
 .gl-tasto{width:36px;height:36px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.04);color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;transition:background .15s}
 .gl-tasto:hover{background:rgba(255,255,255,.12)}
 .gl-corpo{flex:1;min-height:0;position:relative;display:grid;grid-template-columns:minmax(320px,36vw) 1fr minmax(290px,25vw);gap:0;padding:clamp(10px,2.2vh,30px) clamp(16px,2.6vw,48px) clamp(14px,2.4vh,32px)}
-.gl-globo{position:absolute;left:50%;top:52%;width:min(112vh,63vw);height:min(112vh,63vw);transform:translate(-50%,-50%);z-index:1}
+.gl-globo{position:absolute;inset:0;z-index:1}
 .gl-globo canvas{outline:none}
-.gl-globo::before{content:'';position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle closest-side,rgba(205,216,240,.34) 0,rgba(205,216,240,.3) 64%,rgba(205,216,240,.2) 71%,rgba(205,216,240,.09) 80%,rgba(205,216,240,0) 93%);pointer-events:none}
+.gl-zoom{position:absolute;left:50%;bottom:clamp(12px,2.4vh,28px);transform:translateX(-50%);z-index:6;display:flex;gap:8px}
+.gl-zoom button{width:40px;height:40px;border-radius:12px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.1);color:#fff;font-size:22px;font-weight:500;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%);box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 8px 22px rgba(0,0,0,.4);transition:background .15s}
+.gl-zoom button:hover:not(:disabled){background:rgba(255,255,255,.2)}
+.gl-zoom button:disabled{opacity:.35;cursor:default}
 .gl-sinistra{grid-column:1;position:relative;z-index:5;display:flex;flex-direction:column;min-height:0;pointer-events:none}
 .gl-sinistra>*{pointer-events:auto}
 .gl-destra{grid-column:3;position:relative;z-index:5;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.gl-destra::before{content:'';position:absolute;inset:-40px -60px -40px -70px;z-index:-1;pointer-events:none;background:linear-gradient(90deg,rgba(0,0,0,0) 0,rgba(0,0,0,.62) 22%,rgba(0,0,0,.72) 100%)}
 .gl-sopra{margin:0;font-size:clamp(14px,1.25vw,22px);color:rgba(255,255,255,.72);font-weight:400;white-space:nowrap}
 .gl-sopra b{color:#fff;font-weight:600}
 .gl-delta{margin-left:14px;font-size:.82em;color:rgba(255,255,255,.72)}
-.gl-eroe{display:flex;align-items:flex-start;gap:.12em;font-size:clamp(44px,5.6vw,116px);font-weight:600;letter-spacing:-.045em;line-height:1;margin:clamp(6px,1.2vh,16px) 0 clamp(10px,2.2vh,28px);white-space:nowrap;text-shadow:0 0 40px rgba(0,0,0,.9)}
-.gl-euro{font-size:.5em;margin-top:.16em;font-weight:500}
+.gl-eroe{display:flex;align-items:baseline;gap:.14em;font-size:clamp(44px,5.6vw,116px);font-weight:600;letter-spacing:-.045em;line-height:1.06;margin:clamp(6px,1.2vh,16px) 0 clamp(10px,2.2vh,28px);white-space:nowrap;filter:drop-shadow(0 4px 26px rgba(0,0,0,.75))}
+.gl-euro,.gl-eroe .gl-numero>span:last-child{display:inline-block;background:linear-gradient(180deg,#fff2c4 0%,#f4d079 42%,#d9a53c 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#f4d079}
 .gl-numero{position:relative;display:inline-block}
 .gl-lampo{position:absolute;inset:-18% -8%;border-radius:18px;background:radial-gradient(ellipse at center,rgba(255,236,200,.42),rgba(255,236,200,0) 68%);animation:gl-lampo 1.5s ease-out forwards;pointer-events:none}
 .gl-avviso{margin:-6px 0 14px;font-size:13px;color:rgba(255,255,255,.7)}
@@ -446,7 +451,6 @@ const CSS = `
 .gl-dato{display:flex;flex-direction:column;min-width:0}
 .gl-vetro{padding:clamp(11px,1.5vh,18px) clamp(13px,1.1vw,20px);border-radius:clamp(16px,1.2vw,22px);background:linear-gradient(160deg,rgba(255,255,255,.16),rgba(255,255,255,.06) 55%,rgba(255,255,255,.09));border:1px solid rgba(255,255,255,.2);box-shadow:inset 0 1px 0 rgba(255,255,255,.3),inset 0 -1px 0 rgba(255,255,255,.05),0 14px 36px rgba(0,0,0,.45);-webkit-backdrop-filter:blur(26px) saturate(170%);backdrop-filter:blur(26px) saturate(170%)}
 .gl-vetro .gl-et{color:rgba(255,255,255,.84)}
-.gl-vetro .gl-numero>span:last-child{display:inline-block;background:linear-gradient(180deg,#fff0bf 0%,#f3cf74 45%,#d9a53c 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#f3cf74}
 .gl-vetro .gl-sotto{color:rgba(255,255,255,.62);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gl-et{font-size:clamp(12px,.95vw,16px);color:rgba(255,255,255,.72);font-weight:500;display:flex;align-items:center;gap:8px}
 .gl-et em{font-style:normal;color:rgba(255,255,255,.42)}
@@ -484,13 +488,13 @@ const CSS = `
 @media (min-width:1500px){.gl-chi{flex-direction:row;align-items:baseline;gap:10px}.gl-chi>span{display:inline}}
 @media (max-width:900px){
   .gl{position:static;min-height:100dvh;overflow:visible;overflow-x:clip}
-  .gl-globo::before{inset:0}
+  .gl-live{position:static;transform:none;margin-left:auto}
   .gl-schede{width:100%}
   .gl-solo-largo,.gl-orologio,.gl-marchio span{display:none}
   .gl-testa{gap:10px}.gl-azioni{gap:8px;min-width:0}
   .gl-corpo{display:flex;flex-direction:column;padding:18px 16px 40px}
-  .gl-globo{position:relative;left:auto;top:auto;transform:none;width:100%;height:100vw;order:2;margin:0}
-  .gl-sinistra{order:1}.gl-destra{order:3;overflow:visible}
+  .gl-globo{position:relative;inset:auto;width:100%;height:100vw;order:2;margin:0}
+  .gl-sinistra{order:1}.gl-destra{order:3;overflow:visible}.gl-destra::before{display:none}
   .gl-sopra{white-space:normal}
   .gl-eroe{font-size:clamp(40px,12vw,68px)}
   .gl-passo{max-width:100%}

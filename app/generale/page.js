@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import dynamicImport from 'next/dynamic'
-import { useI18n } from '../../lib/i18n/I18nProvider'
+import { useT } from '../../lib/i18n/I18nProvider'
 import { globalPresetToTf, tfToGlobalPreset } from '../../lib/tfQuery'
 import LogoMark from '../components/LogoMark'
 import Icon from '../components/ui/Icon'
@@ -41,7 +41,7 @@ import Festa from './Festa'
 //  IL TRAGUARDO (Marino, 27 nov): 2 milioni di fatturato dal 1° ottobre, tutti i negozi insieme.
 //  Ha un conto SUO, che non segue il periodo scelto in alto: stessa fonte del numero grande
 //  (giorni chiusi ufficiali + oggi dagli ordini), letto ogni 30 secondi. Sotto il fatturato una
-//  riga dice quanto manca; quando il conto lo tocca parte la festa (Festa.jsx: fuochi d'oro, il
+//  riga dice quanto manca (solo «Obiettivo €2 M» e «mancano …»: la data «dal 1 ottobre» Marino l'ha fatta togliere); quando il conto lo tocca parte la festa (Festa.jsx: fuochi d'oro, il
 //  cartello con due sole righe, «Obiettivo raggiunto» e la cifra — niente altro, scelta di Marino —
 //  e il mondo che si accende). Poi resta il sigillo «raggiunto», e chi lo tocca la rivede.
 //  La festa parte: SEMPRE se il traguardo viene superato mentre lo schermo e' aperto; UNA VOLTA
@@ -156,7 +156,7 @@ function Andamento({ oggi, passoMin, ieri }) {
 }
 
 export default function GeneraleLive() {
-  const { t, locale } = useI18n()
+  const t = useT()
   const [negozi, setNegozi] = useState(null)
   const [daCollegare, setDaCollegare] = useState([])
   const [chiuso, setChiuso] = useState(null)     // 'accesso' | 'lettura'
@@ -367,7 +367,6 @@ export default function GeneraleLive() {
   }, [traguardo.euro, traguardo.fatto])
   // l'anteprima: /generale?festa=1
   useEffect(() => { try { if (new URLSearchParams(window.location.search).has('festa')) setFesta(1) } catch {} }, [])
-  const dalGiorno = useMemo(() => { try { return new Date(`${TRAGUARDO.dal}T12:00:00`).toLocaleDateString(locale || 'it', { day: 'numeric', month: 'long' }) } catch { return TRAGUARDO.dal } }, [locale])
   const metaCorta = `€${corto(TRAGUARDO.euro).replace(/,00 M$/, ' M')}`
 
   const accesi = new Set(impulsi.map(i => i.id))
@@ -445,7 +444,7 @@ export default function GeneraleLive() {
             ) : (
               <div className="gl-meta">
                 <span className="gl-meta-riga">
-                  <span className="gl-meta-nome">{t('gen.lv.goal', { v: metaCorta }, `Obiettivo ${metaCorta}`)}<em>{t('gen.lv.goalFrom', { d: dalGiorno }, `dal ${dalGiorno}`)}</em></span>
+                  <span className="gl-meta-nome">{t('gen.lv.goal', { v: metaCorta }, `Obiettivo ${metaCorta}`)}</span>
                   <b>{traguardo.euro == null ? '—' : t('gen.lv.goalLeft', { v: `€${cifra(Math.round(TRAGUARDO.euro - traguardo.euro))}` }, `mancano €${cifra(Math.round(TRAGUARDO.euro - traguardo.euro))}`)}</b>
                 </span>
                 <span className="gl-meta-barra"><i style={{ width: `${Math.max(0, Math.min(100, num(traguardo.euro) / TRAGUARDO.euro * 100)).toFixed(2)}%` }} /></span>
@@ -551,7 +550,6 @@ const CSS = `
 button.gl-meta{cursor:pointer}
 .gl-meta-riga{display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:clamp(12px,.92vw,15px);color:rgba(255,255,255,.72);white-space:nowrap}
 .gl-meta-nome{display:inline-flex;align-items:center;gap:7px;font-weight:500;min-width:0}
-.gl-meta-nome em{font-style:normal;color:rgba(255,255,255,.46);font-weight:400}
 .gl-meta-riga b{font-weight:600;color:#fff}
 .gl-meta-barra{display:block;height:3px;border-radius:3px;background:rgba(255,255,255,.16);overflow:hidden}
 .gl-meta-barra i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#d9a53c,#f6cf6b 60%,#fff2c4);transition:width 1s ease}

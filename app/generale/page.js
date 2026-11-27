@@ -407,7 +407,7 @@ export default function GeneraleLive() {
               </button>
             </p>
             {quadro.feed.length === 0 && <p className="gl-sotto">{quadro.arrivati ? t('gen.lv.noOrders', null, 'Ancora nessun ordine oggi.') : t('gen.reading', null, 'sto leggendo…')}</p>}
-            <ul className={`gl-ordini${sfocati ? ' gl-sfocato' : ''}`} aria-hidden={sfocati || undefined}>
+            <ul className={`gl-ordini${sfocati ? ' gl-sfocato' : ''}`}>
               {quadro.feed.map(o => (
                 <li key={`${o.negozio}-${o.id}`} className={accesi.has(o.id) ? 'gl-nuovo' : ''}>
                   <span className="gl-borsa"><PlatformIcon platform="shopify" size={20} /></span>
@@ -489,9 +489,10 @@ const CSS = `
 .gl-occhio{width:30px;height:30px;border-radius:9px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.05);color:rgba(255,255,255,.8);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s,color .15s}
 .gl-occhio:hover{background:rgba(255,255,255,.14);color:#fff}
 .gl-occhio[aria-pressed=true]{background:#fff;color:#000;border-color:#fff}
-.gl-chi,.gl-quanto{transition:filter .25s ease}
+/* sfocato: solo chi e dove (negozio, numero, citta'); logo Shopify e importo restano nitidi (Marino, 27 nov) */
+.gl-chi{transition:filter .25s ease}
 .gl-ordini.gl-sfocato{user-select:none;pointer-events:none}
-.gl-ordini.gl-sfocato .gl-chi,.gl-ordini.gl-sfocato .gl-quanto{filter:blur(8px)}
+.gl-ordini.gl-sfocato .gl-chi{filter:blur(8px)}
 .gl-ordini{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:clamp(4px,1.05vh,13px);min-height:0;overflow:hidden}
 .gl-ordini li{display:flex;align-items:center;gap:12px;padding:5px 8px;margin:0 -8px;border-radius:10px;animation:gl-entra .5s ease-out both;transition:background 1.2s}
 .gl-ordini li.gl-nuovo{background:rgba(255,255,255,.12)}

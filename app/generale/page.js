@@ -437,7 +437,7 @@ const CSS = `
 .gl-sinistra{grid-column:1;position:relative;z-index:5;display:flex;flex-direction:column;min-height:0;pointer-events:none}
 .gl-sinistra>*{pointer-events:auto}
 .gl-destra{grid-column:3;position:relative;z-index:5;display:flex;flex-direction:column;min-height:0;overflow:hidden}
-.gl-destra::before{content:'';position:absolute;inset:-40px -60px -40px -70px;z-index:-1;pointer-events:none;background:linear-gradient(90deg,rgba(0,0,0,0) 0,rgba(0,0,0,.62) 22%,rgba(0,0,0,.72) 100%)}
+.gl-destra::before{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(90deg,rgba(0,0,0,0) 0,rgba(0,0,0,.6) 20%,rgba(0,0,0,.7) 100%);-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 6%,#000 82%,transparent 100%);mask-image:linear-gradient(180deg,transparent 0,#000 6%,#000 82%,transparent 100%)}
 .gl-sopra{margin:0;font-size:clamp(14px,1.25vw,22px);color:rgba(255,255,255,.72);font-weight:400;white-space:nowrap}
 .gl-sopra b{color:#fff;font-weight:600}
 .gl-delta{margin-left:14px;font-size:.82em;color:rgba(255,255,255,.72)}

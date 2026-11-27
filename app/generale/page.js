@@ -344,19 +344,21 @@ export default function GeneraleLive() {
                 : t('gen.readingN', { a: quadro.arrivati, n: lista.length }, `sto leggendo… ${quadro.arrivati} negozi su ${lista.length}`)}</p>
             )}
 
-            <div className="gl-coppia">
-              <div className="gl-dato"><span className="gl-et">{t('gen.lv.orders', null, 'Ordini')}</span><Numero className="gl-medio" valore={quadro.ordini} formato={(v) => cifra(Math.round(v))} /></div>
-              <div className="gl-dato"><span className="gl-et" title={t('gen.merSub', null, 'fatturato ÷ spesa totale')}>MER</span><Numero className="gl-medio" valore={quadro.mer} formato={(v) => cifra(v, 2)} /></div>
-            </div>
-            <div className="gl-dato">
-              <span className="gl-et">{t('gen.lv.adSpend', null, 'Spesa pubblicitaria')}</span>
-              <span className="gl-medio"><Numero valore={quadro.spesa} formato={(v) => `€${cifra(Math.round(v))}`} /></span>
-              <span className="gl-sotto">{quadro.spesaAlle ? t('gen.lv.checked', { q: fa(quadro.spesaAlle) }, `Meta + Google · ultimo controllo ${fa(quadro.spesaAlle)}`) : t('gen.lv.spendWait', null, 'Meta + Google · in arrivo')}</span>
-            </div>
-            {/* il numero sta SOTTO la sua etichetta: a destra della riga finiva sopra il globo e sembrava un numero a caso (Marino, 27 nov) */}
-            <div className="gl-dato">
-              <span className="gl-et"><i className="gl-pallino" />{t('gen.lv.visitors', null, 'Sui siti adesso')} <em>{t('gen.lv.last5', null, 'ultimi 5 minuti')}</em></span>
-              <Numero className="gl-medio" valore={quadro.visitatori} formato={(v) => cifra(Math.round(v))} />
+            {/* I quattro dati in schede a vetro (come le schede di KPI Brain, ma traslucide): sopra il
+                globo i numeri nudi si perdevano fra i puntini (Marino, 27 nov: «crea piu' contrasto»). */}
+            <div className="gl-schede">
+              <div className="gl-dato gl-vetro"><span className="gl-et">{t('gen.lv.orders', null, 'Ordini')}</span><Numero className="gl-medio" valore={quadro.ordini} formato={(v) => cifra(Math.round(v))} /></div>
+              <div className="gl-dato gl-vetro"><span className="gl-et" title={t('gen.merSub', null, 'fatturato ÷ spesa totale')}>MER</span><Numero className="gl-medio" valore={quadro.mer} formato={(v) => cifra(v, 2)} /></div>
+              <div className="gl-dato gl-vetro">
+                <span className="gl-et">{t('gen.lv.adSpend', null, 'Spesa pubblicitaria')}</span>
+                <Numero className="gl-medio" valore={quadro.spesa} formato={(v) => `€${cifra(Math.round(v))}`} />
+                <span className="gl-sotto">{quadro.spesaAlle ? t('gen.lv.checked', { q: fa(quadro.spesaAlle) }, `Meta + Google · ultimo controllo ${fa(quadro.spesaAlle)}`) : t('gen.lv.spendWait', null, 'Meta + Google · in arrivo')}</span>
+              </div>
+              <div className="gl-dato gl-vetro">
+                <span className="gl-et"><i className="gl-pallino" />{t('gen.lv.visitors', null, 'Sui siti adesso')}</span>
+                <Numero className="gl-medio" valore={quadro.visitatori} formato={(v) => cifra(Math.round(v))} />
+                <span className="gl-sotto">{t('gen.lv.last5', null, 'ultimi 5 minuti')}</span>
+              </div>
             </div>
 
             <div className="gl-passo">
@@ -423,11 +425,14 @@ const CSS = `
 .gl-lampo{position:absolute;inset:-18% -8%;border-radius:18px;background:radial-gradient(ellipse at center,rgba(255,236,200,.42),rgba(255,236,200,0) 68%);animation:gl-lampo 1.5s ease-out forwards;pointer-events:none}
 .gl-avviso{margin:-6px 0 14px;font-size:13px;color:rgba(255,255,255,.7)}
 .gl-centro{margin:auto;text-align:center;max-width:460px;padding:0 20px}
-.gl-coppia{display:flex;gap:clamp(22px,3.4vw,64px)}
-.gl-dato{display:flex;flex-direction:column;margin-bottom:clamp(10px,2vh,24px)}
+.gl-schede{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(8px,.8vw,14px);width:min(100%,clamp(330px,29vw,560px));margin-bottom:clamp(10px,2vh,24px)}
+.gl-dato{display:flex;flex-direction:column;min-width:0}
+.gl-vetro{padding:clamp(11px,1.5vh,18px) clamp(13px,1.1vw,20px);border-radius:clamp(16px,1.2vw,22px);background:linear-gradient(160deg,rgba(255,255,255,.16),rgba(255,255,255,.06) 55%,rgba(255,255,255,.09));border:1px solid rgba(255,255,255,.2);box-shadow:inset 0 1px 0 rgba(255,255,255,.3),inset 0 -1px 0 rgba(255,255,255,.05),0 14px 36px rgba(0,0,0,.45);-webkit-backdrop-filter:blur(26px) saturate(170%);backdrop-filter:blur(26px) saturate(170%)}
+.gl-vetro .gl-et{color:rgba(255,255,255,.84)}
+.gl-vetro .gl-sotto{color:rgba(255,255,255,.62);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gl-et{font-size:clamp(12px,.95vw,16px);color:rgba(255,255,255,.72);font-weight:500;display:flex;align-items:center;gap:8px}
 .gl-et em{font-style:normal;color:rgba(255,255,255,.42)}
-.gl-medio{font-size:clamp(28px,3vw,58px);font-weight:600;letter-spacing:-.035em;line-height:1.12}
+.gl-medio{font-size:clamp(26px,2.5vw,50px);font-weight:650;letter-spacing:-.035em;line-height:1.14;color:#fff}
 .gl-sotto{font-size:12px;color:rgba(255,255,255,.45);margin:2px 0 0}
 .gl-pallino{width:7px;height:7px;border-radius:50%;background:#6fd3ff;display:inline-block}
 .gl-passo{margin-top:auto;max-width:min(100%,30vw)}
@@ -460,7 +465,9 @@ const CSS = `
 @keyframes gl-sale{0%{opacity:0;transform:translate(-50%,10px)}8%{opacity:1;transform:translate(-50%,0)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-14px)}}
 @media (min-width:1500px){.gl-chi{flex-direction:row;align-items:baseline;gap:10px}.gl-chi>span{display:inline}}
 @media (max-width:900px){
-  .gl{position:static;min-height:100dvh;overflow:visible}
+  .gl{position:static;min-height:100dvh;overflow:visible;overflow-x:clip}
+  .gl-globo::before{inset:-2%}
+  .gl-schede{width:100%}
   .gl-solo-largo,.gl-orologio,.gl-marchio span{display:none}
   .gl-testa{gap:10px}.gl-azioni{gap:8px;min-width:0}
   .gl-corpo{display:flex;flex-direction:column;padding:18px 16px 40px}

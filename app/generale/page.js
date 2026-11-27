@@ -8,6 +8,7 @@ import LogoMark from '../components/LogoMark'
 import Icon from '../components/ui/Icon'
 import BmTimeframe from '../components/ui/BmTimeframe'
 import PlatformIcon from '../components/PlatformIcon'
+import Stelle from './Stelle'
 
 // ============================================================================
 //  DASHBOARD GENERALE, IN DIRETTA (/generale) — lo schermo da parete del titolare.
@@ -16,6 +17,9 @@ import PlatformIcon from '../components/PlatformIcon'
 //
 //  COSA SEGUE IL PERIODO scelto in alto: fatturato, ordini, spesa pubblicitaria, MER.
 //  COSA E' SEMPRE «ADESSO»: globo, visitatori, colonna degli ordini, andamento di oggi.
+//
+//  I COLORI sono due e dicono due cose: ORO = gli ordini (numeri delle schede, puntini, impulsi e
+//  flussi sul globo, da chi compra alla sede del negozio), AZZURRO = chi e' sui siti adesso.
 //
 //  DA DOVE VENGONO I NUMERI (una riga per fonte, perche' sono tre e non vanno confuse):
 //   · oggi           → la lista degli ordini di Shopify (/api/ordini-live): immediata, e il
@@ -40,6 +44,7 @@ const GloboLive = dynamicImport(() => import('./GloboLive'), { ssr: false })
 
 const OGNI_ORDINI = 20_000, OGNI_VISITE = 30_000, OGNI_SPESA = 5 * 60_000
 const IMPULSO_MS = 7_000
+const FLUSSO_MIN = 30   // per quanti minuti il flusso di un ordine resta sul globo
 const RIGHE = 14
 
 const num = (v) => { const x = Number(v); return Number.isFinite(x) ? x : 0 }
@@ -250,7 +255,7 @@ export default function GeneraleLive() {
     let fatturato = 0, nOrdini = 0, vivoOggi = 0, ieriStessaOra = 0, ieriTotale = 0, prima = 0, primaCe = arrivati.length > 0, ieriCe = arrivati.length > 0
     let passoMin = 10
     const curve = [], curvaIeri = Array.from({ length: 25 }, () => 0)
-    const feed = [], luoghi = []
+    const feed = [], luoghi = [], flussi = [], sedi = []
     let periodo = null, conOggi = true
     for (const r of arrivati) {
       const d = r.o.d
@@ -262,6 +267,16 @@ export default function GeneraleLive() {
       if (d.prima) prima += num(d.prima.fatturato); else primaCe = false
       if (d.vivo.curva?.length) curve.push(d.vivo.curva)
       for (const o of (d.ultimi || [])) feed.push({ ...o, negozio: r.n.nome })
+      // i flussi: da chi ha comprato alla sede del negozio, per gli ordini dell'ultima mezz'ora
+      if (d.sede) {
+        sedi.push({ lat: d.sede.lat, lng: d.sede.lng, nome: r.n.nome })
+        for (const o of (d.ultimi || [])) {
+          const minuti = (Date.now() - o.t) / 60_000
+          if (o.la == null || o.ln == null || minuti > FLUSSO_MIN) continue
+          if (Math.abs(o.la - d.sede.lat) < 0.05 && Math.abs(o.ln - d.sede.lng) < 0.05) continue   // comprato sotto casa: nessun arco da disegnare
+          flussi.push({ id: `${r.n.id}-${o.id}`, startLat: o.la, startLng: o.ln, endLat: d.sede.lat, endLng: d.sede.lng, eta: Math.max(0, minuti / FLUSSO_MIN) })
+        }
+      }
       for (const l of (d.luoghi || [])) luoghi.push(l)
     }
     // le curve dei negozi si sommano punto per punto; chi ha un punto in meno (letto un attimo
@@ -281,7 +296,7 @@ export default function GeneraleLive() {
     return {
       arrivati: arrivati.length, tutti, mancanti, fatturato: arrivati.length ? fatturato : null, ordini: arrivati.length ? nOrdini : null,
       spesa: sp, spesaAlle, mer: sp > 0 && tutti ? fatturato / sp : null,
-      visitatori, punti, luoghi, feed: feed.slice(0, RIGHE),
+      visitatori, punti, luoghi, flussi, sedi, feed: feed.slice(0, RIGHE),
       periodo, conOggi, soloOggi,
       delta: base > 0 && tutti ? (fatturato - base) / base * 100 : null,
       passo: ieriCe && ieriStessaOra > 0 ? (vivoOggi - ieriStessaOra) / ieriStessaOra * 100 : null,
@@ -307,6 +322,7 @@ export default function GeneraleLive() {
       {/* dangerouslySetInnerHTML: gli apici dentro un <style> il server li scrive come entita' e il browser no → errore di idratazione */}
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
 
+      <Stelle />
       <header className="gl-testa">
         <a href="/" className="gl-marchio" title={t('gen.backToApp', null, 'Torna a LyftAI')}>
           <LogoMark size={30} />
@@ -329,7 +345,7 @@ export default function GeneraleLive() {
         <p className="gl-avviso gl-centro">{t('gen.noShops', null, 'Nessun cliente con Shopify collegato.')}</p>
       ) : (
         <main className="gl-corpo">
-          <div className="gl-globo"><GloboLive visitatori={quadro.punti} luoghi={quadro.luoghi} impulsi={impulsi} /></div>
+          <div className="gl-globo"><GloboLive visitatori={quadro.punti} luoghi={quadro.luoghi} impulsi={impulsi} flussi={quadro.flussi} sedi={quadro.sedi} /></div>
 
           <section className="gl-sinistra">
             <p className="gl-sopra">
@@ -400,7 +416,8 @@ export default function GeneraleLive() {
 
 const CSS = `
 .cookie-consent{display:none!important}
-.gl{position:fixed;inset:0;background:#000;color:#fff;overflow:hidden;display:flex;flex-direction:column;font-family:'Inter',-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+.gl{position:fixed;inset:0;background:radial-gradient(ellipse 60% 50% at 14% 22%,rgba(58,78,150,.13),transparent 70%),radial-gradient(ellipse 55% 50% at 88% 82%,rgba(104,72,150,.1),transparent 70%),#000;color:#fff;overflow:hidden;display:flex;flex-direction:column;font-family:'Inter',-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+.gl-stelle{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
 .gl-testa{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:clamp(14px,2vh,26px) clamp(16px,2.6vw,48px) 0;position:relative;z-index:30}
 .gl-marchio{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;font-size:clamp(18px,1.5vw,26px);font-weight:640;letter-spacing:-.04em}
 .gl-azioni{display:flex;align-items:center;gap:10px}
@@ -410,9 +427,9 @@ const CSS = `
 .gl-tasto{width:36px;height:36px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.04);color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;transition:background .15s}
 .gl-tasto:hover{background:rgba(255,255,255,.12)}
 .gl-corpo{flex:1;min-height:0;position:relative;display:grid;grid-template-columns:minmax(320px,36vw) 1fr minmax(290px,25vw);gap:0;padding:clamp(10px,2.2vh,30px) clamp(16px,2.6vw,48px) clamp(14px,2.4vh,32px)}
-.gl-globo{position:absolute;left:50%;top:56%;width:min(104vh,58vw);height:min(104vh,58vw);transform:translate(-50%,-50%);z-index:1}
+.gl-globo{position:absolute;left:50%;top:52%;width:min(112vh,63vw);height:min(112vh,63vw);transform:translate(-50%,-50%);z-index:1}
 .gl-globo canvas{outline:none}
-.gl-globo::before{content:'';position:absolute;inset:-9%;border-radius:50%;background:radial-gradient(circle,rgba(150,170,205,.34) 0,rgba(150,170,205,.2) 52%,rgba(150,170,205,.07) 62%,rgba(150,170,205,0) 70%);pointer-events:none}
+.gl-globo::before{content:'';position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle closest-side,rgba(205,216,240,.34) 0,rgba(205,216,240,.3) 64%,rgba(205,216,240,.2) 71%,rgba(205,216,240,.09) 80%,rgba(205,216,240,0) 93%);pointer-events:none}
 .gl-sinistra{grid-column:1;position:relative;z-index:5;display:flex;flex-direction:column;min-height:0;pointer-events:none}
 .gl-sinistra>*{pointer-events:auto}
 .gl-destra{grid-column:3;position:relative;z-index:5;display:flex;flex-direction:column;min-height:0;overflow:hidden}
@@ -429,6 +446,7 @@ const CSS = `
 .gl-dato{display:flex;flex-direction:column;min-width:0}
 .gl-vetro{padding:clamp(11px,1.5vh,18px) clamp(13px,1.1vw,20px);border-radius:clamp(16px,1.2vw,22px);background:linear-gradient(160deg,rgba(255,255,255,.16),rgba(255,255,255,.06) 55%,rgba(255,255,255,.09));border:1px solid rgba(255,255,255,.2);box-shadow:inset 0 1px 0 rgba(255,255,255,.3),inset 0 -1px 0 rgba(255,255,255,.05),0 14px 36px rgba(0,0,0,.45);-webkit-backdrop-filter:blur(26px) saturate(170%);backdrop-filter:blur(26px) saturate(170%)}
 .gl-vetro .gl-et{color:rgba(255,255,255,.84)}
+.gl-vetro .gl-numero>span:last-child{display:inline-block;background:linear-gradient(180deg,#fff0bf 0%,#f3cf74 45%,#d9a53c 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#f3cf74}
 .gl-vetro .gl-sotto{color:rgba(255,255,255,.62);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gl-et{font-size:clamp(12px,.95vw,16px);color:rgba(255,255,255,.72);font-weight:500;display:flex;align-items:center;gap:8px}
 .gl-et em{font-style:normal;color:rgba(255,255,255,.42)}
@@ -457,8 +475,8 @@ const CSS = `
 .gl-chi em{font-style:normal;font-size:.84em;color:rgba(255,255,255,.48);overflow:hidden;text-overflow:ellipsis}
 .gl-quanto{font-size:clamp(13px,1.05vw,17px);font-weight:600;flex-shrink:0}
 .gl-impulso{position:relative;transform:translate(-50%,-50%);pointer-events:none}
-.gl-impulso-punto{display:block;width:12px;height:12px;border-radius:50%;background:#fff;box-shadow:0 0 18px 6px rgba(255,255,255,.55);margin:0 auto}
-.gl-impulso-euro{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);font:600 clamp(15px,1.5vw,26px)/1 'Inter',sans-serif;color:#fff;white-space:nowrap;text-shadow:0 2px 14px #000,0 0 4px #000;animation:gl-sale 7s ease-out forwards}
+.gl-impulso-punto{display:block;width:12px;height:12px;border-radius:50%;background:#ffdf8a;box-shadow:0 0 18px 6px rgba(255,205,96,.6);margin:0 auto}
+.gl-impulso-euro{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);font:600 clamp(15px,1.5vw,26px)/1 'Inter',sans-serif;color:#ffdf8a;white-space:nowrap;text-shadow:0 2px 14px #000,0 0 4px #000;animation:gl-sale 7s ease-out forwards}
 @keyframes gl-batte{0%,100%{opacity:1}50%{opacity:.25}}
 @keyframes gl-lampo{0%{opacity:0}12%{opacity:1}100%{opacity:0}}
 @keyframes gl-entra{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
@@ -466,12 +484,12 @@ const CSS = `
 @media (min-width:1500px){.gl-chi{flex-direction:row;align-items:baseline;gap:10px}.gl-chi>span{display:inline}}
 @media (max-width:900px){
   .gl{position:static;min-height:100dvh;overflow:visible;overflow-x:clip}
-  .gl-globo::before{inset:-2%}
+  .gl-globo::before{inset:0}
   .gl-schede{width:100%}
   .gl-solo-largo,.gl-orologio,.gl-marchio span{display:none}
   .gl-testa{gap:10px}.gl-azioni{gap:8px;min-width:0}
   .gl-corpo{display:flex;flex-direction:column;padding:18px 16px 40px}
-  .gl-globo{position:relative;left:auto;top:auto;transform:none;width:100%;height:92vw;order:2;margin:6px 0}
+  .gl-globo{position:relative;left:auto;top:auto;transform:none;width:100%;height:100vw;order:2;margin:0}
   .gl-sinistra{order:1}.gl-destra{order:3;overflow:visible}
   .gl-sopra{white-space:normal}
   .gl-eroe{font-size:clamp(40px,12vw,68px)}

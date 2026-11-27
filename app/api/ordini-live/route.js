@@ -93,6 +93,23 @@ async function ordiniDiOggi(storeUrl, adminToken, oggi) {
   return m
 }
 
+// La sede del negozio (l'indirizzo che ha su Shopify): e' il punto in cui arrivano i flussi degli
+// ordini sul globo. Si chiede una volta per negozio; se Shopify non la da', niente flussi per lui.
+const sedi = new Map()
+async function sedeNegozio(storeUrl, adminToken) {
+  if (sedi.has(storeUrl)) return sedi.get(storeUrl)
+  let sede = null
+  try {
+    const r = await fetch(`https://${storeUrl}/admin/api/2024-01/shop.json?fields=latitude,longitude,city`, { headers: { 'X-Shopify-Access-Token': adminToken }, cache: 'no-store', signal: AbortSignal.timeout(8_000) })
+    if (!r.ok) return null   // un errore non si ricorda: si riprova al prossimo giro
+    const n = (await r.json().catch(() => null))?.shop
+    const lat = Number(n?.latitude), lng = Number(n?.longitude)
+    if (Number.isFinite(lat) && Number.isFinite(lng) && (lat || lng)) sede = { lat: +lat.toFixed(2), lng: +lng.toFixed(2), citta: n.city || null }
+  } catch { return null }
+  sedi.set(storeUrl, sede)
+  return sede
+}
+
 // Una risposta ufficiale (ShopifyQL) si tiene qualche minuto: i giorni chiusi non cambiano,
 // e lo schermo chiede ogni 20 secondi.
 async function tenuto(chiave, vitaMs, calcola) {
@@ -172,7 +189,8 @@ export async function GET(req) {
       const conOggi = periodo.until >= oggi
       const fineChiusa = conOggi ? ieri : periodo.until
       const prima = periodoPrima(periodo)
-      const [ore, chiuso, primaTot] = await Promise.all([
+      const [sede, ore, chiuso, primaTot] = await Promise.all([
+        sedeNegozio(storeUrl, adminToken),
         ieriAOre(storeUrl, ieri).catch(() => null),
         periodo.since <= fineChiusa ? totaleUfficiale(storeUrl, periodo.since, fineChiusa).catch(e => ({ errore: String(e?.message || e).slice(0, 80) })) : null,
         // «Oggi» si confronta con ieri alla stessa ora (sotto), non con la giornata intera
@@ -190,7 +208,7 @@ export async function GET(req) {
 
       const corpo = {
         ok: true, oggi, ieri, alle: adesso, mezzanotte, passoMin: PASSO_MIN,
-        periodo, conOggi,
+        periodo, conOggi, sede,
         vivo: { fatturato: r2(fatturato), ordini: validi.length, curva, incompleto: !!m.tronco },
         ultimi: tutti.slice(0, 40),
         luoghi: [...griglia.values()].sort((a, b) => b.n - a.n).slice(0, 400),

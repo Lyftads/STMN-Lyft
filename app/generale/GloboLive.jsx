@@ -2,7 +2,9 @@
 
 // Il globo dello schermo generale: sfera nera, terre a puntini chiari, un alone intorno.
 //  · puntini azzurri  = chi e' sui siti in questo momento (tutti i negozi insieme)
-//  · puntini bianchi  = da dove sono partiti gli ordini di oggi
+//  · puntini oro      = da dove sono partiti gli ordini di oggi
+//  · archi oro        = i flussi dell'ultima mezz'ora: da chi ha comprato alla sede del negozio,
+//                       vivi appena arrivano e via via piu' tenui
 //  · anello + «+€155» = un ordine appena arrivato: il globo ci si porta sopra, poi riprende
 // NON fa il giro completo: quasi tutto succede in Italia, e con la rotazione intera per due terzi
 // del tempo si guardava l'altra faccia del mondo (visto in produzione il 27 nov: Nord America in
@@ -15,9 +17,14 @@ import Globe from 'react-globe.gl'
 import * as THREE from 'three'
 
 const COUNTRIES_URL = '/geo/countries-110m.geojson'
-const CASA = { lat: 40, lng: 12, altitude: 1.9 }   // l'Italia al centro: e' da li' che parte quasi tutto
+// A questa distanza la sfera occupa il 70% del riquadro: intorno resta spazio per l'alone, che
+// cosi' non viene MAI tagliato dai bordi del disegno (Marino, 27 nov). La grandezza a schermo la
+// decide il riquadro (.gl-globo), non la distanza: avvicinando qui si taglierebbe di nuovo l'alone.
+const CASA = { lat: 41, lng: 12, altitude: 2.2 }   // l'Italia al centro: e' da li' che parte quasi tutto
 
-export default function GloboLive({ visitatori = [], luoghi = [], impulsi = [] }) {
+const ORO = '#f6cf6b'
+
+export default function GloboLive({ visitatori = [], luoghi = [], impulsi = [], flussi = [], sedi = [] }) {
   const wrapRef = useRef(null)
   const globeRef = useRef(null)
   const [lato, setLato] = useState(600)
@@ -77,13 +84,16 @@ export default function GloboLive({ visitatori = [], luoghi = [], impulsi = [] }
   useEffect(() => {
     if (!ultimo || ultimo.lat == null || !globeRef.current) return
     moto.current.fermoFino = performance.now() + 6000
-    try { globeRef.current.pointOfView({ lat: ultimo.lat, lng: ultimo.lng, altitude: 1.75 }, 1100) } catch {}
+    try { globeRef.current.pointOfView({ lat: ultimo.lat, lng: ultimo.lng, altitude: 2.08 }, 1100) } catch {}
   }, [ultimo?.id])   // eslint-disable-line react-hooks/exhaustive-deps
 
   const punti = useMemo(() => [
     ...visitatori.map(p => ({ lat: p.lat, lng: p.lng, r: Math.min(0.5, 0.16 + Math.sqrt(p.count || 1) * 0.07), c: '#6fd3ff', a: 0.008, et: `${p.label || ''} · ${p.count} ora sul sito` })),
-    ...luoghi.map(p => ({ lat: p.lat, lng: p.lng, r: Math.min(0.42, 0.14 + Math.sqrt(p.n || 1) * 0.06), c: '#ffffff', a: 0.012, et: `${p.n} ordini oggi` })),
-  ], [visitatori, luoghi])
+    ...luoghi.map(p => ({ lat: p.lat, lng: p.lng, r: Math.min(0.42, 0.14 + Math.sqrt(p.n || 1) * 0.06), c: ORO, a: 0.012, et: `${p.n} ordini oggi` })),
+    ...sedi.map(p => ({ lat: p.lat, lng: p.lng, r: 0.3, c: '#fff3cf', a: 0.016, et: p.nome })),
+  ], [visitatori, luoghi, sedi])
+  // l'arco parte tenue dal cliente e si accende verso il negozio; piu' l'ordine e' vecchio, meno si vede
+  const coloreFlusso = useMemo(() => (d) => { const v = 1 - 0.7 * (d.eta || 0); return [`rgba(246,207,107,${(0.35 * v).toFixed(2)})`, `rgba(255,232,160,${(1 * v).toFixed(2)})`] }, [])
 
   const conPunto = useMemo(() => impulsi.filter(p => p.lat != null && p.lng != null), [impulsi])
   const etichetta = useMemo(() => (d) => {
@@ -104,7 +114,7 @@ export default function GloboLive({ visitatori = [], luoghi = [], impulsi = [] }
         globeMaterial={sfera}
         showAtmosphere
         atmosphereColor="#e6ecf7"
-        atmosphereAltitude={0.2}
+        atmosphereAltitude={0.22}
         hexPolygonsData={terre.features}
         hexPolygonResolution={3}
         hexPolygonMargin={0.62}
@@ -122,10 +132,20 @@ export default function GloboLive({ visitatori = [], luoghi = [], impulsi = [] }
         ringsData={conPunto}
         ringLat="lat"
         ringLng="lng"
-        ringColor={() => (t) => `rgba(255,255,255,${Math.max(0, 1 - t)})`}
+        ringColor={() => (t) => `rgba(255,214,110,${Math.max(0, 1 - t)})`}
         ringMaxRadius={5}
         ringPropagationSpeed={3}
         ringRepeatPeriod={800}
+        arcsData={flussi}
+        arcColor={coloreFlusso}
+        // archi alti e spessi: gli ordini sono quasi tutti dentro l'Italia, e un arco "giusto" su
+        // quelle distanze sarebbe un trattino invisibile
+        arcAltitudeAutoScale={1.5}
+        arcStroke={0.7}
+        arcDashLength={0.6}
+        arcDashGap={0.25}
+        arcDashAnimateTime={2200}
+        arcsTransitionDuration={0}
         htmlElementsData={conPunto}
         htmlLat="lat"
         htmlLng="lng"

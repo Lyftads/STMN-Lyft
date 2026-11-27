@@ -368,7 +368,7 @@ export default function GeneraleLive() {
               <div className="gl-dato gl-vetro">
                 <span className="gl-et">{t('gen.lv.adSpend', null, 'Spesa pubblicitaria')}</span>
                 <Numero className="gl-medio" valore={quadro.spesa} formato={(v) => `€${cifra(Math.round(v))}`} />
-                <span className="gl-sotto">{quadro.spesaAlle ? t('gen.lv.checked', { q: fa(quadro.spesaAlle) }, `Meta + Google · ultimo controllo ${fa(quadro.spesaAlle)}`) : t('gen.lv.spendWait', null, 'Meta + Google · in arrivo')}</span>
+                <span className="gl-sotto">{quadro.spesaAlle ? t('gen.lv.checked', { q: fa(quadro.spesaAlle) }, `Meta + Google · ${fa(quadro.spesaAlle)}`) : t('gen.lv.spendWait', null, 'Meta + Google · in arrivo')}</span>
               </div>
               <div className="gl-dato gl-vetro">
                 <span className="gl-et"><i className="gl-pallino" />{t('gen.lv.visitors', null, 'Sui siti adesso')}</span>

@@ -333,9 +333,9 @@ export default function GeneraleLive() {
           <LogoMark size={30} />
           <span>LyftAI</span>
         </a>
-        <span className="gl-live"><i />Live</span>
+        {/* Live e ora insieme, al centro sopra il mondo */}
+        <div className="gl-centro-alto"><span className="gl-live"><i />Live</span><Orologio /></div>
         <div className="gl-azioni">
-          <Orologio />
           <BmTimeframe value={globalPresetToTf(preset)} onChange={(x) => setPreset(tfToGlobalPreset(x))} />
           <a href="/generale/numeri" className="gl-tasto" title={t('gen.lv.numbers', null, 'Tutti i numeri, per periodo e per negozio')}><Icon name="grid" size={16} /></a>
           <button type="button" className="gl-tasto gl-solo-largo" onClick={schermo} title={t('gen.lv.fullscreen', null, 'Schermo intero')}><Icon name="desktop" size={16} /></button>
@@ -433,9 +433,10 @@ const CSS = `
 .gl-marchio{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;font-size:clamp(18px,1.5vw,26px);font-weight:640;letter-spacing:-.04em}
 .gl-azioni{display:flex;align-items:center;gap:10px}
 .gl-testa{position:relative}
-.gl-live{position:absolute;left:50%;top:calc(clamp(14px,2vh,26px) + 6px);transform:translateX(-50%);display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:6px 16px;font-size:13px;font-weight:600;letter-spacing:.03em;background:rgba(0,0,0,.35);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.gl-centro-alto{position:absolute;left:50%;top:calc(clamp(14px,2vh,26px) + 4px);transform:translateX(-50%);display:flex;align-items:center;gap:12px}
+.gl-live{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:6px 16px;font-size:13px;font-weight:600;letter-spacing:.03em;background:rgba(0,0,0,.35);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
 .gl-live i{width:7px;height:7px;border-radius:50%;background:#ff3b30;box-shadow:0 0 8px rgba(255,59,48,.8);animation:gl-batte 1.6s ease-in-out infinite}
-.gl-orologio{font-size:13px;color:rgba(255,255,255,.6);min-width:66px}
+.gl-orologio{font-size:14px;font-weight:500;color:rgba(255,255,255,.82);min-width:66px}
 .gl-tasto{width:36px;height:36px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.04);color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;transition:background .15s}
 .gl-tasto:hover{background:rgba(255,255,255,.12)}
 .gl-corpo{flex:1;min-height:0;position:relative;display:grid;grid-template-columns:minmax(320px,36vw) 1fr minmax(290px,25vw);gap:0;padding:clamp(10px,2.2vh,30px) clamp(16px,2.6vw,48px) clamp(14px,2.4vh,32px)}
@@ -504,7 +505,7 @@ const CSS = `
 @media (min-width:1500px){.gl-chi{flex-direction:row;align-items:baseline;gap:10px}.gl-chi>span{display:inline}}
 @media (max-width:900px){
   .gl{position:static;min-height:100dvh;overflow:visible;overflow-x:clip}
-  .gl-live{position:static;transform:none;margin-left:auto}
+  .gl-centro-alto{position:static;transform:none;margin-left:auto}
   .gl-schede{width:100%}
   .gl-solo-largo,.gl-orologio,.gl-marchio span{display:none}
   .gl-testa{gap:10px}.gl-azioni{gap:8px;min-width:0}

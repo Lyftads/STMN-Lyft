@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import dynamicImport from 'next/dynamic'
-import { useT } from '../../lib/i18n/I18nProvider'
+import { useI18n } from '../../lib/i18n/I18nProvider'
 import { globalPresetToTf, tfToGlobalPreset } from '../../lib/tfQuery'
 import LogoMark from '../components/LogoMark'
 import Icon from '../components/ui/Icon'
 import BmTimeframe from '../components/ui/BmTimeframe'
 import PlatformIcon from '../components/PlatformIcon'
 import Stelle from './Stelle'
+import Festa from './Festa'
 
 // ============================================================================
 //  DASHBOARD GENERALE, IN DIRETTA (/generale) — lo schermo da parete del titolare.
@@ -37,6 +38,16 @@ import Stelle from './Stelle'
 //  mai una somma a meta' spacciata per intera. Spesa e MER, invece, senza tutti i negozi non
 //  si mostrano (meta' spesa = MER doppio).
 //
+//  IL TRAGUARDO (Marino, 27 nov): 2 milioni di fatturato dal 1° ottobre, tutti i negozi insieme.
+//  Ha un conto SUO, che non segue il periodo scelto in alto: stessa fonte del numero grande
+//  (giorni chiusi ufficiali + oggi dagli ordini), letto ogni 30 secondi. Sotto il fatturato una
+//  riga dice quanto manca; quando il conto lo tocca parte la festa (Festa.jsx: fuochi d'oro, il
+//  cartello con due sole righe, «Obiettivo raggiunto» e la cifra — niente altro, scelta di Marino —
+//  e il mondo che si accende). Poi resta il sigillo «raggiunto», e chi lo tocca la rivede.
+//  La festa parte: SEMPRE se il traguardo viene superato mentre lo schermo e' aperto; UNA VOLTA
+//  per dispositivo se lo si apre a traguardo gia' superato (se no partirebbe a ogni apertura,
+//  per sempre). Per vederla in anteprima: /generale?festa=1.
+//
 //  La vista a schede con tutti i KPI per periodo e per negozio sta su /generale/numeri.
 // ============================================================================
 
@@ -46,6 +57,11 @@ const OGNI_ORDINI = 20_000, OGNI_VISITE = 30_000, OGNI_SPESA = 5 * 60_000
 const IMPULSO_MS = 7_000
 const FLUSSO_MIN = 30   // per quanti minuti il flusso di un ordine resta sul globo
 const RIGHE = 14
+// Il traguardo: quanto, da quando. «until» lontano nel futuro = fino a oggi (lo accorcia la route).
+const TRAGUARDO = { euro: 2_000_000, dal: '2026-10-01' }
+const PRESET_TRAGUARDO = `custom_${TRAGUARDO.dal}_2099-12-31`
+const OGNI_TRAGUARDO = 30_000
+const CHIAVE_FESTA = `lyft-generale-traguardo-${TRAGUARDO.dal}-${TRAGUARDO.euro}`
 
 const num = (v) => { const x = Number(v); return Number.isFinite(x) ? x : 0 }
 const cifra = (v, dec = 0) => new Intl.NumberFormat('it-IT', { useGrouping: 'always', minimumFractionDigits: dec, maximumFractionDigits: dec }).format(v)
@@ -140,7 +156,7 @@ function Andamento({ oggi, passoMin, ieri }) {
 }
 
 export default function GeneraleLive() {
-  const t = useT()
+  const { t, locale } = useI18n()
   const [negozi, setNegozi] = useState(null)
   const [daCollegare, setDaCollegare] = useState([])
   const [chiuso, setChiuso] = useState(null)     // 'accesso' | 'lettura'
@@ -155,6 +171,9 @@ export default function GeneraleLive() {
   const [sfocati, setSfocati] = useState(false)
   useEffect(() => { try { if (localStorage.getItem('lyft-generale-sfoca') === '1') setSfocati(true) } catch {} }, [])
   const cambiaSfoca = () => setSfocati(v => { try { localStorage.setItem('lyft-generale-sfoca', v ? '0' : '1') } catch {}; return !v })
+  const [versoTraguardo, setVersoTraguardo] = useState({})   // negozio → { d, alle, errore }: il conto dal 1° ottobre
+  const [festa, setFesta] = useState(0)          // > 0 = la festa sta andando (il numero la fa ripartire da capo)
+  const statoTraguardo = useRef(null)            // null (non ancora letto) | 'sotto' | 'sopra'
   const visti = useRef(new Map())                // negozio → Set(id ordine)
   const pieno = useRef(false)
 
@@ -208,6 +227,23 @@ export default function GeneraleLive() {
     document.addEventListener('visibilitychange', torna)
     return () => { clearInterval(id); document.removeEventListener('visibilitychange', torna) }
   }, [negozi, preset, leggiOrdini])
+
+  // ── il traguardo: il fatturato dal 1° ottobre, ogni 30 secondi, qualunque periodo sia scelto ──
+  useEffect(() => {
+    if (!negozi?.length) return
+    const giro = () => {
+      for (const n of negozi) {
+        leggi(n.id, 'ordini-live', `preset=${PRESET_TRAGUARDO}`)
+          .then(d => { if (!d?.ok) throw new Error(d?.error || 'lettura'); setVersoTraguardo(s => ({ ...s, [n.id]: { d, alle: Date.now(), errore: null } })) })
+          .catch(e => setVersoTraguardo(s => ({ ...s, [n.id]: { ...s[n.id], errore: e.message || 'lettura' } })))
+      }
+    }
+    giro()
+    const id = setInterval(() => { if (!document.hidden) giro() }, OGNI_TRAGUARDO)
+    const torna = () => { if (!document.hidden) giro() }
+    document.addEventListener('visibilitychange', torna)
+    return () => { clearInterval(id); document.removeEventListener('visibilitychange', torna) }
+  }, [negozi])
 
   // ── chi e' sui siti adesso: ogni 30 secondi ─────────────────────────────────
   useEffect(() => {
@@ -309,6 +345,31 @@ export default function GeneraleLive() {
     }
   }, [lista, ordini, spesa, visite, preset])
 
+  // Il conto del traguardo vale solo se e' INTERO: tutti i negozi letti da poco, coi giorni chiusi
+  // arrivati. Una somma a meta' e' piu' bassa del vero, e quando poi si completa sembrerebbe un
+  // traguardo appena superato: la festa partirebbe per un numero che c'era gia'.
+  const traguardo = useMemo(() => {
+    const righe = lista.map(n => versoTraguardo[n.id])
+    const intero = lista.length > 0 && righe.every(r => r?.d?.chiuso && !r.d.chiusoErrore && Date.now() - r.alle < 150_000)
+    if (!intero) return { euro: null, fatto: statoTraguardo.current === 'sopra' }
+    const euro = righe.reduce((a, r) => a + num(r.d.chiuso.fatturato) + num(r.d.vivo.fatturato), 0)
+    return { euro, fatto: euro >= TRAGUARDO.euro }
+  }, [lista, versoTraguardo])
+  useEffect(() => {
+    if (traguardo.euro == null) return
+    const prima = statoTraguardo.current
+    statoTraguardo.current = traguardo.fatto ? 'sopra' : 'sotto'
+    if (!traguardo.fatto || prima === 'sopra') return
+    // superato adesso (prima era sotto) → festa; trovato gia' superato all'apertura → solo la prima volta
+    let giaFesteggiato = false
+    try { giaFesteggiato = localStorage.getItem(CHIAVE_FESTA) === '1'; localStorage.setItem(CHIAVE_FESTA, '1') } catch {}
+    if (prima === 'sotto' || !giaFesteggiato) setFesta(f => f + 1)
+  }, [traguardo.euro, traguardo.fatto])
+  // l'anteprima: /generale?festa=1
+  useEffect(() => { try { if (new URLSearchParams(window.location.search).has('festa')) setFesta(1) } catch {} }, [])
+  const dalGiorno = useMemo(() => { try { return new Date(`${TRAGUARDO.dal}T12:00:00`).toLocaleDateString(locale || 'it', { day: 'numeric', month: 'long' }) } catch { return TRAGUARDO.dal } }, [locale])
+  const metaCorta = `€${corto(TRAGUARDO.euro).replace(/,00 M$/, ' M')}`
+
   const accesi = new Set(impulsi.map(i => i.id))
   const fa = (ms) => {
     const s = Math.max(0, (Date.now() - ms) / 1000)
@@ -328,6 +389,11 @@ export default function GeneraleLive() {
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
 
       <Stelle />
+      {festa > 0 && (
+        <Festa key={festa} onFine={() => setFesta(0)}
+          titolo={t('gen.lv.goalBanner', null, 'Obiettivo raggiunto')}
+          cifra={`€${cifra(TRAGUARDO.euro)}`} />
+      )}
       <header className="gl-testa">
         <a href="/" className="gl-marchio" title={t('gen.backToApp', null, 'Torna a LyftAI')}>
           <LogoMark size={30} />
@@ -350,7 +416,7 @@ export default function GeneraleLive() {
         <p className="gl-avviso gl-centro">{t('gen.noShops', null, 'Nessun cliente con Shopify collegato.')}</p>
       ) : (
         <main className="gl-corpo">
-          <div className="gl-globo"><GloboLive visitatori={quadro.punti} luoghi={quadro.luoghi} impulsi={impulsi} flussi={quadro.flussi} sedi={quadro.sedi} /></div>
+          <div className="gl-globo"><GloboLive visitatori={quadro.punti} luoghi={quadro.luoghi} impulsi={impulsi} flussi={quadro.flussi} sedi={quadro.sedi} festa={festa > 0} /></div>
 
           <section className="gl-sinistra">
             <p className="gl-sopra">
@@ -359,11 +425,31 @@ export default function GeneraleLive() {
               <span className="gl-loghi gl-loghi-eroe"><PlatformIcon platform="shopify" size={18} /></span>
               {!quadro.soloOggi && quadro.delta != null && <span className="gl-delta">{t('gen.lv.vsPrev', { p: segno(quadro.delta) }, `${segno(quadro.delta)} sul periodo prima`)}</span>}
             </p>
-            <div className="gl-eroe"><span className="gl-euro">€</span><Numero valore={quadro.fatturato} formato={(v) => cifra(Math.round(v))} /></div>
+            <div className={`gl-eroe${festa > 0 ? ' gl-eroe-festa' : ''}`}><span className="gl-euro">€</span><Numero valore={quadro.fatturato} formato={(v) => cifra(Math.round(v))} /></div>
             {(quadro.mancanti.length > 0 || (!quadro.tutti && lista.length > 0)) && (
               <p className="gl-avviso">{quadro.mancanti.length > 0
                 ? t('gen.lv.missing', { nomi: quadro.mancanti.join(', ') }, `Totale senza ${quadro.mancanti.join(', ')}: i dati non arrivano.`)
                 : t('gen.readingN', { a: quadro.arrivati, n: lista.length }, `sto leggendo… ${quadro.arrivati} negozi su ${lista.length}`)}</p>
+            )}
+
+            {/* Il traguardo: quanto manca ai 2 milioni dal 1° ottobre (conto suo, non segue il periodo).
+                Raggiunto, diventa un sigillo d'oro: toccandolo si rivede la festa. */}
+            {traguardo.fatto ? (
+              <button type="button" className="gl-meta gl-meta-fatta" onClick={() => setFesta(f => f + 1)} title={t('gen.lv.goalReplay', null, 'Rivedi la festa')}>
+                <span className="gl-meta-riga">
+                  <span className="gl-meta-nome"><Icon name="star" size={13} />{t('gen.lv.goalDone', { v: metaCorta }, `Obiettivo ${metaCorta} raggiunto`)}</span>
+                  {traguardo.euro != null && <b>€{cifra(Math.round(traguardo.euro))}</b>}
+                </span>
+                <span className="gl-meta-barra"><i style={{ width: '100%' }} /></span>
+              </button>
+            ) : (
+              <div className="gl-meta">
+                <span className="gl-meta-riga">
+                  <span className="gl-meta-nome">{t('gen.lv.goal', { v: metaCorta }, `Obiettivo ${metaCorta}`)}<em>{t('gen.lv.goalFrom', { d: dalGiorno }, `dal ${dalGiorno}`)}</em></span>
+                  <b>{traguardo.euro == null ? '—' : t('gen.lv.goalLeft', { v: `€${cifra(Math.round(TRAGUARDO.euro - traguardo.euro))}` }, `mancano €${cifra(Math.round(TRAGUARDO.euro - traguardo.euro))}`)}</b>
+                </span>
+                <span className="gl-meta-barra"><i style={{ width: `${Math.max(0, Math.min(100, num(traguardo.euro) / TRAGUARDO.euro * 100)).toFixed(2)}%` }} /></span>
+              </div>
             )}
 
             {/* I quattro dati in schede a vetro (come le schede di KPI Brain, ma traslucide): sopra il
@@ -459,6 +545,25 @@ const CSS = `
 .gl-euro,.gl-eroe .gl-numero>span:last-child{display:inline-block;background:linear-gradient(180deg,#fff2c4 0%,#f4d079 42%,#d9a53c 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#f4d079}
 .gl-numero{position:relative;display:inline-block}
 .gl-lampo{position:absolute;inset:-18% -8%;border-radius:18px;background:radial-gradient(ellipse at center,rgba(255,236,200,.42),rgba(255,236,200,0) 68%);animation:gl-lampo 1.5s ease-out forwards;pointer-events:none}
+.gl-eroe{margin-bottom:clamp(6px,1.2vh,14px)}
+.gl-eroe-festa{animation:gl-eroe-festa 1.6s ease-in-out infinite}
+.gl-meta{display:flex;flex-direction:column;gap:7px;width:min(100%,clamp(330px,29vw,560px));margin:0 0 clamp(10px,2vh,22px);padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left}
+button.gl-meta{cursor:pointer}
+.gl-meta-riga{display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:clamp(12px,.92vw,15px);color:rgba(255,255,255,.72);white-space:nowrap}
+.gl-meta-nome{display:inline-flex;align-items:center;gap:7px;font-weight:500;min-width:0}
+.gl-meta-nome em{font-style:normal;color:rgba(255,255,255,.46);font-weight:400}
+.gl-meta-riga b{font-weight:600;color:#fff}
+.gl-meta-barra{display:block;height:3px;border-radius:3px;background:rgba(255,255,255,.16);overflow:hidden}
+.gl-meta-barra i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#d9a53c,#f6cf6b 60%,#fff2c4);transition:width 1s ease}
+.gl-meta-fatta .gl-meta-nome{color:#f6cf6b}
+.gl-meta-fatta:hover .gl-meta-nome{color:#fff2c4}
+.gl-festa{position:fixed;inset:0;z-index:80;pointer-events:none;display:flex;align-items:center;justify-content:center}
+.gl-festa-tela{position:absolute;inset:0;width:100%;height:100%}
+.gl-festa-cartello{position:relative;display:flex;flex-direction:column;align-items:center;gap:clamp(6px,1vh,12px);padding:clamp(22px,3.4vh,44px) clamp(28px,4vw,72px);max-width:calc(100vw - 32px);border-radius:clamp(22px,2vw,34px);text-align:center;background:linear-gradient(160deg,rgba(255,255,255,.2),rgba(255,255,255,.07) 55%,rgba(255,255,255,.12));border:1px solid rgba(255,226,150,.5);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 30px 90px rgba(0,0,0,.6),0 0 90px rgba(246,207,107,.28);-webkit-backdrop-filter:blur(30px) saturate(170%);backdrop-filter:blur(30px) saturate(170%);animation:gl-cartello 10.5s cubic-bezier(.2,.9,.25,1) both}
+.gl-festa-titolo{font-size:clamp(14px,1.5vw,26px);font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:#fff}
+.gl-festa-cifra{font-size:clamp(46px,6.2vw,128px);font-weight:650;letter-spacing:-.045em;line-height:1.04;white-space:nowrap;background:linear-gradient(180deg,#fff2c4 0%,#f4d079 42%,#d9a53c 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#f4d079}
+@keyframes gl-cartello{0%{opacity:0;transform:scale(.72)}6%{opacity:1;transform:scale(1.04)}10%{transform:scale(1)}90%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.03)}}
+@keyframes gl-eroe-festa{0%,100%{filter:drop-shadow(0 4px 26px rgba(0,0,0,.75))}50%{filter:drop-shadow(0 0 34px rgba(246,207,107,.75))}}
 .gl-avviso{margin:-6px 0 14px;font-size:13px;color:rgba(255,255,255,.7)}
 .gl-centro{margin:auto;text-align:center;max-width:460px;padding:0 20px}
 .gl-schede{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(8px,.8vw,14px);width:min(100%,clamp(330px,29vw,560px));margin-bottom:clamp(10px,2vh,24px)}
@@ -514,7 +619,8 @@ const CSS = `
 @media (max-width:900px){
   .gl{position:static;min-height:100dvh;overflow:visible;overflow-x:clip}
   .gl-centro-alto{position:static;transform:none;margin-left:auto}
-  .gl-schede{width:100%}
+  .gl-schede,.gl-meta{width:100%}
+  .gl-meta-riga{white-space:normal}
   .gl-solo-largo,.gl-orologio,.gl-marchio span{display:none}
   .gl-testa{gap:10px}.gl-azioni{gap:8px;min-width:0}
   .gl-corpo{display:flex;flex-direction:column;padding:18px 16px 40px}
@@ -526,5 +632,6 @@ const CSS = `
   .gl-passo{margin-top:8px}
   .gl-delta{display:block;margin:4px 0 0}
 }
-@media (prefers-reduced-motion:reduce){.gl-lampo,.gl-live i,.gl-ordini li,.gl-impulso-euro{animation:none}}
+@media (prefers-reduced-motion:reduce){.gl-lampo,.gl-live i,.gl-ordini li,.gl-impulso-euro,.gl-eroe-festa{animation:none}.gl-festa-cartello{animation:gl-cartello-calmo 10.5s linear both}}
+@keyframes gl-cartello-calmo{0%{opacity:0}6%{opacity:1}90%{opacity:1}100%{opacity:0}}
 `

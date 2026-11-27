@@ -6,6 +6,8 @@
 //  · archi oro        = i flussi dell'ultima mezz'ora: da chi ha comprato alla sede del negozio,
 //                       vivi appena arrivano e via via piu' tenui
 //  · anello + «+€155» = un ordine appena arrivato: il globo ci si porta sopra, poi riprende
+//  · festa            = traguardo raggiunto: per una decina di secondi il chiarore si fa d'oro e
+//                       dalle sedi dei negozi partono anelli (poi torna bianco, com'e' di solito)
 // NON fa il giro completo: quasi tutto succede in Italia, e con la rotazione intera per due terzi
 // del tempo si guardava l'altra faccia del mondo (visto in produzione il 27 nov: Nord America in
 // primo piano, Italia sparita). Dondola piano intorno all'Europa: e' sempre in moto, ma cio' che
@@ -27,7 +29,7 @@ const ZOOM_MIN = 0.7, ZOOM_MAX = 3.2, ZOOM_PASSO = 1.3
 
 const ORO = '#f6cf6b'
 
-export default function GloboLive({ visitatori = [], luoghi = [], impulsi = [], flussi = [], sedi = [] }) {
+export default function GloboLive({ visitatori = [], luoghi = [], impulsi = [], flussi = [], sedi = [], festa = false }) {
   const wrapRef = useRef(null)
   const globeRef = useRef(null)
   const [area, setArea] = useState({ w: 800, h: 800 })
@@ -120,6 +122,7 @@ export default function GloboLive({ visitatori = [], luoghi = [], impulsi = [], 
   const coloreFlusso = useMemo(() => (d) => { const v = 1 - 0.7 * (d.eta || 0); return [`rgba(246,207,107,${(0.35 * v).toFixed(2)})`, `rgba(255,232,160,${(1 * v).toFixed(2)})`] }, [])
 
   const conPunto = useMemo(() => impulsi.filter(p => p.lat != null && p.lng != null), [impulsi])
+  const anelli = useMemo(() => (festa ? [...conPunto, ...sedi] : conPunto), [festa, conPunto, sedi])
   const etichetta = useMemo(() => (d) => {
     const el = document.createElement('div')
     el.className = 'gl-impulso'
@@ -132,6 +135,9 @@ export default function GloboLive({ visitatori = [], luoghi = [], impulsi = [], 
       {/* il chiarore dietro la sfera: segue la sua grandezza, zoom compreso */}
       <div aria-hidden="true" style={{ position: 'absolute', left: '50%', top: '50%', width: alone, height: alone, transform: 'translate(-50%,-50%)', borderRadius: '50%', pointerEvents: 'none', transition: 'width .45s ease, height .45s ease',
         background: 'radial-gradient(circle closest-side,rgba(205,216,240,.34) 0,rgba(205,216,240,.3) 64%,rgba(205,216,240,.2) 71%,rgba(205,216,240,.09) 80%,rgba(205,216,240,0) 93%)' }} />
+      {/* lo stesso chiarore in oro, sopra a quello bianco: si accende solo durante la festa */}
+      <div aria-hidden="true" style={{ position: 'absolute', left: '50%', top: '50%', width: alone, height: alone, transform: 'translate(-50%,-50%)', borderRadius: '50%', pointerEvents: 'none', opacity: festa ? 1 : 0, transition: 'opacity 1.4s ease, width .45s ease, height .45s ease',
+        background: 'radial-gradient(circle closest-side,rgba(246,207,107,.55) 0,rgba(246,207,107,.5) 64%,rgba(246,207,107,.3) 71%,rgba(246,207,107,.1) 77%,rgba(246,207,107,0) 83%)' }} />
       <div className="gl-zoom">
         <button type="button" aria-label="Zoom −" onClick={meno} disabled={zoom <= ZOOM_MIN}>−</button>
         <button type="button" aria-label="Zoom +" onClick={piu} disabled={zoom >= ZOOM_MAX}>+</button>
@@ -160,7 +166,7 @@ export default function GloboLive({ visitatori = [], luoghi = [], impulsi = [], 
         pointColor="c"
         pointLabel="et"
         pointsMerge={false}
-        ringsData={conPunto}
+        ringsData={anelli}
         ringLat="lat"
         ringLng="lng"
         ringColor={() => (t) => `rgba(255,214,110,${Math.max(0, 1 - t)})`}
